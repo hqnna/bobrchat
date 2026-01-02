@@ -1,6 +1,5 @@
-"use client";
-
 import { PlusIcon } from "lucide-react";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -12,10 +11,32 @@ import {
   SidebarHeader,
   SidebarTrigger,
 } from "~/components/ui/sidebar";
+import { auth } from "~/lib/auth";
+import { groupThreadsByDate } from "~/lib/utils/thread-grouper";
+import { getThreadsByUserId } from "~/server/db/queries/chat";
 
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
+import { ThreadList } from "./thread-list";
 import { UserProfileCard } from "./user-profile-card";
+
+async function ThreadListContainer() {
+  const headersList = await headers();
+  const session = await auth.api.getSession({
+    headers: {
+      cookie: headersList.get("cookie") || "",
+    },
+  });
+
+  if (!session) {
+    return null;
+  }
+
+  const threads = await getThreadsByUserId(session.user.id);
+  const groupedThreads = groupThreadsByDate(threads);
+
+  return <ThreadList groupedThreads={groupedThreads} />;
+}
 
 export function ChatSidebar() {
   return (
@@ -47,8 +68,19 @@ export function ChatSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup />
-        <SidebarGroup />
+        <SidebarGroup>
+          <Suspense
+            fallback={(
+              <div className="space-y-2">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            )}
+          >
+            <ThreadListContainer />
+          </Suspense>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-0">
         <Suspense
@@ -64,7 +96,7 @@ export function ChatSidebar() {
             </div>
           )}
         >
-          <UserProfileCard onProfileClick={() => (true)} />
+          <UserProfileCard />
         </Suspense>
       </SidebarFooter>
     </Sidebar>

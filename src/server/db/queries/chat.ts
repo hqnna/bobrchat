@@ -99,10 +99,12 @@ export async function saveMessages(
  * @return {Promise<string>} The ID of the newly created thread
  */
 export async function createThread(userId: string): Promise<string> {
+  const now = new Date();
   const result = await db
     .insert(threads)
     .values({
       userId,
+      lastMessageAt: now,
     })
     .returning({ id: threads.id });
 

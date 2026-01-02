@@ -116,7 +116,7 @@
   --chart-3: oklch(0.75 0.18 60);
   --chart-4: oklch(0.65 0.21 260);
   --chart-5: oklch(0.7 0.2 200);
-  --sidebar: oklch(0.14 0.01 260);
+  --sidebar: oklch(0.16 0.01 260);
   --sidebar-foreground: oklch(0.94 0.01 100);
   --sidebar-primary: oklch(0.72 0.19 135);
   --sidebar-primary-foreground: oklch(0.16 0.01 260);
@@ -159,7 +159,7 @@
 }
 
 .markdown blockquote {
-  @apply border-primary text-muted-foreground border-l-2 pl-4 italic;
+  @apply border-primary text-muted-foreground border-l-2 pl-4 italic mb-3;
 }
 
 .markdown hr {

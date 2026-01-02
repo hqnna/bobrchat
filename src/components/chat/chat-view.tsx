@@ -12,16 +12,18 @@ export function ChatView({
   input,
   setInput,
   sendMessage,
+  isLoading,
 }: {
   messages: ChatUIMessage[];
   input: string;
   setInput: (value: string) => void;
   sendMessage: UseChatHelpers<ChatUIMessage>["sendMessage"];
+  isLoading?: boolean;
 }) {
   return (
     <div className="flex h-full max-h-screen flex-col">
       <ScrollArea className="min-h-0 flex-1">
-        <ChatMessages messages={messages} />
+        <ChatMessages messages={messages} isLoading={isLoading} />
       </ScrollArea>
       <div className="shrink-0">
         <ChatInput

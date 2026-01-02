@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
@@ -20,6 +21,7 @@ export async function createNewThread(): Promise<string> {
     throw new Error("Not authenticated");
 
   const threadId = await createThread(session.user.id);
+  revalidatePath("/");
   return threadId;
 }
 

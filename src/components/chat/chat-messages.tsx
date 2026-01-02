@@ -1,10 +1,17 @@
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
+import { LoadingSpinner } from "./loading-spinner";
 import { MemoizedMarkdown } from "./markdown";
 import { MessageMetrics } from "./message-metrics";
 import { UserMessage } from "./user-message";
 
-export function ChatMessages({ messages }: { messages: ChatUIMessage[] }) {
+export function ChatMessages({
+  messages,
+  isLoading,
+}: {
+  messages: ChatUIMessage[];
+  isLoading?: boolean;
+}) {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 p-4">
       {messages.map((message) => {
@@ -43,6 +50,7 @@ export function ChatMessages({ messages }: { messages: ChatUIMessage[] }) {
           </div>
         );
       })}
+      {isLoading && <LoadingSpinner />}
     </div>
   );
 }

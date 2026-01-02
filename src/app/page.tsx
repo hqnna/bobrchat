@@ -16,7 +16,7 @@ export default function HomePage(): React.ReactNode {
   const [input, setInput] = useState<string>("");
   const threadIdRef = useRef<string | null>(null);
 
-  const { messages, sendMessage } = useChat<ChatUIMessage>({
+  const { messages, sendMessage, status } = useChat<ChatUIMessage>({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages: allMessages }) => ({
@@ -55,6 +55,7 @@ export default function HomePage(): React.ReactNode {
       input={input}
       setInput={setInput}
       sendMessage={handleSendMessage}
+      isLoading={status === "submitted" || status === "streaming"}
     />
   );
 }

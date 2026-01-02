@@ -7,11 +7,7 @@ import { cn } from "~/lib/utils";
 
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
-type UserProfileCardProps = {
-  onProfileClick: () => void;
-};
-
-export function UserProfileCard({ onProfileClick }: UserProfileCardProps) {
+export function UserProfileCard() {
   const { data: session } = useSession();
   const hasApiKey = true;
 
@@ -23,10 +19,10 @@ export function UserProfileCard({ onProfileClick }: UserProfileCardProps) {
     <div
       className={cn(`
         hover:bg-muted/50
-        group/user flex cursor-pointer items-center gap-3 p-6 pt-4
+        group/user flex cursor-pointer items-center gap-3 p-6 py-4
         transition-colors
       `)}
-      onClick={onProfileClick}
+      // onClick={onProfileClick}
     >
       <Avatar className="size-9 shrink-0">
         <AvatarImage src={session.user.image || undefined} alt={session.user.name} />

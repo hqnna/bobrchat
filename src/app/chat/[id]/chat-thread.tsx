@@ -19,7 +19,7 @@ function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNo
   const [input, setInput] = useState<string>("");
   const { id } = use(params);
 
-  const { messages, sendMessage } = useChat<ChatUIMessage>({
+  const { messages, sendMessage, status } = useChat<ChatUIMessage>({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages: allMessages }) => ({
@@ -42,7 +42,13 @@ function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNo
   };
 
   return (
-    <ChatView messages={messages} input={input} setInput={setInput} sendMessage={handleSendMessage} />
+    <ChatView
+      messages={messages}
+      input={input}
+      setInput={setInput}
+      sendMessage={handleSendMessage}
+      isLoading={status === "submitted" || status === "streaming"}
+    />
   );
 }
 
