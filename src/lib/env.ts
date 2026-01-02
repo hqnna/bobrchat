@@ -10,7 +10,6 @@ const schema = {
     GITHUB_CLIENT_ID: z.string(),
     GITHUB_CLIENT_SECRET: z.string(),
     ENCRYPTION_SECRET: z.string().min(32),
-    OPENROUTER_API_KEY: z.string(),
   }),
   client: z.object({
     NEXT_PUBLIC_BETTER_AUTH_URL: z.url().optional(),

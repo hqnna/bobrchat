@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
@@ -17,7 +17,16 @@ type ChatThreadProps = {
 
 function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNode {
   const [input, setInput] = useState<string>("");
+  const [browserApiKey, setBrowserApiKey] = useState<string | null>(null);
   const { id } = use(params);
+
+  useEffect(() => {
+    const key = localStorage.getItem("openrouter_api_key");
+    if (key) {
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
+      setBrowserApiKey(key);
+    }
+  }, []);
 
   const { messages, sendMessage, status } = useChat<ChatUIMessage>({
     transport: new DefaultChatTransport({
@@ -26,6 +35,7 @@ function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNo
         body: {
           messages: allMessages,
           threadId: id,
+          ...(browserApiKey && { browserApiKey }),
         },
       }),
     }),

@@ -2,7 +2,7 @@
 
 import { KeyIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useSession } from "~/lib/auth-client";
 import { cn } from "~/lib/utils";
@@ -13,7 +13,26 @@ export function UserProfileCard() {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
-  const hasApiKey = true;
+
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function checkApiKey() {
+      try {
+        const response = await fetch("/api/user/api-key-status");
+        if (response.ok) {
+          const data = await response.json();
+          setHasApiKey(data.hasApiKey);
+        }
+      }
+      catch (error) {
+        console.error("Failed to check API key status:", error);
+        setHasApiKey(false);
+      }
+    }
+
+    checkApiKey();
+  }, []);
 
   const openSettings = useCallback(() => {
     const referrer = encodeURIComponent(pathname);

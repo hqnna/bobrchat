@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useCallback, useState } from "react";
 
 import type { GroupedThreads } from "~/lib/utils/thread-grouper";
 

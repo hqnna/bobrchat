@@ -45,6 +45,8 @@ export const ChatMessages = memo(({
                   model: message.metadata.model || null,
                   tokensPerSecond: message.metadata.tokensPerSecond.toFixed(2) || null,
                   totalTokens: message.metadata.inputTokens + message.metadata.outputTokens || null,
+                  inputTokens: message.metadata.inputTokens || null,
+                  outputTokens: message.metadata.outputTokens || null,
                   ttft: message.metadata.timeToFirstTokenMs || null,
                   costUsd: message.metadata.costUSD.toFixed(6) || null,
                   content: textContent,

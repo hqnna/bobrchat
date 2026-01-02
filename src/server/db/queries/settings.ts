@@ -270,3 +270,37 @@ export async function deleteApiKey(userId: string, provider: "openrouter"): Prom
     })
     .where(eq(userSettings.userId, userId));
 }
+
+/**
+ * Check if user has an API key configured for a provider
+ *
+ * @param userId ID of the user
+ * @param provider API provider name (e.g., 'openrouter')
+ * @return {Promise<boolean>} True if user has an API key configured
+ */
+export async function hasApiKey(userId: string, provider: "openrouter"): Promise<boolean> {
+  const result = await db
+    .select({ settings: userSettings.settings, encryptedApiKeys: userSettings.encryptedApiKeys })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+
+  if (!result.length)
+    return false;
+
+  const settings = result[0].settings as UserSettingsData;
+  const encryptedApiKeys = result[0].encryptedApiKeys as EncryptedApiKeysData;
+
+  // Check if provider has a storage preference configured
+  const storageType = settings.apiKeyStorage[provider];
+  if (!storageType)
+    return false;
+
+  // If server-side, check if encrypted key exists
+  if (storageType === "server") {
+    return !!encryptedApiKeys[provider];
+  }
+
+  // If client-side, we assume it's configured (actual key is in browser)
+  return true;
+}

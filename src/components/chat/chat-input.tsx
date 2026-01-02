@@ -1,11 +1,8 @@
 "use client";
 
-import {
-  PaperclipIcon,
-  SearchIcon,
-  SendIcon,
-} from "lucide-react";
+import { AlertCircle, PaperclipIcon, SearchIcon, SendIcon } from "lucide-react";
 import * as React from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -26,6 +23,25 @@ export function ChatInput({
   onSendMessage,
 }: ChatInputProps) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    async function checkApiKey() {
+      try {
+        const response = await fetch("/api/user/api-key-status");
+        if (response.ok) {
+          const data = await response.json();
+          setHasApiKey(data.hasApiKey);
+        }
+      }
+      catch (error) {
+        console.error("Failed to check API key status:", error);
+        setHasApiKey(false);
+      }
+    }
+
+    checkApiKey();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +60,35 @@ export function ChatInput({
   return (
     <div className={cn(`bg-background p-4 pt-0`, className)}>
       <div className="mx-auto max-w-3xl space-y-3">
+        {/* API Key Warning */}
+        {hasApiKey === false && (
+          <div
+            className={`
+              flex gap-3 border border-amber-500/50 bg-amber-500/5 p-3
+            `}
+          >
+            <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+            <div
+              className={`
+                text-sm text-amber-800
+                dark:text-amber-200
+              `}
+            >
+              No API key configured. Set up your OpenRouter API key in
+              <a
+                href="/settings?tab=integrations"
+                className={`
+                  ml-1 font-semibold underline
+                  hover:no-underline
+                `}
+              >
+                settings
+              </a>
+              {" "}
+              to send messages.
+            </div>
+          </div>
+        )}
         <form
           onSubmit={handleSubmit}
           className={cn(`
@@ -56,7 +101,7 @@ export function ChatInput({
             onChange={e => onValueChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Type your message here..."
-            disabled={false}
+            disabled={hasApiKey === false}
             className={`
               max-h-50 min-h-13 resize-none border-0 px-3 py-3 text-base
               focus-visible:ring-0

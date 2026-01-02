@@ -11,6 +11,8 @@ export type MessageMetricsData = {
   model: string | null;
   tokensPerSecond: string | null;
   totalTokens: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
   ttft: number | null;
   costUsd: string | null;
   content: string;
@@ -105,11 +107,24 @@ export function MessageMetrics({
 
         {metrics.totalTokens && (
           <>
-            <span>
-              {metrics.totalTokens.toLocaleString()}
-              {" "}
-              tokens
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-help">
+                  {metrics.outputTokens?.toLocaleString()}
+                  {" "}
+                  tokens
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Input:
+                {" "}
+                {metrics.inputTokens?.toLocaleString() ?? 0}
+                {" "}
+                • Output:
+                {" "}
+                {metrics.outputTokens?.toLocaleString() ?? 0}
+              </TooltipContent>
+            </Tooltip>
             <span>•</span>
           </>
         )}

@@ -14,6 +14,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { cn } from "~/lib/utils";
 
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -43,8 +44,8 @@ export function IntegrationsTab() {
 
   const [apiKey, setApiKeyValue] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
-  const [storageType, setStorageType] = useState<StorageType>(
-    () => settings?.apiKeyStorage?.openrouter ?? "client",
+  const [storageType, setStorageType] = useState<StorageType | null>(
+    () => settings?.apiKeyStorage?.openrouter ?? null,
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -60,12 +61,22 @@ export function IntegrationsTab() {
   }
 
   const handleSave = useCallback(async () => {
-    if (!apiKey.trim())
+    if (!apiKey.trim() || !storageType)
       return;
 
     setIsSaving(true);
     try {
       await setApiKey("openrouter", apiKey, storageType === "server");
+
+      // Save to localStorage if browser-only storage
+      if (storageType === "client") {
+        localStorage.setItem("openrouter_api_key", apiKey);
+      }
+      else {
+        // Remove from localStorage if switching to server
+        localStorage.removeItem("openrouter_api_key");
+      }
+
       setApiKeyValue("");
     }
     finally {
@@ -77,6 +88,8 @@ export function IntegrationsTab() {
     setIsDeleting(true);
     try {
       await removeApiKey("openrouter");
+      // Remove from localStorage as well
+      localStorage.removeItem("openrouter_api_key");
     }
     finally {
       setIsDeleting(false);
@@ -103,68 +116,57 @@ export function IntegrationsTab() {
             <div className="flex items-center gap-2">
               <KeyIcon className="size-5" />
               <h4 className="font-medium">OpenRouter API Key</h4>
+              {hasExistingKey
+                ? (
+                    <Badge
+                      variant="outline"
+                      className="border-primary bg-primary/10"
+                    >
+                      <span className="text-xs">
+                        Configured
+                      </span>
+                    </Badge>
+                  )
+                : (
+                    <Badge variant="outline">
+                      <span className="text-xs">Not Configured</span>
+                    </Badge>
+                  )}
             </div>
-
-            {/* Status Indicator */}
-            {hasExistingKey
-              ? (
-                  <div
-                    className={cn(`
-                      flex items-center gap-2 rounded-lg border
-                      border-green-500/20 bg-green-500/10 p-3
-                    `)}
-                  >
-                    <CheckIcon className="size-4 text-green-500" />
-                    <span className="text-sm">
-                      API key configured (
-                      {settings?.apiKeyStorage?.openrouter === "server"
-                        ? "encrypted server storage"
-                        : "browser storage"}
-                      )
-                    </span>
-                  </div>
-                )
-              : (
-                  <div
-                    className={cn(`
-                      text-muted-foreground border-muted flex items-center gap-2
-                      rounded-lg border p-3
-                    `)}
-                  >
-                    <KeyIcon className="size-4" />
-                    <span className="text-sm">No API key configured</span>
-                  </div>
-                )}
 
             {/* API Key Input */}
             <div className="space-y-2">
-              <Label htmlFor="apiKey">
-                {hasExistingKey ? "Update API Key" : "Enter API Key"}
-              </Label>
-              <div className="relative">
-                <Input
-                  id="apiKey"
-                  type={showApiKey ? "text" : "password"}
-                  value={apiKey}
-                  onChange={e => setApiKeyValue(e.target.value)}
-                  placeholder="sk-or-v1-..."
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className={cn(`
-                    text-muted-foreground absolute top-1/2 right-3
-                    -translate-y-1/2 transition-colors
-                    hover:text-foreground
-                  `)}
-                >
-                  {showApiKey
-                    ? <EyeOffIcon className="size-4" />
-                    : (
-                        <EyeIcon className="size-4" />
-                      )}
-                </button>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="apiKey">
+                  {hasExistingKey ? "Update API Key" : "Enter API Key"}
+                </Label>
+              </div>
+              <div className="relative flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="apiKey"
+                    type={showApiKey ? "text" : "password"}
+                    value={apiKey}
+                    onChange={e => setApiKeyValue(e.target.value)}
+                    placeholder="sk-or-v1-..."
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className={cn(`
+                      text-muted-foreground absolute top-1/2 right-3
+                      -translate-y-1/2 transition-colors
+                      hover:text-foreground
+                    `)}
+                  >
+                    {showApiKey
+                      ? <EyeOffIcon className="size-4" />
+                      : (
+                          <EyeIcon className="size-4" />
+                        )}
+                  </button>
+                </div>
               </div>
               <p className="text-muted-foreground text-xs">
                 Get your API key from
@@ -185,83 +187,127 @@ export function IntegrationsTab() {
 
             {/* Storage Type Selection */}
             <div className="space-y-3">
-              <Label>Storage Method</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {storageOptions.map((option) => {
-                  const Icon = option.icon;
-                  const isSelected = storageType === option.value;
-
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setStorageType(option.value)}
-                      className={cn(
-                        `
-                          flex flex-col items-start gap-1 rounded-lg border p-3
-                          text-left transition-colors
-                        `,
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : `
-                            border-input
-                            hover:bg-muted
-                          `,
-                      )}
+              <Label>
+                Storage Method
+                {!hasExistingKey && (
+                  <span className="text-destructive -ml-1">*</span>
+                )}
+              </Label>
+              {hasExistingKey && storageType
+                ? (
+                    <div
+                      className={cn(`
+                        border-primary bg-primary/5 flex flex-col gap-1
+                        rounded-lg border p-3
+                      `)}
                     >
-                      <div className="flex items-center gap-2">
-                        <Icon className="size-4" />
-                        <span className="text-sm font-medium">{option.label}</span>
-                        {isSelected && (
-                          <CheckIcon
-                            className={cn(`
-                              bg-primary text-primary-foreground size-3
-                              rounded-full p-0.5
-                            `)}
-                          />
-                        )}
-                      </div>
-                      <span className="text-muted-foreground text-xs">
-                        {option.description}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      {(() => {
+                        const option = storageOptions.find(
+                          o => o.value === storageType,
+                        );
+                        if (!option)
+                          return null;
+                        const Icon = option.icon;
+                        return (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <Icon className="size-4" />
+                              <span className="text-sm font-medium">
+                                {option.label}
+                              </span>
+                              <CheckIcon
+                                className={cn(`
+                                  bg-primary text-primary-foreground size-3
+                                  rounded-full p-0.5
+                                `)}
+                              />
+                            </div>
+                            <span className="text-muted-foreground text-xs">
+                              {option.description}
+                            </span>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )
+                : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {storageOptions.map((option) => {
+                        const Icon = option.icon;
+                        const isSelected = storageType === option.value;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setStorageType(option.value)}
+                            className={cn(
+                              `
+                                flex flex-col items-start gap-1 rounded-lg
+                                border p-3 text-left transition-colors
+                              `,
+                              isSelected
+                                ? "border-primary bg-primary/5"
+                                : `
+                                  border-input cursor-pointer
+                                  hover:bg-muted
+                                `,
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Icon className="size-4" />
+                              <span className="text-sm font-medium">
+                                {option.label}
+                              </span>
+                              {isSelected && (
+                                <CheckIcon
+                                  className={cn(`
+                                    bg-primary text-primary-foreground size-3
+                                    rounded-full p-0.5
+                                  `)}
+                                />
+                              )}
+                            </div>
+                            <span className="text-muted-foreground text-xs">
+                              {option.description}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
               <p className="text-muted-foreground text-xs">
-                {storageType === "server"
-                  ? "Your key will be encrypted and stored securely on our servers."
-                  : "Your key stays in your browser and is never sent to our servers."}
+                {hasExistingKey
+                  ? "Storage method is locked. Delete your key to change it."
+                  : storageType === "server"
+                    ? "Your key will be encrypted and stored securely on our servers."
+                    : storageType === "client"
+                      ? "Your key stays in your browser and is never sent to our servers."
+                      : "Select a storage method to continue."}
               </p>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={handleSave}
+                  disabled={!apiKey.trim() || !storageType || isSaving}
+                >
+                  <SaveIcon className="size-4" />
+                  {isSaving ? "Saving..." : hasExistingKey ? "Update Key" : "Save Key"}
+                </Button>
+                {hasExistingKey && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="h-9"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                  >
+                    <TrashIcon className="size-4" />
+                    {isDeleting ? "Removing..." : "Remove"}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="border-t p-4">
-        <div className="flex justify-between">
-          {hasExistingKey
-            ? (
-                <Button
-                  variant="destructive"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                >
-                  <TrashIcon className="size-4" />
-                  {isDeleting ? "Removing..." : "Remove Key"}
-                </Button>
-              )
-            : (
-                <div />
-              )}
-          <Button
-            onClick={handleSave}
-            disabled={!apiKey.trim() || isSaving}
-          >
-            <SaveIcon className="size-4" />
-            {isSaving ? "Saving..." : hasExistingKey ? "Update Key" : "Save Key"}
-          </Button>
         </div>
       </div>
     </div>
