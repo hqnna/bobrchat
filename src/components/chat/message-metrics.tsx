@@ -4,6 +4,7 @@ import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "~/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 
 export type MessageMetricsData = {
   id: string;
@@ -125,7 +126,24 @@ export function MessageMetrics({
           </>
         )}
 
-        {metrics.costUsd && <span>{formatCost(metrics.costUsd)}</span>}
+        {metrics.costUsd && (
+          metrics.costUsd === "0.000000"
+            ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-help underline decoration-dotted">
+                      {formatCost(metrics.costUsd)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    This model is either free, or pricing information is not available.
+                  </TooltipContent>
+                </Tooltip>
+              )
+            : (
+                <span>{formatCost(metrics.costUsd)}</span>
+              )
+        )}
       </div>
     </div>
   );

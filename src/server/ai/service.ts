@@ -21,7 +21,19 @@ export async function streamChatResponse(messages: ChatUIMessage[], modelId: str
 
   // TODO: Read this from the user's settings
   const provider = getModelProvider(process.env.OPENROUTER_API_KEY!);
-  const { inputCostPerMillion, outputCostPerMillion } = await getCostPricing(modelId);
+  let inputCostPerMillion = 0;
+  let outputCostPerMillion = 0;
+  try {
+    const pricing = await getCostPricing(modelId);
+    inputCostPerMillion = pricing.inputCostPerMillion;
+    outputCostPerMillion = pricing.outputCostPerMillion;
+  }
+  catch (error) {
+    console.error(`Failed to get pricing for model ${modelId}:`, error);
+    // Return 0 as price if pricing information fails
+    inputCostPerMillion = 0;
+    outputCostPerMillion = 0;
+  }
 
   const result = streamText({
     model: provider(modelId),

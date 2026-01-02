@@ -17,7 +17,7 @@ export type ChatUIMessage = UIMessage<MessageMetadata>;
 export async function POST(req: Request) {
   const { messages, threadId }: { messages: ChatUIMessage[]; threadId?: string }
     = await req.json();
-  const modelId = "google/gemini-3-flash-preview";
+  const modelId = "mistralai/ministral-8b";
 
   const { stream, createMetadata } = await streamChatResponse(messages, modelId);
 
