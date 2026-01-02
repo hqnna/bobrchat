@@ -6,7 +6,7 @@ import { headers } from "next/headers";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { auth } from "~/lib/auth";
-import { createThread, saveMessage } from "~/server/db/queries/chat";
+import { createThread, deleteThreadById, getThreadById, saveMessage } from "~/server/db/queries/chat";
 
 /**
  * Creates a new chat thread for the authenticated user.
@@ -34,4 +34,29 @@ export async function createNewThread(): Promise<string> {
  */
 export async function saveUserMessage(threadId: string, message: ChatUIMessage): Promise<void> {
   await saveMessage(threadId, message);
+}
+
+/**
+ * Deletes a thread for the authenticated user.
+ * Verifies ownership before deletion.
+ *
+ * @param threadId ID of the thread to delete
+ * @return {Promise<void>}
+ */
+export async function deleteThread(threadId: string): Promise<void> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user)
+    throw new Error("Not authenticated");
+
+  const thread = await getThreadById(threadId);
+  if (!thread)
+    throw new Error("Thread not found");
+
+  if (thread.userId !== session.user.id)
+    throw new Error("Unauthorized");
+
+  await deleteThreadById(threadId);
+  revalidatePath("/");
 }

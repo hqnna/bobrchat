@@ -1,12 +1,12 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import type { GroupedThreads } from "~/lib/utils/thread-grouper";
 
-import { cn } from "~/lib/utils";
+import { DeleteThreadDialog } from "./delete-thread-dialog";
+import { ThreadItem } from "./thread-item";
 
 type ThreadListProps = {
   groupedThreads: GroupedThreads;
@@ -17,6 +17,11 @@ export function ThreadList({ groupedThreads }: ThreadListProps) {
   const currentChatId = pathname.startsWith("/chat/")
     ? pathname.split("/chat/")[1]
     : null;
+
+  const [threadToDelete, setThreadToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   const renderGroup = (
     title: string,
@@ -36,26 +41,13 @@ export function ThreadList({ groupedThreads }: ThreadListProps) {
         </h3>
         <div className="space-y-0.5">
           {threads.map(thread => (
-            <Link
+            <ThreadItem
               key={thread.id}
-              href={`/chat/${thread.id}`}
-              className={cn(
-                `
-                  group relative flex items-center gap-2 rounded-md px-2 py-1.5
-                  text-sm transition-colors
-                `,
-                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                currentChatId === thread.id
-                  ? "bg-sidebar-accent"
-                  : "text-sidebar-foreground",
-              )}
-            >
-              <MessageCircle
-                className="size-4"
-                fill={currentChatId === thread.id ? "currentColor" : "none"}
-              />
-              <span className="flex-1 truncate">{thread.title}</span>
-            </Link>
+              id={thread.id}
+              title={thread.title}
+              isActive={currentChatId === thread.id}
+              onDeleteClick={() => setThreadToDelete({ id: thread.id, title: thread.title })}
+            />
           ))}
         </div>
       </div>
@@ -68,6 +60,17 @@ export function ThreadList({ groupedThreads }: ThreadListProps) {
       {renderGroup("Last 7 Days", groupedThreads.last7Days)}
       {renderGroup("Last 30 Days", groupedThreads.last30Days)}
       {renderGroup("Older", groupedThreads.older)}
+      {threadToDelete && (
+        <DeleteThreadDialog
+          open={!!threadToDelete}
+          threadId={threadToDelete.id}
+          threadTitle={threadToDelete.title}
+          onOpenChange={(open) => {
+            if (!open)
+              setThreadToDelete(null);
+          }}
+        />
+      )}
     </div>
   );
 }

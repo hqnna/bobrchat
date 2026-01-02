@@ -139,3 +139,13 @@ export async function getThreadsByUserId(userId: string) {
     .where(eq(threads.userId, userId))
     .orderBy(desc(threads.lastMessageAt));
 }
+
+/**
+ * Delete a thread by ID (cascades to delete associated messages)
+ *
+ * @param threadId ID of the thread to delete
+ * @return {Promise<void>}
+ */
+export async function deleteThreadById(threadId: string): Promise<void> {
+  await db.delete(threads).where(eq(threads.id, threadId));
+}
