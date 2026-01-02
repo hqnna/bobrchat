@@ -3,7 +3,7 @@
 import { MessageCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { memo, useRef, useState, useTransition } from "react";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -22,12 +22,12 @@ type ThreadItemProps = {
   onDeleteClick?: (threadId: string, threadTitle: string) => void;
 };
 
-export function ThreadItem({
+export const ThreadItem = memo(({
   id,
   title,
   isActive,
   onDeleteClick,
-}: ThreadItemProps) {
+}: ThreadItemProps) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isRenaming, setIsRenaming] = useState(false);
@@ -176,4 +176,4 @@ export function ThreadItem({
       </ContextMenuContent>
     </ContextMenu>
   );
-}
+});

@@ -1,3 +1,5 @@
+import { memo, useMemo } from "react";
+
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { LoadingSpinner } from "./loading-spinner";
@@ -5,21 +7,26 @@ import { MemoizedMarkdown } from "./markdown";
 import { MessageMetrics } from "./message-metrics";
 import { UserMessage } from "./user-message";
 
-export function ChatMessages({
+export const ChatMessages = memo(({
   messages,
   isLoading,
 }: {
   messages: ChatUIMessage[];
   isLoading?: boolean;
-}) {
+}) => {
+  const processedMessages = useMemo(() => {
+    return messages.map(message => ({
+      message,
+      textContent: message.parts
+        .filter(part => part.type === "text")
+        .map(part => part.text)
+        .join(""),
+    }));
+  }, [messages]);
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 p-4 py-8">
-      {messages.map((message) => {
-        const textContent = message.parts
-          .filter(part => part.type === "text")
-          .map(part => part.text)
-          .join("");
-
+      {processedMessages.map(({ message, textContent }) => {
         if (message.role === "user") {
           return <UserMessage key={message.id} content={textContent} />;
         }
@@ -53,4 +60,4 @@ export function ChatMessages({
       {isLoading && <LoadingSpinner />}
     </div>
   );
-}
+});

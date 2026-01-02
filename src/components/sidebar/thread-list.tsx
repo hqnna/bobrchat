@@ -1,7 +1,7 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 
 import type { GroupedThreads } from "~/lib/utils/thread-grouper";
 
@@ -22,6 +22,10 @@ export function ThreadList({ groupedThreads }: ThreadListProps) {
     id: string;
     title: string;
   } | null>(null);
+
+  const handleDeleteClick = useCallback((threadId: string, threadTitle: string) => {
+    setThreadToDelete({ id: threadId, title: threadTitle });
+  }, []);
 
   const renderGroup = (
     title: string,
@@ -46,7 +50,7 @@ export function ThreadList({ groupedThreads }: ThreadListProps) {
               id={thread.id}
               title={thread.title}
               isActive={currentChatId === thread.id}
-              onDeleteClick={() => setThreadToDelete({ id: thread.id, title: thread.title })}
+              onDeleteClick={handleDeleteClick}
             />
           ))}
         </div>

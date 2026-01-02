@@ -2,6 +2,8 @@
 
 import type { UseChatHelpers } from "@ai-sdk/react";
 
+import { useCallback } from "react";
+
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { ChatInput } from "~/components/chat/chat-input";
@@ -28,6 +30,12 @@ export function ChatView({
 }) {
   const { scrollRef, messagesEndRef, isInitialScrollComplete } = useChatScroll(messages, { threadId });
 
+  const handleSendMessage = useCallback((content: string) => {
+    sendMessage({
+      parts: [{ type: "text", text: content }],
+    });
+  }, [sendMessage]);
+
   return (
     <div className="flex h-full max-h-screen flex-col">
       <ScrollArea className="min-h-0 flex-1" ref={scrollRef}>
@@ -46,11 +54,7 @@ export function ChatView({
         <ChatInput
           value={input}
           onValueChange={setInput}
-          onSendMessage={(content) => {
-            sendMessage({
-              parts: [{ type: "text", text: content }],
-            });
-          }}
+          onSendMessage={handleSendMessage}
         />
       </div>
     </div>
