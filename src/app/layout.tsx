@@ -5,6 +5,8 @@ import { JetBrains_Mono, Rethink_Sans } from "next/font/google";
 import "./globals.css";
 import { ChatSidebar } from "~/components/sidebar/chat-sidebar";
 import { FloatingSidebarToggle } from "~/components/sidebar/floating-sidebar-toggle";
+import { ThemeInitializer } from "~/components/theme/theme-initializer";
+import { ThemeProvider } from "~/components/theme/theme-provider";
 import { SidebarProvider } from "~/components/ui/sidebar";
 
 const rethinkSans = Rethink_Sans({ subsets: ["latin"], variable: "--font-sans" });
@@ -24,8 +26,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal: React.ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -33,16 +37,25 @@ export default function RootLayout({
         className={`
           ${rethinkSans.variable}
           ${jetbrainsMono.variable}
-          dark min-h-screen w-full antialiased
+          min-h-screen w-full antialiased
         `}
       >
-        <SidebarProvider>
-          <ChatSidebar />
-          <FloatingSidebarToggle />
-          <main className="w-full">
-            {children}
-          </main>
-        </SidebarProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ThemeInitializer />
+          <SidebarProvider>
+            <ChatSidebar />
+            <FloatingSidebarToggle />
+            <main className="w-full">
+              {children}
+            </main>
+            {modal}
+          </SidebarProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

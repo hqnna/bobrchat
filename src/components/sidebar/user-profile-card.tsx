@@ -1,6 +1,8 @@
 "use client";
 
 import { KeyIcon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback } from "react";
 
 import { useSession } from "~/lib/auth-client";
 import { cn } from "~/lib/utils";
@@ -9,7 +11,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 export function UserProfileCard() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
   const hasApiKey = true;
+
+  const openSettings = useCallback(() => {
+    const referrer = encodeURIComponent(pathname);
+    router.push(`/settings?tab=profile&referrer=${referrer}`);
+  }, [router, pathname]);
 
   if (!session?.user) {
     return null;
@@ -22,7 +31,7 @@ export function UserProfileCard() {
         group/user flex cursor-pointer items-center gap-3 p-6 py-4
         transition-colors
       `)}
-      // onClick={onProfileClick}
+      onClick={openSettings}
     >
       <Avatar className="size-9 shrink-0">
         <AvatarImage src={session.user.image || undefined} alt={session.user.name} />

@@ -8,11 +8,13 @@ import { useRef, useState } from "react";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { ChatView } from "~/components/chat/chat-view";
+import { useUserSettings } from "~/hooks/use-user-settings";
 import { createUserMessage } from "~/lib/utils/messages";
 import { createNewThread, saveUserMessage } from "~/server/actions/chat";
 
 export default function HomePage(): React.ReactNode {
   const router = useRouter();
+  const { settings } = useUserSettings();
   const [input, setInput] = useState<string>("");
   const threadIdRef = useRef<string | null>(null);
 
@@ -32,7 +34,7 @@ export default function HomePage(): React.ReactNode {
     const userMessage = createUserMessage(messageParts);
 
     try {
-      const threadId = await createNewThread();
+      const threadId = await createNewThread(settings?.defaultThreadName);
       threadIdRef.current = threadId;
 
       // Save the user message

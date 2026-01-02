@@ -11,16 +11,18 @@ import { createThread, deleteThreadById, getThreadById, renameThreadById, saveMe
 /**
  * Creates a new chat thread for the authenticated user.
  *
+ * @param defaultName Optional default thread name (pass from client to avoid DB query)
  * @returns {Promise<string>} The ID of the newly created thread.
  */
-export async function createNewThread(): Promise<string> {
+export async function createNewThread(defaultName?: string): Promise<string> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   if (!session?.user)
     throw new Error("Not authenticated");
 
-  const threadId = await createThread(session.user.id);
+  const threadName = defaultName || "New Chat";
+  const threadId = await createThread(session.user.id, threadName);
   revalidatePath("/");
   return threadId;
 }

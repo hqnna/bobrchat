@@ -9,7 +9,7 @@ const schema = {
     BETTER_AUTH_URL: z.url(),
     GITHUB_CLIENT_ID: z.string(),
     GITHUB_CLIENT_SECRET: z.string(),
-    ENCRYPTION_KEY: z.string().min(32),
+    ENCRYPTION_SECRET: z.string().min(32),
     OPENROUTER_API_KEY: z.string(),
   }),
   client: z.object({

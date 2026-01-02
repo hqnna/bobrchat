@@ -96,14 +96,16 @@ export async function saveMessages(
  * Create a new thread for a user
  *
  * @param userId ID of the user
+ * @param title Optional thread title (uses user's default setting if not provided)
  * @return {Promise<string>} The ID of the newly created thread
  */
-export async function createThread(userId: string): Promise<string> {
+export async function createThread(userId: string, title?: string): Promise<string> {
   const now = new Date();
   const result = await db
     .insert(threads)
     .values({
       userId,
+      title: title || "New Chat", // Default will be overridden in the action
       lastMessageAt: now,
     })
     .returning({ id: threads.id });
