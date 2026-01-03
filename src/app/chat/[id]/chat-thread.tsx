@@ -7,6 +7,7 @@ import { use, useEffect, useRef, useState } from "react";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { ChatView } from "~/components/chat/chat-view";
+import { useChatInputFeatures } from "~/hooks/use-chat-input-features";
 import { createUserMessage } from "~/lib/utils/messages";
 import { saveUserMessage } from "~/server/actions/chat";
 
@@ -18,8 +19,11 @@ type ChatThreadProps = {
 function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNode {
   const [input, setInput] = useState<string>("");
   const [browserApiKey, setBrowserApiKey] = useState<string | null>(null);
-  const [searchEnabled, setSearchEnabled] = useState(false);
   const { id } = use(params);
+
+  const { features, getLatestValues } = useChatInputFeatures(
+    { key: "search", defaultValue: false, persist: true },
+  );
 
   useEffect(() => {
     const key = localStorage.getItem("openrouter_api_key");
@@ -27,25 +31,10 @@ function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNo
       // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setBrowserApiKey(key);
     }
-
-    // Restore search preference from localStorage
-    const savedSearchEnabled = localStorage.getItem("search_enabled");
-    if (savedSearchEnabled !== null) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
-      setSearchEnabled(JSON.parse(savedSearchEnabled));
-    }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("search_enabled", JSON.stringify(searchEnabled));
-  }, [searchEnabled]);
-
-  // Use refs to always have the latest values
-  const searchEnabledRef = useRef(searchEnabled);
+  // Keep ref for browserApiKey for closure
   const browserApiKeyRef = useRef(browserApiKey);
-  useEffect(() => {
-    searchEnabledRef.current = searchEnabled;
-  }, [searchEnabled]);
   useEffect(() => {
     browserApiKeyRef.current = browserApiKey;
   }, [browserApiKey]);
@@ -54,10 +43,11 @@ function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNo
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages: allMessages }) => {
+        const latestValues = getLatestValues();
         const body = {
           messages: allMessages,
           threadId: id,
-          searchEnabled: searchEnabledRef.current,
+          searchEnabled: latestValues.search,
           ...(browserApiKeyRef.current && { browserApiKey: browserApiKeyRef.current }),
         };
         return { body };
@@ -82,9 +72,9 @@ function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNo
       setInput={setInput}
       sendMessage={handleSendMessage}
       isLoading={status === "submitted" || status === "streaming"}
-      searchEnabled={searchEnabled}
+      searchEnabled={features.search.value}
       onSearchChange={(enabled) => {
-        setSearchEnabled(enabled);
+        features.search.setValue(enabled);
       }}
     />
   );

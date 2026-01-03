@@ -14,7 +14,8 @@ export function ThemeInitializer() {
     const initializeTheme = async () => {
       try {
         const response = await fetch("/api/settings");
-        if (!response.ok) return;
+        if (!response.ok)
+          return;
 
         const settings = (await response.json()) as { theme?: string };
         if (settings.theme) {
