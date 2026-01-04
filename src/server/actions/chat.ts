@@ -44,6 +44,20 @@ export async function createNewThread(defaultName?: string): Promise<string> {
  * @return {Promise<void>}
  */
 export async function saveUserMessage(threadId: string, message: ChatUIMessage): Promise<void> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user)
+    throw new Error("Not authenticated");
+
+  const thread = await getThreadById(threadId);
+  if (!thread)
+    throw new Error("Thread not found");
+
+  if (thread.userId !== session.user.id)
+    throw new Error("Unauthorized");
+
   await saveMessage(threadId, message);
 }
 

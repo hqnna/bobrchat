@@ -1,11 +1,10 @@
-/* eslint-disable node/no-process-env */
 import type { TextStreamPart, ToolSet } from "ai";
 
 import { convertToModelMessages, streamText } from "ai";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
-import { getServerApiKey, getUserSettings } from "~/server/db/queries/settings";
+import { getUserSettings } from "~/server/db/queries/settings";
 
 import { calculateChatCost, getCostPricing } from "./cost";
 import { getModelProvider } from "./models";
@@ -16,28 +15,13 @@ import { getModelProvider } from "./models";
  * @param messages The chat messages to send to the model.
  * @param modelId The ID of the model to use.
  * @param userId The ID of the user making the request (to get their API key).
- * @param browserApiKey Optional API key provided by the client (for browser-only storage).
+ * @param apiKey Optional API key provided by the client (for browser-only storage).
  * @returns An object containing the text stream and a function to create metadata for each message part.
  */
-export async function streamChatResponse(messages: ChatUIMessage[], modelId: string, userId: string, browserApiKey?: string, searchEnabled?: boolean) {
+export async function streamChatResponse(messages: ChatUIMessage[], modelId: string, userId: string, apiKey: string, searchEnabled?: boolean) {
   const startTime = Date.now();
   let firstTokenTime: number | null = null;
   const sources: Array<{ id: string; sourceType: string; url?: string; title?: string }> = [];
-
-  // Priority: browser key > server key > env var
-  let apiKey = browserApiKey;
-  if (!apiKey) {
-    apiKey = process.env.OPENROUTER_API_KEY;
-    try {
-      const userApiKey = await getServerApiKey(userId, "openrouter");
-      if (userApiKey) {
-        apiKey = userApiKey;
-      }
-    }
-    catch (error) {
-      console.error("Failed to get user's API key, falling back to server key:", error);
-    }
-  }
 
   if (!apiKey) {
     throw new Error("No API key configured. Please set up your OpenRouter API key in settings.");
