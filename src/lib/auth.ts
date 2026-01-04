@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
+import { createDefaultUserSettings } from "~/server/db/queries/settings";
+
 import { db } from "./db";
 import { serverEnv } from "./env";
 
@@ -19,6 +21,15 @@ export const auth = betterAuth({
     github: {
       clientId: serverEnv.GITHUB_CLIENT_ID,
       clientSecret: serverEnv.GITHUB_CLIENT_SECRET,
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        async after(user) {
+          await createDefaultUserSettings(user.id);
+        },
+      },
     },
   },
   advanced: {
