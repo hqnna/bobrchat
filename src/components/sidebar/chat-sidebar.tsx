@@ -21,11 +21,8 @@ import { ThreadList } from "./thread-list";
 import { UserProfileCard } from "./user-profile-card";
 
 async function ThreadListContainer() {
-  const headersList = await headers();
   const session = await auth.api.getSession({
-    headers: {
-      cookie: headersList.get("cookie") || "",
-    },
+    headers: await headers(),
   });
 
   if (!session) {
@@ -38,7 +35,11 @@ async function ThreadListContainer() {
   return <ThreadList groupedThreads={groupedThreads} />;
 }
 
-export function ChatSidebar() {
+export async function ChatSidebar() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="p-0">
@@ -96,7 +97,9 @@ export function ChatSidebar() {
             </div>
           )}
         >
-          <UserProfileCard />
+          {session && (
+            <UserProfileCard session={session} />
+          )}
         </Suspense>
       </SidebarFooter>
     </Sidebar>

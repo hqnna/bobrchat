@@ -4,13 +4,17 @@ import { KeyIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { useSession } from "~/lib/auth-client";
+import type { Session } from "~/lib/auth";
+
 import { cn } from "~/lib/utils";
 
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
-export function UserProfileCard() {
-  const { data: session } = useSession();
+export function UserProfileCard({
+  session,
+}: {
+  session: Session;
+}) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -39,7 +43,7 @@ export function UserProfileCard() {
     router.push(`/settings?tab=profile&referrer=${referrer}`);
   }, [router, pathname]);
 
-  if (!session?.user) {
+  if (!session) {
     return null;
   }
 

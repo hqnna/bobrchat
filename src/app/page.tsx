@@ -9,14 +9,14 @@ import { toast } from "sonner";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { ChatView } from "~/components/chat/chat-view";
+import { useUserSettingsContext } from "~/components/settings/user-settings-provider";
 import { useChatInputFeatures } from "~/hooks/use-chat-input-features";
-import { useUserSettings } from "~/hooks/use-user-settings";
 import { createUserMessage } from "~/lib/utils/messages";
 import { createNewThread, saveUserMessage } from "~/server/actions/chat";
 
 export default function HomePage(): React.ReactNode {
   const router = useRouter();
-  const { settings, loading } = useUserSettings();
+  const { settings, loading } = useUserSettingsContext();
   const [input, setInput] = useState<string>("");
   const threadIdRef = useRef<string | null>(null);
   const [browserApiKey, setBrowserApiKey] = useState<string | null>(null);

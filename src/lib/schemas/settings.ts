@@ -11,23 +11,45 @@ export const preferencesSchema = z.object({
 });
 
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
+export type PreferencesUpdate = Partial<PreferencesInput>;
+
+/**
+ * Partial preferences for updates (all fields optional)
+ */
+export const preferencesUpdateSchema = preferencesSchema.partial();
 
 /**
  * Integrations tab - API key management and storage preference
  */
 export const integrationsSchema = z.object({
-  apiKey: z.string().min(1, "API key is required"),
+  apiKey: z.string().min(1, "API key is required").max(1000, "API key is too long"),
   storeServerSide: z.boolean().default(false),
 });
 
 export type IntegrationsInput = z.infer<typeof integrationsSchema>;
 
 /**
+ * API key update - just the key and storage preference
+ */
+export const apiKeyUpdateSchema = z.object({
+  apiKey: z.string().min(1, "API key is required").max(1000, "API key is too long"),
+  storeServerSide: z.boolean().default(false),
+});
+
+export type ApiKeyUpdateInput = z.infer<typeof apiKeyUpdateSchema>;
+
+/**
  * Profile tab - user information updates
  */
 export const profileSchema = z.object({
   name: z.string().min(1).max(255).optional(),
-  email: z.email().optional(),
+  email: z.email("Invalid email address").optional(),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;
+export type ProfileUpdate = Partial<ProfileInput>;
+
+/**
+ * Partial profile for updates (all fields optional)
+ */
+export const profileUpdateSchema = profileSchema.partial();

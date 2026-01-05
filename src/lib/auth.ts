@@ -38,3 +38,6 @@ export const auth = betterAuth({
     },
   },
 });
+
+// i really hate that this is how the docs want me to do this
+export type Session = typeof auth.$Infer.Session;

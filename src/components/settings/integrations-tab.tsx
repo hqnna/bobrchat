@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
+import { apiKeyUpdateSchema } from "~/lib/schemas/settings";
 import { cn } from "~/lib/utils";
 
 import { Badge } from "../ui/badge";
@@ -67,11 +69,17 @@ export function IntegrationsTab() {
 
     setIsSaving(true);
     try {
-      await setApiKey("openrouter", apiKey, storageType === "server");
+      // Validate inputs with Zod before sending
+      const validated = apiKeyUpdateSchema.parse({
+        apiKey: apiKey.trim(),
+        storeServerSide: storageType === "server",
+      });
+
+      await setApiKey("openrouter", validated.apiKey, validated.storeServerSide);
 
       // Save to localStorage if browser-only storage
-      if (storageType === "client") {
-        localStorage.setItem("openrouter_api_key", apiKey);
+      if (validated.storeServerSide === false) {
+        localStorage.setItem("openrouter_api_key", validated.apiKey);
       }
       else {
         // Remove from localStorage if switching to server
@@ -81,8 +89,14 @@ export function IntegrationsTab() {
       setApiKeyValue("");
       toast.success(hasExistingKey ? "API key updated" : "API key saved");
     }
-    catch {
-      toast.error("Failed to save API key");
+    catch (error) {
+      console.error("Failed to save API key:", error);
+      const message = error instanceof z.ZodError
+        ? error.issues.map(e => e.message).join(", ")
+        : error instanceof Error
+          ? error.message
+          : "Failed to save API key";
+      toast.error(message);
     }
     finally {
       setIsSaving(false);

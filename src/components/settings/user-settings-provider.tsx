@@ -3,6 +3,7 @@
 import { createContext, use, useCallback, useEffect, useState } from "react";
 
 import type { UserSettingsData } from "~/lib/db/schema/settings";
+import type { PreferencesUpdate } from "~/lib/schemas/settings";
 
 import { useSession } from "~/lib/auth-client";
 import {
@@ -15,7 +16,7 @@ type UserSettingsContextType = {
   settings: UserSettingsData | null;
   loading: boolean;
   error: string | null;
-  updateSetting: (updates: Partial<UserSettingsData>) => Promise<void>;
+  updateSetting: (updates: PreferencesUpdate) => Promise<void>;
   setApiKey: (
     provider: "openrouter",
     apiKey: string,

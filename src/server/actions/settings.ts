@@ -2,8 +2,14 @@
 
 import { headers } from "next/headers";
 
+import type { PreferencesUpdate, ProfileUpdate } from "~/lib/schemas/settings";
+
 import { auth } from "~/lib/auth";
-import { preferencesSchema } from "~/lib/schemas/settings";
+import {
+  apiKeyUpdateSchema,
+  preferencesUpdateSchema,
+  profileUpdateSchema,
+} from "~/lib/schemas/settings";
 import {
   deleteApiKey as deleteApiKeyQuery,
   updateApiKey as updateApiKeyQuery,
@@ -14,20 +20,13 @@ import {
  * Update user preferences (theme, custom instructions, default thread name, landing page content)
  * Requires authentication and ownership verification
  *
- * @param updates Partial preferences to update
+ * @param updates Partial preferences to update (type-safe via PreferencesUpdate)
  * @return {Promise<void>}
  * @throws {Error} If not authenticated or validation fails
  */
-export async function updatePreferences(
-  updates: Partial<{
-    theme: "light" | "dark" | "system";
-    customInstructions: string;
-    defaultThreadName: string;
-    landingPageContent: "suggestions" | "greeting" | "blank";
-  }>,
-): Promise<void> {
-  // Validate input
-  const validated = preferencesSchema.partial().parse(updates);
+export async function updatePreferences(updates: PreferencesUpdate): Promise<void> {
+  // Validate input with Zod
+  const validated = preferencesUpdateSchema.parse(updates);
 
   // Get authenticated session
   const session = await auth.api.getSession({
@@ -57,10 +56,11 @@ export async function updateApiKey(
   apiKey: string,
   storeServerSide: boolean = false,
 ): Promise<void> {
-  // Validate inputs
-  if (!apiKey || apiKey.trim().length === 0) {
-    throw new Error("API key cannot be empty");
-  }
+  // Validate inputs with Zod
+  const validated = apiKeyUpdateSchema.parse({
+    apiKey,
+    storeServerSide,
+  });
 
   // Get authenticated session
   const session = await auth.api.getSession({
@@ -72,7 +72,12 @@ export async function updateApiKey(
   }
 
   // Update API key in database
-  await updateApiKeyQuery(session.user.id, provider, apiKey, storeServerSide);
+  await updateApiKeyQuery(
+    session.user.id,
+    provider,
+    validated.apiKey,
+    validated.storeServerSide,
+  );
 }
 
 /**
@@ -95,4 +100,29 @@ export async function deleteApiKey(provider: "openrouter"): Promise<void> {
 
   // Delete API key from database
   await deleteApiKeyQuery(session.user.id, provider);
+}
+
+/**
+ * Update user profile (name, email)
+ * Requires authentication and ownership verification
+ *
+ * @param updates Partial profile to update (type-safe via ProfileUpdate)
+ * @return {Promise<void>}
+ * @throws {Error} If not authenticated or validation fails
+ */
+export async function updateProfile(updates: ProfileUpdate): Promise<void> {
+  // Validate input with Zod
+  const _validated = profileUpdateSchema.parse(updates);
+
+  // Get authenticated session
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+
+  // TODO: Implement profile update in database
+  throw new Error("Profile updates are not yet implemented");
 }

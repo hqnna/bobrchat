@@ -3,9 +3,11 @@
 import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import type { LandingPageContentType } from "~/lib/db/schema/settings";
 
+import { preferencesSchema } from "~/lib/schemas/settings";
 import { cn } from "~/lib/utils";
 
 import { Input } from "../ui/input";
@@ -71,14 +73,21 @@ export function PreferencesTab() {
   const handleSave = useCallback(async (themeVal: Theme, customInst: string, defaultName: string, landingPageVal: LandingPageContentType) => {
     setIsSaving(true);
     try {
-      await updateSetting({
+      const updates = preferencesSchema.parse({
         theme: themeVal,
         customInstructions: customInst || undefined,
         defaultThreadName: defaultName,
         landingPageContent: landingPageVal,
       });
+
+      await updateSetting(updates);
       applyTheme(themeVal);
       setLastSaved(new Date());
+    }
+    catch (error) {
+      console.error("Failed to save preferences:", error);
+      const message = error instanceof Error ? error.message : "Failed to save preferences";
+      toast.error(message);
     }
     finally {
       setIsSaving(false);
