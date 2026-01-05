@@ -7,6 +7,8 @@ import type { PreferencesUpdate } from "~/lib/schemas/settings";
 
 import { useSession } from "~/lib/auth-client";
 import {
+  cleanupEncryptedApiKeys,
+  cleanupMissingClientApiKey,
   deleteApiKey as deleteApiKeyAction,
   updateApiKey as updateApiKeyAction,
   updatePreferences,
@@ -67,6 +69,31 @@ export function UserSettingsProvider({
 
         const settings = (await response.json()) as UserSettingsData;
 
+        // Validate localStorage keys exist for client-side storage
+        if (settings.apiKeyStorage.openrouter === "client") {
+          const hasKey = typeof window !== "undefined" && localStorage.getItem("openrouter_api_key") !== null;
+          if (!hasKey) {
+            // Key is missing, clean up the orphaned preference
+            console.warn("OpenRouter API key missing from localStorage, cleaning up preference");
+            try {
+              await cleanupMissingClientApiKey("openrouter");
+              // Remove from local state
+              settings.apiKeyStorage.openrouter = undefined;
+            }
+            catch (cleanupError) {
+              console.error("Failed to cleanup missing API key preference:", cleanupError);
+            }
+          }
+        }
+
+        // Clean up orphaned encrypted keys (keys without matching preferences)
+        try {
+          await cleanupEncryptedApiKeys();
+        }
+        catch (cleanupError) {
+          console.error("Failed to cleanup orphaned encrypted keys:", cleanupError);
+        }
+
         setState({
           settings,
           loading: false,
@@ -88,7 +115,7 @@ export function UserSettingsProvider({
   }, [session?.user]);
 
   const updateSetting = useCallback(
-    async (updates: Partial<UserSettingsData>): Promise<void> => {
+    async (updates: PreferencesUpdate): Promise<void> => {
       try {
         // Optimistically update state
         setState(prev => ({

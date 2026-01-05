@@ -306,3 +306,69 @@ export async function hasApiKey(userId: string, provider: "openrouter"): Promise
   // If client-side, we assume it's configured (actual key is in browser)
   return true;
 }
+
+/**
+ * Remove a provider from apiKeyStorage (when client-side key is missing)
+ *
+ * @param userId ID of the user
+ * @param provider API provider name (e.g., 'openrouter')
+ * @return {Promise<void>}
+ */
+export async function removeApiKeyPreference(userId: string, provider: "openrouter"): Promise<void> {
+  const currentSettings = await getUserSettings(userId);
+
+  // Remove provider from storage preferences
+  const cleanedApiKeyStorage: Record<string, "client" | "server"> = {};
+  Object.entries(currentSettings.apiKeyStorage).forEach(([key, value]) => {
+    if (key !== provider && value !== undefined) {
+      cleanedApiKeyStorage[key] = value;
+    }
+  });
+
+  await db
+    .update(userSettings)
+    .set({
+      settings: {
+        ...currentSettings,
+        apiKeyStorage: cleanedApiKeyStorage,
+      },
+      updatedAt: new Date(),
+    })
+    .where(eq(userSettings.userId, userId));
+}
+
+/**
+ * Remove an encrypted API key for a provider
+ *
+ * @param userId ID of the user
+ * @param provider API provider name (e.g., 'openrouter')
+ * @return {Promise<void>}
+ */
+export async function removeEncryptedKey(userId: string, provider: "openrouter"): Promise<void> {
+  const result = await db
+    .select({ encryptedApiKeys: userSettings.encryptedApiKeys })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+
+  if (!result.length)
+    return;
+
+  const currentEncrypted = (result[0].encryptedApiKeys || {}) as EncryptedApiKeysData;
+
+  // Remove the provider's encrypted key
+  const cleanedEncrypted: EncryptedApiKeysData = {};
+  Object.entries(currentEncrypted).forEach(([key, value]) => {
+    if (key !== provider && value !== undefined) {
+      cleanedEncrypted[key as "openrouter"] = value;
+    }
+  });
+
+  await db
+    .update(userSettings)
+    .set({
+      encryptedApiKeys: cleanedEncrypted,
+      updatedAt: new Date(),
+    })
+    .where(eq(userSettings.userId, userId));
+}

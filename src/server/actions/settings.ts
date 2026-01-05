@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 
+import type { EncryptedApiKeysData, UserSettingsData } from "~/lib/db/schema/settings";
 import type { PreferencesUpdate, ProfileUpdate } from "~/lib/schemas/settings";
 
 import { auth } from "~/lib/auth";
@@ -12,6 +13,9 @@ import {
 } from "~/lib/schemas/settings";
 import {
   deleteApiKey as deleteApiKeyQuery,
+  getUserSettingsWithMetadata,
+  removeApiKeyPreference,
+  removeEncryptedKey,
   updateApiKey as updateApiKeyQuery,
   updateUserSettingsPartial,
 } from "~/server/db/queries/settings";
@@ -125,4 +129,63 @@ export async function updateProfile(updates: ProfileUpdate): Promise<void> {
 
   // TODO: Implement profile update in database
   throw new Error("Profile updates are not yet implemented");
+}
+
+/**
+ * Clean up missing client-side API key (when localStorage key is not found)
+ * Removes the provider from apiKeyStorage preferences in database
+ * Requires authentication
+ *
+ * @param provider API provider name (e.g., 'openrouter')
+ * @return {Promise<void>}
+ * @throws {Error} If not authenticated
+ */
+export async function cleanupMissingClientApiKey(provider: "openrouter"): Promise<void> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+
+  await removeApiKeyPreference(session.user.id, provider);
+}
+
+/**
+ * Clean up orphaned encrypted API keys (keys without matching storage preferences)
+ * Queries user settings and removes any encrypted keys that don't have a matching
+ * "server" storage preference in apiKeyStorage
+ * Requires authentication
+ *
+ * @return {Promise<void>}
+ * @throws {Error} If not authenticated
+ */
+export async function cleanupEncryptedApiKeys(): Promise<void> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+
+  const userId = session.user.id;
+
+  // Fetch user settings with metadata to check encrypted keys
+  const userRecord = await getUserSettingsWithMetadata(userId);
+  if (!userRecord) {
+    return;
+  }
+
+  const settings = userRecord.settings as UserSettingsData;
+  const encryptedApiKeys = (userRecord.encryptedApiKeys || {}) as EncryptedApiKeysData;
+
+  // Find and remove encrypted keys that don't have a matching "server" storage preference
+  for (const provider of Object.keys(encryptedApiKeys) as ("openrouter")[]) {
+    if (settings.apiKeyStorage[provider] !== "server") {
+      // This encrypted key doesn't have a matching server preference, remove it
+      await removeEncryptedKey(userId, provider);
+    }
+  }
 }

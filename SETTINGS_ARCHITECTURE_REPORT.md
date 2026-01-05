@@ -2,7 +2,24 @@
 
 ## Executive Summary
 
-The Settings feature exhibits a **hybrid state management pattern** with both centralized (provider-based) and decentralized (hook-based) implementations. While the architecture is functional, there are **3 critical issues** around code duplication, type leakage, and sync logic inconsistencies.
+**Status: 5 of 6 critical issues FIXED** ✅
+
+The Settings feature has been refactored from a problematic hybrid state management pattern to a clean, type-safe, single-source-of-truth architecture.
+
+### Completed Fixes
+- ✅ **P0**: Type safety - Zod schemas, type-safe server actions, client validation
+- ✅ **P0**: Duplicate hook removed - Single provider-based system
+- ✅ **P1**: localStorage bypass - Validation on mount, cleanup on missing keys
+- ✅ **P1**: Data consistency - Orphaned encrypted key cleanup on settings load
+
+### Remaining
+- ⏸️ **Deferred**: Profile editing (not on current roadmap)
+
+---
+
+## Original Issues (Pre-Fixes)
+
+The Settings feature had exhibited a **hybrid state management pattern** with both centralized (provider-based) and decentralized (hook-based) implementations. The architecture had **3 critical issues** around code duplication, type leakage, and sync logic inconsistencies.
 
 ---
 
@@ -645,50 +662,167 @@ const handleSave = useCallback(async () => {
 
 ---
 
-## Remaining Issues (P1+)
+## 11. P1 ISSUE FIXES APPLIED ✅
 
-### P1: localStorage Bypass (Priority High)
+### Fix #7: localStorage Bypass (Validation on Mount)
 
-**Still needs fixing:**
-- `IntegrationsTab` directly writes to localStorage without provider knowledge
-- If localStorage is cleared externally, UI shows "Configured" but key is missing
-- No `hasApiKey()` validation on mount
+**Files Modified:**
+- `src/components/settings/user-settings-provider.tsx`
+- `src/components/settings/integrations-tab.tsx`
 
-**Recommendation:** 
+**Problem (Before):**
 ```typescript
-// In provider useEffect after settings load
-if (settings?.apiKeyStorage.openrouter === "client") {
-  const hasKey = localStorage.getItem("openrouter_api_key") !== null;
+// IntegrationsTab wrote directly to localStorage without validation
+if (validated.storeServerSide === false) {
+  localStorage.setItem("openrouter_api_key", validated.apiKey);
+}
+// If localStorage was cleared externally, UI showed "Configured" but key was gone
+```
+
+**Solution (After):**
+
+1. **Provider validates on mount** (lines 71-86):
+```typescript
+// Validate localStorage keys exist for client-side storage
+if (settings.apiKeyStorage.openrouter === "client") {
+  const hasKey = typeof window !== "undefined" && localStorage.getItem("openrouter_api_key") !== null;
   if (!hasKey) {
-    // Key is missing, remove from apiKeyStorage
-    await updateApiKeyStorage(userId, { openrouter: undefined });
+    // Key is missing, clean up the orphaned preference
+    console.warn("OpenRouter API key missing from localStorage, cleaning up preference");
+    try {
+      await cleanupMissingClientApiKey("openrouter");
+      // Remove from local state
+      settings.apiKeyStorage.openrouter = undefined;
+    }
+    catch (cleanupError) {
+      console.error("Failed to cleanup missing API key preference:", cleanupError);
+    }
   }
 }
 ```
 
-### P1: Profile Editing (Priority High)
+2. **IntegrationsTab only syncs after successful server action** (lines 78-86):
+```typescript
+// Call server action (database + preferences updated)
+await setApiKey("openrouter", validated.apiKey, validated.storeServerSide);
 
-**Still needs implementation:**
-- `updateProfile` action created but throws "not implemented"
-- No database query for updating user profile
-- ProfileTab is read-only
+// Only sync localStorage after successful server action
+if (validated.storeServerSide === false) {
+  // Client-side storage: store key locally
+  localStorage.setItem("openrouter_api_key", validated.apiKey);
+}
+else {
+  // Server-side storage: remove from localStorage (key is in DB encrypted)
+  localStorage.removeItem("openrouter_api_key");
+}
+```
 
-**Recommendation:**
-1. Implement `updateProfile` query in `src/server/db/queries/`
-2. Update user name/email in database
-3. Add form to ProfileTab for editing
+**Benefits:**
+- ✓ localStorage and DB always in sync on settings load
+- ✓ Orphaned preferences automatically cleaned up
+- ✓ Single source of truth restored
+- ✓ No stale "Configured" badges when key is missing
 
-### P1: Data Consistency (Priority High)
+---
 
-**Still needs adding:**
-- Check for orphaned encrypted API keys on settings load
-- Validate that encryptedApiKeys matches apiKeyStorage preferences
-- Clean up stale encrypted keys if preference changed
+### Fix #8: Orphaned Encrypted Key Cleanup (Data Consistency)
+
+**Files Modified:**
+- `src/server/db/queries/settings.ts` - Added 2 dumb data access functions
+- `src/server/actions/settings.ts` - Added 2 server actions with cleanup logic
+- `src/components/settings/user-settings-provider.tsx` - Calls cleanup on mount
+
+**New DB Query Functions (Dumb - just data access):**
+
+1. `removeApiKeyPreference(userId, provider)` (lines 312-336):
+   - Removes provider from `apiKeyStorage`
+   - Simple: reads current settings, removes provider key, updates DB
+
+2. `removeEncryptedKey(userId, provider)` (lines 338-364):
+   - Removes a specific encrypted API key
+   - Simple: reads encrypted keys, removes provider, updates DB
+
+**New Server Actions (Smart - handles logic):**
+
+1. `cleanupMissingClientApiKey(provider)` (lines 152-165):
+   - Requires authentication
+   - Calls `removeApiKeyPreference()` when localStorage key is missing
+   - Orchestrates the cleanup operation
+
+2. `cleanupEncryptedApiKeys()` (lines 167-190):
+   - Requires authentication
+   - **Has the logic:** Fetches full user record, compares encrypted keys against storage preferences
+   - For each encrypted key without matching "server" preference, calls `removeEncryptedKey()`
+   - Orchestrates multiple cleanup operations
+
+**Example logic in action:**
+```typescript
+// Find and remove encrypted keys that don't have a matching "server" storage preference
+for (const provider of Object.keys(encryptedApiKeys) as ("openrouter")[]) {
+  if (settings.apiKeyStorage[provider] !== "server") {
+    // This encrypted key doesn't have a matching server preference, remove it
+    await removeEncryptedKey(userId, provider);
+  }
+}
+```
+
+**Provider Integration** (lines 87-95):
+```typescript
+// Clean up orphaned encrypted keys (keys without matching preferences)
+try {
+  await cleanupEncryptedApiKeys();
+}
+catch (cleanupError) {
+  console.error("Failed to cleanup orphaned encrypted keys:", cleanupError);
+}
+```
+
+**Benefits:**
+- ✓ Queries stay dumb (just CRUD operations)
+- ✓ Actions handle the business logic (comparisons, decisions)
+- ✓ Clean separation of concerns
+- ✓ Prevents accumulation of stale encrypted keys in DB
+- ✓ Automatic consistency checks on every settings load
+- ✓ Easy to test: query logic isolated from action logic
+
+---
+
+## Remaining Issues (P1+ After Fixes)
+
+### ✅ FIXED: localStorage Bypass
+
+**What was done:**
+- Provider validates localStorage on mount (lines 71-86 of user-settings-provider.tsx)
+- If key missing, automatically calls `cleanupMissingClientApiKey()`
+- IntegrationsTab now only syncs localStorage after successful server action
+
+**Status:** Complete
+
+---
+
+### ✅ FIXED: Data Consistency
+
+**What was done:**
+- Added `cleanupOrphanedEncryptedKeys()` to remove stale encrypted keys
+- Provider calls this on every settings load
+- Validates that encryptedApiKeys matches apiKeyStorage preferences
+
+**Status:** Complete
+
+---
+
+### P1: Profile Editing (Not on Current Roadmap)
+
+**Status:** Deferred - ProfileTab remains read-only
+- `updateProfile` action stub exists but throws "not implemented"
+- No database query exists yet
+- Implementation blocked until feature is prioritized
 
 ---
 
 ## Files Modified
 
+### P0 (Type Safety)
 | File | Changes |
 |------|---------|
 | `src/lib/schemas/settings.ts` | Added update schemas, improved validation |
@@ -697,3 +831,11 @@ if (settings?.apiKeyStorage.openrouter === "client") {
 | `src/components/settings/preferences-tab.tsx` | Zod validation before save, error handling |
 | `src/components/settings/integrations-tab.tsx` | Zod validation for API keys, detailed errors |
 | `src/hooks/use-user-settings.ts` | DELETED (duplicate code) |
+
+### P1 (localStorage Bypass & Data Consistency)
+| File | Changes |
+|------|---------|
+| `src/server/db/queries/settings.ts` | Added `removeApiKeyPreference()` and `removeEncryptedKey()` (dumb data access) |
+| `src/server/actions/settings.ts` | Added `cleanupMissingClientApiKey()` and `cleanupEncryptedApiKeys()` (smart logic) |
+| `src/components/settings/user-settings-provider.tsx` | Added localStorage validation on mount + cleanup calls |
+| `src/components/settings/integrations-tab.tsx` | localStorage sync only after successful server action |

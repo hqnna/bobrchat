@@ -77,12 +77,13 @@ export function IntegrationsTab() {
 
       await setApiKey("openrouter", validated.apiKey, validated.storeServerSide);
 
-      // Save to localStorage if browser-only storage
+      // Only sync localStorage after successful server action
       if (validated.storeServerSide === false) {
+        // Client-side storage: store key locally
         localStorage.setItem("openrouter_api_key", validated.apiKey);
       }
       else {
-        // Remove from localStorage if switching to server
+        // Server-side storage: remove from localStorage (key is in DB encrypted)
         localStorage.removeItem("openrouter_api_key");
       }
 
