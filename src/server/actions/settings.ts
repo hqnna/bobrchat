@@ -11,7 +11,7 @@ import {
 } from "~/server/db/queries/settings";
 
 /**
- * Update user preferences (theme, custom instructions, default thread name)
+ * Update user preferences (theme, custom instructions, default thread name, landing page content)
  * Requires authentication and ownership verification
  *
  * @param updates Partial preferences to update
@@ -23,6 +23,7 @@ export async function updatePreferences(
     theme: "light" | "dark" | "system";
     customInstructions: string;
     defaultThreadName: string;
+    landingPageContent: "suggestions" | "greeting" | "blank";
   }>,
 ): Promise<void> {
   // Validate input

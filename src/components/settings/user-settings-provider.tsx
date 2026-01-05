@@ -4,6 +4,7 @@ import { createContext, use, useCallback, useEffect, useState } from "react";
 
 import type { UserSettingsData } from "~/lib/db/schema/settings";
 
+import { useSession } from "~/lib/auth-client";
 import {
   deleteApiKey as deleteApiKeyAction,
   updateApiKey as updateApiKeyAction,
@@ -32,6 +33,7 @@ export function UserSettingsProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const { data: session } = useSession();
   const [state, setState] = useState<{
     settings: UserSettingsData | null;
     loading: boolean;
@@ -42,9 +44,19 @@ export function UserSettingsProvider({
     error: null,
   });
 
-  // Fetch settings on mount
+  // Fetch settings on mount (only if user is authenticated)
   useEffect(() => {
     const fetchSettings = async () => {
+      // Skip fetching if user is not authenticated
+      if (!session?.user) {
+        setState({
+          settings: null,
+          loading: false,
+          error: null,
+        });
+        return;
+      }
+
       try {
         const response = await fetch("/api/settings");
 
@@ -72,7 +84,7 @@ export function UserSettingsProvider({
     };
 
     fetchSettings();
-  }, []);
+  }, [session?.user]);
 
   const updateSetting = useCallback(
     async (updates: Partial<UserSettingsData>): Promise<void> => {

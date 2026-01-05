@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono, Rethink_Sans } from "next/font/google";
 
 import "./globals.css";
+import { UserSettingsProvider } from "~/components/settings/user-settings-provider";
 import { ChatSidebar } from "~/components/sidebar/chat-sidebar";
 import { FloatingSidebarToggle } from "~/components/sidebar/floating-sidebar-toggle";
 import { ThemeInitializer } from "~/components/theme/theme-initializer";
@@ -47,16 +48,18 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Toaster position="top-right" />
-          <ThemeInitializer />
-          <SidebarProvider>
-            <ChatSidebar />
-            <FloatingSidebarToggle />
-            <main className="w-full">
-              {children}
-            </main>
-            {modal}
-          </SidebarProvider>
+          <UserSettingsProvider>
+            <Toaster position="top-right" />
+            <ThemeInitializer />
+            <SidebarProvider>
+              <ChatSidebar />
+              <FloatingSidebarToggle />
+              <main className="w-full">
+                {children}
+              </main>
+              {modal}
+            </SidebarProvider>
+          </UserSettingsProvider>
         </ThemeProvider>
       </body>
     </html>

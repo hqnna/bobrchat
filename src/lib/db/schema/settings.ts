@@ -3,10 +3,13 @@ import { jsonb, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { users } from "./auth";
 
+export type LandingPageContentType = "suggestions" | "greeting" | "blank";
+
 export type UserSettingsData = {
   theme: "dark" | "light" | "system";
   customInstructions?: string;
   defaultThreadName: string;
+  landingPageContent: LandingPageContentType;
   // Tracks which API key providers have server-side encrypted storage enabled
   // 'client' = stored in browser localStorage, 'server' = stored encrypted on server
   apiKeyStorage: {
@@ -28,6 +31,7 @@ export const userSettings = pgTable("user_settings", {
   settings: jsonb("settings").notNull().default({
     theme: "dark",
     defaultThreadName: "New Chat",
+    landingPageContent: "suggestions",
     apiKeyStorage: {},
   } as UserSettingsData),
   // Encrypted API keys - only contains keys where apiKeyStorage[provider] === 'server'

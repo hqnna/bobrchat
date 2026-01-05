@@ -16,7 +16,7 @@ import { createNewThread, saveUserMessage } from "~/server/actions/chat";
 
 export default function HomePage(): React.ReactNode {
   const router = useRouter();
-  const { settings } = useUserSettings();
+  const { settings, loading } = useUserSettings();
   const [input, setInput] = useState<string>("");
   const threadIdRef = useRef<string | null>(null);
   const [browserApiKey, setBrowserApiKey] = useState<string | null>(null);
@@ -91,6 +91,8 @@ export default function HomePage(): React.ReactNode {
       onSearchChange={(enabled) => {
         features.search.setValue(enabled);
       }}
+      landingPageContent={loading ? undefined : settings?.landingPageContent ?? "suggestions"}
+      showLandingPage={!input.trim()}
     />
   );
 }

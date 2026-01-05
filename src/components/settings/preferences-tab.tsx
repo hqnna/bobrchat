@@ -4,6 +4,8 @@ import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useRef, useState } from "react";
 
+import type { LandingPageContentType } from "~/lib/db/schema/settings";
+
 import { cn } from "~/lib/utils";
 
 import { Input } from "../ui/input";
@@ -20,6 +22,12 @@ const themeOptions: { value: Theme; label: string; icon: typeof SunIcon }[] = [
   { value: "system", label: "System", icon: MonitorIcon },
 ];
 
+const landingPageOptions: { value: LandingPageContentType; label: string; description: string }[] = [
+  { value: "suggestions", label: "Prompts", description: "Show some suggested prompts" },
+  { value: "greeting", label: "Greeting", description: "Simple welcome message" },
+  { value: "blank", label: "Blank", description: "Render noting: blank slate" },
+];
+
 export function PreferencesTab() {
   const { settings, loading, updateSetting } = useUserSettingsContext();
   const initializedRef = useRef(false);
@@ -33,6 +41,9 @@ export function PreferencesTab() {
   );
   const [defaultThreadName, setDefaultThreadName] = useState(
     () => settings?.defaultThreadName ?? "New Chat",
+  );
+  const [landingPageContent, setLandingPageContent] = useState<LandingPageContentType>(
+    () => settings?.landingPageContent ?? "suggestions",
   );
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -51,15 +62,20 @@ export function PreferencesTab() {
     if (defaultThreadName !== settings.defaultThreadName) {
       setDefaultThreadName(settings.defaultThreadName);
     }
+
+    if (landingPageContent !== settings.landingPageContent) {
+      setLandingPageContent(settings.landingPageContent);
+    }
   }
 
-  const handleSave = useCallback(async (themeVal: Theme, customInst: string, defaultName: string) => {
+  const handleSave = useCallback(async (themeVal: Theme, customInst: string, defaultName: string, landingPageVal: LandingPageContentType) => {
     setIsSaving(true);
     try {
       await updateSetting({
         theme: themeVal,
         customInstructions: customInst || undefined,
         defaultThreadName: defaultName,
+        landingPageContent: landingPageVal,
       });
       applyTheme(themeVal);
       setLastSaved(new Date());
@@ -98,7 +114,7 @@ export function PreferencesTab() {
                     type="button"
                     onClick={() => {
                       setTheme(option.value);
-                      handleSave(option.value, customInstructions, defaultThreadName);
+                      handleSave(option.value, customInstructions, defaultThreadName, landingPageContent);
                     }}
                     className={cn(
                       `
@@ -139,12 +155,49 @@ export function PreferencesTab() {
               type="text"
               value={defaultThreadName}
               onChange={e => setDefaultThreadName(e.target.value)}
-              onBlur={() => handleSave(theme, customInstructions, defaultThreadName)}
+              onBlur={() => handleSave(theme, customInstructions, defaultThreadName, landingPageContent)}
               placeholder="New Chat"
             />
             <p className="text-muted-foreground text-xs">
               The default name for new chat threads.
             </p>
+          </div>
+
+          {/* Landing Page Content */}
+          <div className="space-y-3">
+            <Label>New Chat Landing Page</Label>
+            <div className="flex gap-2">
+              {landingPageOptions.map((option) => {
+                const isSelected = landingPageContent === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      setLandingPageContent(option.value);
+                      handleSave(theme, customInstructions, defaultThreadName, option.value);
+                    }}
+                    className={cn(
+                      `
+                        flex flex-1 flex-col items-start gap-1 rounded-lg border
+                        p-3 text-left transition-colors
+                      `,
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : `
+                          border-input
+                          hover:bg-muted
+                        `,
+                    )}
+                  >
+                    <span className="text-sm font-medium">{option.label}</span>
+                    <span className="text-muted-foreground text-xs">
+                      {option.description}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Custom Instructions */}
@@ -154,7 +207,7 @@ export function PreferencesTab() {
               id="customInstructions"
               value={customInstructions}
               onChange={e => setCustomInstructions(e.target.value)}
-              onBlur={() => handleSave(theme, customInstructions, defaultThreadName)}
+              onBlur={() => handleSave(theme, customInstructions, defaultThreadName, landingPageContent)}
               placeholder="Add any custom instructions for the AI assistant..."
               className="h-full max-h-60 resize-none border-0"
             />

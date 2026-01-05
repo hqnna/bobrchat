@@ -1,12 +1,13 @@
 import { z } from "zod";
 
 /**
- * Preferences tab - theme, instructions, thread naming
+ * Preferences tab - theme, instructions, thread naming, landing page content
  */
 export const preferencesSchema = z.object({
   theme: z.enum(["light", "dark", "system"]),
   customInstructions: z.string().max(5000).optional(),
   defaultThreadName: z.string().min(1).max(255),
+  landingPageContent: z.enum(["suggestions", "greeting", "blank"]),
 });
 
 export type PreferencesInput = z.infer<typeof preferencesSchema>;

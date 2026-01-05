@@ -59,7 +59,7 @@ export function LoginForm() {
     else if (lowerErrorMessage.includes("already exists")) {
       userMessage = "An account with this email already exists.";
     }
-    
+
     toast.error(userMessage);
   };
 
@@ -264,15 +264,15 @@ export function LoginForm() {
       <p className="text-muted-foreground text-center text-sm">
         {isLogin ? "Don't have an account? " : "Already have an account? "}
         <Button
-           variant="link"
-           size="sm"
-           onClick={() => {
-             setIsLogin(!isLogin);
-           }}
-           className="px-0"
-         >
-           {isLogin ? "Sign up" : "Sign in"}
-         </Button>
+          variant="link"
+          size="sm"
+          onClick={() => {
+            setIsLogin(!isLogin);
+          }}
+          className="px-0"
+        >
+          {isLogin ? "Sign up" : "Sign in"}
+        </Button>
       </p>
     </div>
   );
