@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages, threadId, browserApiKey, searchEnabled }: { messages: ChatUIMessage[]; threadId?: string; browserApiKey?: string; searchEnabled?: boolean }
+  const { messages, threadId, browserApiKey, searchEnabled, modelId }: { messages: ChatUIMessage[]; threadId?: string; browserApiKey?: string; searchEnabled?: boolean; modelId?: string }
     = await req.json();
 
   if (threadId) {
@@ -65,10 +65,10 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  const baseModelId = "google/gemini-3-flash-preview";
-  const modelId = searchEnabled ? `${baseModelId}:online` : baseModelId;
+  const baseModelId = modelId || "google/gemini-3-flash-preview";
+  const finalModelId = searchEnabled ? `${baseModelId}:online` : baseModelId;
 
-  const { stream, createMetadata } = await streamChatResponse(messages, modelId, session.user.id, resolvedApiKey, searchEnabled);
+  const { stream, createMetadata } = await streamChatResponse(messages, finalModelId, session.user.id, resolvedApiKey, searchEnabled);
 
   return stream.toUIMessageStreamResponse({
     originalMessages: messages,

@@ -9,6 +9,7 @@ import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { ChatView } from "~/components/chat/chat-view";
 import { useChatInputFeatures } from "~/hooks/use-chat-input-features";
+import { useModelSelector } from "~/hooks/use-model-selector";
 import { createUserMessage } from "~/lib/utils/messages";
 import { saveUserMessage } from "~/server/actions/chat";
 
@@ -22,6 +23,7 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
   const [input, setInput] = useState<string>("");
   const [browserApiKey, setBrowserApiKey] = useState<string | null>(null);
   const { id } = use(params);
+  const { models, selectedModelId, setSelectedModelId } = useModelSelector();
 
   const { features, getLatestValues } = useChatInputFeatures(
     { key: "search", defaultValue: false, persist: true },
@@ -30,7 +32,6 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
   useEffect(() => {
     const key = localStorage.getItem("openrouter_api_key");
     if (key) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setBrowserApiKey(key);
     }
   }, []);
@@ -40,6 +41,12 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
   useEffect(() => {
     browserApiKeyRef.current = browserApiKey;
   }, [browserApiKey]);
+
+  // Keep ref for selectedModelId for closure
+  const selectedModelIdRef = useRef(selectedModelId);
+  useEffect(() => {
+    selectedModelIdRef.current = selectedModelId;
+  }, [selectedModelId]);
 
   const { messages, sendMessage, status } = useChat<ChatUIMessage>({
     transport: new DefaultChatTransport({
@@ -51,6 +58,7 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
           threadId: id,
           searchEnabled: latestValues.search,
           ...(browserApiKeyRef.current && { browserApiKey: browserApiKeyRef.current }),
+          ...(selectedModelIdRef.current && { modelId: selectedModelIdRef.current }),
         };
         return { body };
       },
@@ -90,6 +98,9 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
         features.search.setValue(enabled);
       }}
       hasApiKey={hasApiKey}
+      favoriteModels={models}
+      selectedModel={selectedModelId || undefined}
+      onSelectedModelChange={setSelectedModelId}
     />
   );
 }

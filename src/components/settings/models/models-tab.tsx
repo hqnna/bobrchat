@@ -1,42 +1,61 @@
 "use client";
 
+import type { DragEndEvent } from "@dnd-kit/core";
 import type { Model } from "@openrouter/sdk/models";
 
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import Fuse from "fuse.js";
 import {
-  BrainIcon,
-  FileIcon,
-  ImageIcon,
   SearchIcon,
   SparklesIcon,
-  XIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { cn } from "~/lib/utils";
-import { fetchOpenRouterModels, updateFavoriteModels } from "~/server/actions/settings";
+import { fetchOpenRouterModels } from "~/server/actions/settings";
 
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "../ui/accordion";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Skeleton } from "../ui/skeleton";
-import { useUserSettingsContext } from "./user-settings-provider";
+} from "../../ui/accordion";
+import { Input } from "../../ui/input";
+import { Skeleton } from "../../ui/skeleton";
+import { useUserSettingsContext } from "../user-settings-provider";
+import { ModelCard } from "./model-card";
+import { SortableFavoriteModel } from "./sortable-favorite-model";
 
 export function ModelsTab() {
-  const { settings } = useUserSettingsContext();
+  const { settings, updateFavoriteModels } = useUserSettingsContext();
   const [isLoading, setIsLoading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedModels, setSelectedModels] = useState<string[]>(
     () => settings?.favoriteModels ?? [],
   );
-  const [favoritesOpen, setFavoritesOpen] = useState(true);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
+
+  // Configure sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const handleFetchModels = useCallback(async () => {
     setIsLoading(true);
@@ -50,7 +69,8 @@ export function ModelsTab() {
       const result = await fetchOpenRouterModels(apiKey);
 
       setModels(result);
-      setSelectedModels(settings?.favoriteModels ?? []);
+      // Only set selectedModels if we don't already have any (initial load)
+      setSelectedModels(prev => prev.length > 0 ? prev : (settings?.favoriteModels ?? []));
     }
     catch (error) {
       console.error("Error fetching models:", error);
@@ -99,13 +119,16 @@ export function ModelsTab() {
     });
   };
 
-  // Persist selected models to database
+  // Persist selected models to database via context (for optimistic updates)
   useEffect(() => {
     const persistModels = async () => {
       if (!selectedModels || selectedModels.length === 0)
         return;
+      // Skip if selectedModels matches context (no change)
+      if (JSON.stringify(selectedModels) === JSON.stringify(settings?.favoriteModels))
+        return;
       try {
-        await updateFavoriteModels({ favoriteModels: selectedModels });
+        await updateFavoriteModels(selectedModels);
       }
       catch (error) {
         console.error("Failed to save favorite models:", error);
@@ -115,14 +138,19 @@ export function ModelsTab() {
 
     const timeoutId = setTimeout(persistModels, 500);
     return () => clearTimeout(timeoutId);
-  }, [selectedModels]);
+  }, [selectedModels, settings?.favoriteModels, updateFavoriteModels]);
 
-  const formatPrice = (price: number | null): string => {
-    if (!price)
-      return "Free";
-    if (price < 0.000001)
-      return "$0.000001/1M";
-    return `$${(price * 1000000).toFixed(2)}/1M`;
+  // Handle drag end to reorder favorites
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setSelectedModels((prev) => {
+        const oldIndex = prev.indexOf(active.id as string);
+        const newIndex = prev.indexOf(over.id as string);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
   };
 
   // Get selected model objects for display
@@ -166,7 +194,7 @@ export function ModelsTab() {
         </div>
       )}
 
-      {/* Favorites Section with Accordion */}
+      {/* Favorites Section with Accordion and Drag & Drop */}
       {selectedModelObjects.length > 0 && (
         <div className="border-border border-b">
           <Accordion
@@ -178,7 +206,7 @@ export function ModelsTab() {
             <AccordionItem value="favorites" className="border-0">
               <AccordionTrigger className={`
                 hover:bg-muted/30
-                px-6 py-3
+                rounded-none px-6 py-3
               `}
               >
                 <div className="flex items-center gap-2">
@@ -192,33 +220,24 @@ export function ModelsTab() {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="space-y-2 border-t px-6 py-4">
-                {selectedModelObjects.map(model => (
-                  <div
-                    key={model.id}
-                    className={cn(
-                      `
-                        flex items-center justify-between rounded-lg border p-3
-                        text-xs transition-all
-                      `,
-                      "border-primary bg-primary/5",
-                    )}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={selectedModels}
+                    strategy={verticalListSortingStrategy}
                   >
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium">{model.name}</span>
-                      <span className="text-muted-foreground text-[10px]">
-                        {model.id}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      className="ml-2 p-0"
-                      onClick={() => toggleModel(model.id)}
-                    >
-                      <XIcon className="size-4" />
-                    </Button>
-                  </div>
-                ))}
+                    {selectedModelObjects.map(model => (
+                      <SortableFavoriteModel
+                        key={model.id}
+                        model={model}
+                        onRemove={() => toggleModel(model.id)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -275,99 +294,7 @@ export function ModelsTab() {
                       .filter(m => !selectedModels.includes(m.id))
                       .map((model) => {
                         const isSelected = selectedModels.includes(model.id);
-                        return (
-                          <button
-                            key={model.id}
-                            onClick={() => toggleModel(model.id)}
-                            className={cn(
-                              `
-                                hover:border-primary/50
-                                rounded-lg border p-4 text-left transition-all
-                              `,
-                              isSelected
-                                ? `border-primary bg-primary/5`
-                                : `
-                                  border-border
-                                  hover:bg-muted/50
-                                `,
-                            )}
-                          >
-                            {/* Name and selection indicator */}
-                            <div className={`
-                              mb-2 flex items-start justify-between gap-3
-                            `}
-                            >
-                              <div className="flex-1">
-                                <h3 className={`
-                                  text-sm leading-snug font-semibold
-                                `}
-                                >
-                                  {model.name}
-                                </h3>
-                                <p className="text-muted-foreground text-xs">
-                                  {model.id}
-                                </p>
-                              </div>
-                              <div
-                                className={cn(
-                                  `
-                                    mt-0.5 flex size-5 shrink-0 items-center
-                                    justify-center rounded border transition-all
-                                  `,
-                                  isSelected
-                                    ? `border-primary bg-primary`
-                                    : `
-                                      border-muted-foreground/30
-                                      hover:border-primary/50
-                                    `,
-                                )}
-                              >
-                                {isSelected && (
-                                  <div className={`
-                                    bg-primary-foreground size-2 rounded-[2px]
-                                  `}
-                                  />
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Pricing */}
-                            <div className="flex gap-4 text-xs">
-                              <div>
-                                <span className="text-muted-foreground">
-                                  Input:
-                                </span>
-                                <span className="font-mono font-medium">
-                                  {formatPrice(model.pricing?.prompt ?? null)}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">
-                                  Output:
-                                </span>
-                                <span className="font-mono font-medium">
-                                  {formatPrice(model.pricing?.completion ?? null)}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Features */}
-                            <div className="flex flex-wrap gap-2">
-                              {model.architecture.inputModalities.includes("image") && (
-                                <FeatureBadge icon={ImageIcon} label="Image Upload" />
-                              )}
-                              {(model.contextLength && model.contextLength > 8096) && (
-                                <FeatureBadge icon={SearchIcon} label="Search" />
-                              )}
-                              {model.supportedParameters.includes("reasoning") && (
-                                <FeatureBadge icon={BrainIcon} label="Reasoning" />
-                              )}
-                              {model.architecture.inputModalities.includes("file") && (
-                                <FeatureBadge icon={FileIcon} label="File Upload" />
-                              )}
-                            </div>
-                          </button>
-                        );
+                        return (<ModelCard key={model.id} model={model} isSelected={isSelected} toggleModel={toggleModel} />);
                       })}
                   </div>
                 )}
@@ -386,25 +313,6 @@ export function ModelsTab() {
           </p>
         )}
       </div>
-    </div>
-  );
-}
-
-function FeatureBadge({
-  icon: Icon,
-  label,
-}: {
-  icon: typeof SparklesIcon;
-  label: string;
-}) {
-  return (
-    <div className={`
-      bg-muted mt-3 inline-flex items-center gap-1 rounded-full px-2 py-1
-      text-xs font-medium
-    `}
-    >
-      <Icon className="size-3" />
-      {label}
     </div>
   );
 }

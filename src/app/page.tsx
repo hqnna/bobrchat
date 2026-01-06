@@ -11,6 +11,7 @@ import type { ChatUIMessage } from "~/app/api/chat/route";
 import { ChatView } from "~/components/chat/chat-view";
 import { useUserSettingsContext } from "~/components/settings/user-settings-provider";
 import { useChatInputFeatures } from "~/hooks/use-chat-input-features";
+import { useModelSelector } from "~/hooks/use-model-selector";
 import { createUserMessage } from "~/lib/utils/messages";
 import { createNewThread, saveUserMessage } from "~/server/actions/chat";
 
@@ -21,6 +22,10 @@ export default function HomePage(): React.ReactNode {
   const threadIdRef = useRef<string | null>(null);
   const [browserApiKey, setBrowserApiKey] = useState<string | null>(null);
   const browserApiKeyRef = useRef<string | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const selectedModelIdRef = useRef<string | null>(null);
+
+  const { models } = useModelSelector();
 
   const { features, getLatestValues } = useChatInputFeatures(
     { key: "search", defaultValue: false, persist: true },
@@ -29,7 +34,6 @@ export default function HomePage(): React.ReactNode {
   useEffect(() => {
     const key = localStorage.getItem("openrouter_api_key");
     if (key) {
-      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setBrowserApiKey(key);
       browserApiKeyRef.current = key;
     }
@@ -38,6 +42,16 @@ export default function HomePage(): React.ReactNode {
   useEffect(() => {
     browserApiKeyRef.current = browserApiKey;
   }, [browserApiKey]);
+
+  useEffect(() => {
+    if (models.length > 0 && !selectedModelId) {
+      setSelectedModelId(models[0].id);
+    }
+  }, [models, selectedModelId]);
+
+  useEffect(() => {
+    selectedModelIdRef.current = selectedModelId;
+  }, [selectedModelId]);
 
   const { messages, sendMessage, status } = useChat<ChatUIMessage>({
     transport: new DefaultChatTransport({
@@ -49,6 +63,7 @@ export default function HomePage(): React.ReactNode {
           threadId: threadIdRef.current,
           searchEnabled: latestValues.search,
           ...(browserApiKeyRef.current && { browserApiKey: browserApiKeyRef.current }),
+          ...(selectedModelIdRef.current && { modelId: selectedModelIdRef.current }),
         };
         return { body };
       },
@@ -93,6 +108,9 @@ export default function HomePage(): React.ReactNode {
       }}
       landingPageContent={loading ? undefined : settings?.landingPageContent ?? "suggestions"}
       showLandingPage={!input.trim()}
+      favoriteModels={models}
+      selectedModel={selectedModelId || undefined}
+      onSelectedModelChange={setSelectedModelId}
     />
   );
 }

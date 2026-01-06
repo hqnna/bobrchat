@@ -10,6 +10,7 @@ import {
   deleteApiKey as deleteApiKeyAction,
   syncUserSettings,
   updateApiKey as updateApiKeyAction,
+  updateFavoriteModels as updateFavoriteModelsAction,
   updatePreferences,
 } from "~/server/actions/settings";
 
@@ -18,6 +19,7 @@ type UserSettingsContextType = {
   loading: boolean;
   error: string | null;
   updateSetting: (updates: PreferencesUpdate) => Promise<void>;
+  updateFavoriteModels: (favoriteModels: string[]) => Promise<void>;
   setApiKey: (
     provider: "openrouter",
     apiKey: string,
@@ -113,6 +115,37 @@ export function UserSettingsProvider({
     [state.settings],
   );
 
+  const updateFavoriteModels = useCallback(
+    async (favoriteModels: string[]): Promise<void> => {
+      const previousSettings = state.settings;
+
+      try {
+        // Optimistically update state
+        setState(prev => ({
+          ...prev,
+          settings: prev.settings
+            ? { ...prev.settings, favoriteModels }
+            : null,
+        }));
+
+        // Call server action
+        await updateFavoriteModelsAction({ favoriteModels });
+      }
+      catch (error) {
+        // Revert on error
+        console.error("Failed to update favorite models:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to update favorite models";
+        setState({
+          settings: previousSettings,
+          loading: false,
+          error: errorMessage,
+        });
+        throw error;
+      }
+    },
+    [state.settings],
+  );
+
   const setApiKey = useCallback(
     async (
       provider: "openrouter",
@@ -194,6 +227,7 @@ export function UserSettingsProvider({
         loading: state.loading,
         error: state.error,
         updateSetting,
+        updateFavoriteModels,
         setApiKey,
         removeApiKey,
       }}

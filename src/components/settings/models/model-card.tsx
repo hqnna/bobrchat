@@ -1,0 +1,119 @@
+import type { Model } from "@openrouter/sdk/models";
+
+import { BrainIcon, FileIcon, ImageIcon, SearchIcon } from "lucide-react";
+
+import { cn } from "~/lib/utils";
+
+function formatPrice(price: number | null): string {
+  if (!price)
+    return "Free";
+  if (price < 0.000001)
+    return "$0.000001/1M";
+  return `$${(price * 1000000).toFixed(2)}/1M`;
+}
+
+export function ModelCard({ model, isSelected, toggleModel }: { model: Model; isSelected: boolean; toggleModel: (id: string) => void }) {
+  return (
+    <button
+      key={model.id}
+      onClick={() => toggleModel(model.id)}
+      className={cn(
+        `
+          hover:border-primary/50
+          rounded-lg border p-4 text-left transition-all
+        `,
+        isSelected
+          ? `border-primary bg-primary/5`
+          : `
+            border-border
+            hover:bg-muted/50
+          `,
+      )}
+    >
+      {/* Name and selection indicator */}
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <h3 className="text-sm leading-snug font-semibold">
+            {model.name}
+          </h3>
+          <p className="text-muted-foreground text-xs">
+            {model.id}
+          </p>
+        </div>
+        <div
+          className={cn(
+            `
+              mt-0.5 flex size-5 shrink-0 items-center justify-center rounded
+              border transition-all
+            `,
+            isSelected
+              ? `border-primary bg-primary`
+              : `
+                border-muted-foreground/30
+                hover:border-primary/50
+              `,
+          )}
+        >
+          {isSelected && (
+            <div className="bg-primary-foreground size-2 rounded-[2px]" />
+          )}
+        </div>
+      </div>
+
+      {/* Pricing */}
+      <div className="flex gap-4 text-xs">
+        <div>
+          <span className="text-muted-foreground">
+            Input:
+          </span>
+          <span className="font-mono font-medium">
+            {formatPrice(model.pricing?.prompt ?? null)}
+          </span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">
+            Output:
+          </span>
+          <span className="font-mono font-medium">
+            {formatPrice(model.pricing?.completion ?? null)}
+          </span>
+        </div>
+      </div>
+
+      {/* Features */}
+      <div className="flex flex-wrap gap-2">
+        {model.architecture.inputModalities.includes("image") && (
+          <FeatureBadge icon={ImageIcon} label="Image Upload" />
+        )}
+        {(model.contextLength && model.contextLength > 8096) && (
+          <FeatureBadge icon={SearchIcon} label="Search" />
+        )}
+        {model.supportedParameters.includes("reasoning") && (
+          <FeatureBadge icon={BrainIcon} label="Reasoning" />
+        )}
+        {model.architecture.inputModalities.includes("file") && (
+          <FeatureBadge icon={FileIcon} label="File Upload" />
+        )}
+      </div>
+    </button>
+  );
+}
+
+function FeatureBadge({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof FileIcon;
+  label: string;
+}) {
+  return (
+    <div className={`
+      bg-muted mt-3 inline-flex items-center gap-1 rounded-full px-2 py-1
+      text-xs font-medium
+    `}
+    >
+      <Icon className="size-3" />
+      {label}
+    </div>
+  );
+}

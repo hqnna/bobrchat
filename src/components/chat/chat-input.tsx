@@ -1,5 +1,7 @@
 "use client";
 
+import type { Model } from "@openrouter/sdk/models";
+
 import { AlertCircle, PaperclipIcon, SearchIcon, SendIcon } from "lucide-react";
 import * as React from "react";
 
@@ -7,6 +9,7 @@ import { cn } from "~/lib/utils";
 
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
+import { ModelSelector } from "./model-selector";
 
 type ChatInputProps = {
   className?: string;
@@ -16,6 +19,9 @@ type ChatInputProps = {
   searchEnabled?: boolean;
   onSearchChange?: (enabled: boolean) => void;
   hasApiKey?: boolean;
+  favoriteModels?: Model[];
+  selectedModel?: string;
+  onSelectedModelChange?: (modelId: string) => void;
 };
 
 export function ChatInput({
@@ -26,6 +32,9 @@ export function ChatInput({
   searchEnabled = false,
   onSearchChange,
   hasApiKey,
+  favoriteModels,
+  selectedModel,
+  onSelectedModelChange,
 }: ChatInputProps) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
@@ -101,6 +110,15 @@ export function ChatInput({
             border-border flex items-center justify-between border-t px-2 py-2
           `}
           >
+            {/* Model Selector */}
+            {favoriteModels && (
+              <ModelSelector
+                models={favoriteModels}
+                selectedModelId={selectedModel}
+                onSelectModel={onSelectedModelChange || (() => {})}
+              />
+            )}
+
             <div className="flex-1" />
             <div className="flex items-center gap-2">
               <Button

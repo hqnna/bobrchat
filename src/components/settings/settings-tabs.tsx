@@ -18,7 +18,7 @@ import { Button } from "../ui/button";
 import { DialogClose } from "../ui/dialog";
 import { Separator } from "../ui/separator";
 import { IntegrationsTab } from "./integrations-tab";
-import { ModelsTab } from "./models-tab";
+import { ModelsTab } from "./models/models-tab";
 import { PreferencesTab } from "./preferences-tab";
 import { ProfileTab } from "./profile-tab";
 

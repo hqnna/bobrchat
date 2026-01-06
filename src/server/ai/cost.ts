@@ -31,7 +31,12 @@ export function calculateChatCost(
 export async function getTokenCosts(modelId: string) {
   try {
     // Strip ":online" suffix if present (e.g., "openrouter/meta-llama/llama-2-70b:online")
-    const baseModelId = modelId.split(":")[0];
+    const [baseModelId, modelSuffix] = modelId.split(":");
+
+    if (modelSuffix === "free") {
+      return { inputCostPerMillion: 0, outputCostPerMillion: 0 };
+    }
+
     const modelData = await getModelData({ modelId: baseModelId, provider: "openrouter" });
 
     return {
