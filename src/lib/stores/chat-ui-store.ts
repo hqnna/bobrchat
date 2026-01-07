@@ -28,6 +28,10 @@ type ChatUIStore = {
   setPendingMessage: (message: any | null) => void;
 
   consumePendingMessage: () => any | null;
+
+  // Streaming indicator (not persisted)
+  streamingThreadId: string | null;
+  setStreamingThreadId: (threadId: string | null) => void;
 };
 
 export const useChatUIStore = create<ChatUIStore>()(
@@ -66,6 +70,9 @@ export const useChatUIStore = create<ChatUIStore>()(
         set({ pendingMessage: null });
         return message;
       },
+
+      streamingThreadId: null,
+      setStreamingThreadId: threadId => set({ streamingThreadId: threadId }),
     }),
     {
       name: "bobrchat-ui",

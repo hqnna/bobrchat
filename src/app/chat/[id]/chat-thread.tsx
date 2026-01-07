@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport } from "ai";
 import { use, useEffect } from "react";
 import { toast } from "sonner";
@@ -8,6 +9,7 @@ import { toast } from "sonner";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { ChatView } from "~/components/chat/chat-view";
+import { THREADS_KEY } from "~/lib/queries/use-threads";
 import { useChatUIStore } from "~/lib/stores/chat-ui-store";
 
 type ChatThreadProps = {
@@ -18,6 +20,7 @@ type ChatThreadProps = {
 
 function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): React.ReactNode {
   const { id } = use(params);
+  const queryClient = useQueryClient();
   const {
     input,
     setInput,
@@ -26,6 +29,7 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
     setSearchEnabled,
     loadApiKeysFromStorage,
     consumePendingMessage,
+    setStreamingThreadId,
   } = useChatUIStore();
 
   // Load API keys from localStorage on mount
@@ -55,7 +59,24 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
     onError: (error) => {
       toast.error(error.message || "Failed to send message");
     },
+    onFinish: () => {
+      // Refresh the threads list to reflect any automatic renaming
+      // We invalidate on every message finish to be safe, but it's most critical for the first one
+      queryClient.invalidateQueries({ queryKey: THREADS_KEY });
+    },
   });
+
+  useEffect(() => {
+    const isStreaming = status === "submitted" || status === "streaming";
+    setStreamingThreadId(isStreaming ? id : null);
+
+    return () => {
+      // Avoid leaving a stale indicator around if the user navigates away mid-stream.
+      if (useChatUIStore.getState().streamingThreadId === id) {
+        setStreamingThreadId(null);
+      }
+    };
+  }, [id, setStreamingThreadId, status]);
 
   // Handle pending message from homepage
   useEffect(() => {

@@ -14,6 +14,7 @@ import { cn } from "~/lib/utils";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Skeleton } from "../ui/skeleton";
+import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 
 type Theme = "light" | "dark" | "system";
@@ -47,6 +48,9 @@ export function PreferencesTab() {
   const [landingPageContent, setLandingPageContent] = useState<LandingPageContentType>(
     () => settings?.landingPageContent ?? "suggestions",
   );
+  const [autoThreadNaming, setAutoThreadNaming] = useState(
+    () => settings?.autoThreadNaming ?? false,
+  );
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -56,6 +60,7 @@ export function PreferencesTab() {
       setCustomInstructions(settings.customInstructions ?? "");
       setDefaultThreadName(settings.defaultThreadName);
       setLandingPageContent(settings.landingPageContent);
+      setAutoThreadNaming(settings.autoThreadNaming);
     }
   }, [settings]);
 
@@ -64,6 +69,7 @@ export function PreferencesTab() {
     customInst: string,
     defaultName: string,
     landingPageVal: LandingPageContentType,
+    autoThreadNamingVal: boolean,
   ) => {
     try {
       const updates = preferencesSchema.parse({
@@ -71,6 +77,7 @@ export function PreferencesTab() {
         customInstructions: customInst,
         defaultThreadName: defaultName,
         landingPageContent: landingPageVal,
+        autoThreadNaming: autoThreadNamingVal,
       });
 
       await updatePreferences.mutateAsync(updates);
@@ -113,7 +120,7 @@ export function PreferencesTab() {
                     type="button"
                     onClick={() => {
                       setTheme(option.value);
-                      handleSave(option.value, customInstructions, defaultThreadName, landingPageContent);
+                      handleSave(option.value, customInstructions, defaultThreadName, landingPageContent, autoThreadNaming);
                     }}
                     className={cn(
                       `
@@ -154,12 +161,30 @@ export function PreferencesTab() {
               type="text"
               value={defaultThreadName}
               onChange={e => setDefaultThreadName(e.target.value)}
-              onBlur={() => handleSave(theme, customInstructions, defaultThreadName, landingPageContent)}
+              onBlur={() => handleSave(theme, customInstructions, defaultThreadName, landingPageContent, autoThreadNaming)}
               placeholder="New Chat"
             />
             <p className="text-muted-foreground text-xs">
               The default name for new chat threads.
             </p>
+          </div>
+
+          {/* Automatic Thread Renaming */}
+          <div className="flex items-center justify-between space-x-2">
+            <div className="flex flex-col space-y-1">
+              <Label htmlFor="autoThreadNaming">Automatic Thread Renaming</Label>
+              <span className="text-muted-foreground text-xs">
+                Automatically generate a short title for new conversations.
+              </span>
+            </div>
+            <Switch
+              id="autoThreadNaming"
+              checked={autoThreadNaming}
+              onCheckedChange={(checked) => {
+                setAutoThreadNaming(checked);
+                handleSave(theme, customInstructions, defaultThreadName, landingPageContent, checked);
+              }}
+            />
           </div>
 
           {/* Landing Page Content */}
@@ -174,7 +199,7 @@ export function PreferencesTab() {
                     type="button"
                     onClick={() => {
                       setLandingPageContent(option.value);
-                      handleSave(theme, customInstructions, defaultThreadName, option.value);
+                      handleSave(theme, customInstructions, defaultThreadName, option.value, autoThreadNaming);
                     }}
                     className={cn(
                       `
@@ -206,7 +231,7 @@ export function PreferencesTab() {
               id="customInstructions"
               value={customInstructions}
               onChange={e => setCustomInstructions(e.target.value)}
-              onBlur={() => handleSave(theme, customInstructions, defaultThreadName, landingPageContent)}
+              onBlur={() => handleSave(theme, customInstructions, defaultThreadName, landingPageContent, autoThreadNaming)}
               placeholder="Add any custom instructions for the AI assistant..."
               className="h-full max-h-60 resize-none border-0"
             />

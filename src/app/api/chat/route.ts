@@ -3,9 +3,10 @@ import type { UIMessage } from "ai";
 import { headers } from "next/headers";
 
 import { auth } from "~/lib/auth";
+import { generateThreadTitle } from "~/server/ai/naming";
 import { streamChatResponse } from "~/server/ai/service";
-import { saveMessage } from "~/server/db/queries/chat";
-import { getServerApiKey } from "~/server/db/queries/settings";
+import { renameThreadById, saveMessage } from "~/server/db/queries/chat";
+import { getServerApiKey, getUserSettings } from "~/server/db/queries/settings";
 import { validateThreadOwnership } from "~/server/db/utils/thread-validation";
 
 export type SourceInfo = {
@@ -91,6 +92,31 @@ export async function POST(req: Request) {
   const baseModelId = modelId || "google/gemini-3-flash-preview";
 
   const { stream, createMetadata } = await streamChatResponse(messages, baseModelId, session.user.id, resolvedApiKey, searchEnabled, parallelApiKey, undefined);
+
+  // Fire and forget: Auto-rename thread if enabled and this is the first message
+  if (threadId && messages.length === 1 && messages[0].role === "user") {
+    const firstMessage = messages[0];
+    const userMessage = firstMessage.parts
+      ? firstMessage.parts
+          .filter(p => p.type === "text")
+          .map(p => (p as { text: string }).text)
+          .join("")
+      : "";
+
+    // We don't await this promise so it runs in background without blocking response
+    (async () => {
+      try {
+        const settings = await getUserSettings(session.user.id);
+        if (settings.autoThreadNaming) {
+          const title = await generateThreadTitle(userMessage, resolvedApiKey);
+          await renameThreadById(threadId, title);
+        }
+      }
+      catch (error) {
+        console.error("Auto-renaming failed:", error);
+      }
+    })();
+  }
 
   const response = stream.toUIMessageStreamResponse({
     originalMessages: messages,

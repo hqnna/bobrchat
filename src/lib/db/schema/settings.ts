@@ -16,6 +16,7 @@ export type UserSettingsData = {
   customInstructions?: string;
   defaultThreadName: string;
   landingPageContent: LandingPageContentType;
+  autoThreadNaming: boolean;
   // Tracks which API key providers have server-side encrypted storage enabled
   // 'client' = stored in browser localStorage, 'server' = stored encrypted on server
   apiKeyStorage: Partial<Record<ApiKeyProvider, "client" | "server">>;
@@ -37,6 +38,7 @@ export const userSettings = pgTable("user_settings", {
     theme: "dark",
     defaultThreadName: "New Chat",
     landingPageContent: "suggestions",
+    autoThreadNaming: false,
     apiKeyStorage: {},
   } as UserSettingsData),
   // Encrypted API keys - only contains keys where apiKeyStorage[provider] === 'server'

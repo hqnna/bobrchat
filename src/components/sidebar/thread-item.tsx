@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle, Trash2 } from "lucide-react";
+import { Loader2, MessageCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { memo, useRef, useState } from "react";
@@ -11,9 +11,11 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu";
-import { useDeleteThread, useRenameThread } from "~/lib/queries/use-threads";
+import { useDeleteThread, useRegenerateThreadName, useRenameThread } from "~/lib/queries/use-threads";
+import { useChatUIStore } from "~/lib/stores/chat-ui-store";
 import { cn } from "~/lib/utils";
 
 type ThreadItemProps = {
@@ -23,15 +25,18 @@ type ThreadItemProps = {
   onDeleteClick?: (threadId: string, threadTitle: string) => void;
 };
 
-export const ThreadItem = memo(({
+function ThreadItemComponent({
   id,
   title,
   isActive,
   onDeleteClick,
-}: ThreadItemProps) => {
+}: ThreadItemProps) {
   const router = useRouter();
+  const browserApiKey = useChatUIStore(state => state.browserApiKey);
+  const isStreaming = useChatUIStore(state => state.streamingThreadId === id);
   const deleteThreadMutation = useDeleteThread();
   const renameThreadMutation = useRenameThread();
+  const regenerateThreadNameMutation = useRegenerateThreadName();
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
@@ -62,11 +67,21 @@ export const ThreadItem = memo(({
       onDeleteClick?.(id, title);
     }
   };
-
   const handleRenameClick = () => {
     setIsRenaming(true);
     // Focus input after state update
     setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const handleRegenerateNameClick = async () => {
+    try {
+      await regenerateThreadNameMutation.mutateAsync({ threadId: id, browserApiKey: browserApiKey ?? undefined });
+      toast.success("Thread name regenerated");
+    }
+    catch (error) {
+      console.error("Failed to regenerate thread name:", error);
+      toast.error("Failed to regenerate thread name");
+    }
   };
 
   const handleRenameSubmit = async () => {
@@ -145,11 +160,17 @@ export const ThreadItem = memo(({
                 : "text-sidebar-foreground",
             )}
           >
-            <MessageCircle
-              className="size-4 shrink-0"
-              fill={isActive ? "currentColor" : "none"}
-            />
-            <span className="flex-1 truncate">{title}</span>
+            {regenerateThreadNameMutation.isPending || isStreaming
+              ? (
+                  <Loader2 className="size-4 shrink-0 animate-spin" />
+                )
+              : (
+                  <MessageCircle
+                    className="size-4 shrink-0"
+                    fill={isActive ? "currentColor" : "none"}
+                  />
+                )}
+            <span className="flex-1 truncate pr-6">{title}</span>
           </Link>
           <Button
             variant="ghost"
@@ -169,16 +190,23 @@ export const ThreadItem = memo(({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
-        <ContextMenuItem onClick={handleRenameClick}>
+        <ContextMenuItem onClick={handleRenameClick} disabled={regenerateThreadNameMutation.isPending}>
           Rename
         </ContextMenuItem>
+        <ContextMenuItem onClick={handleRegenerateNameClick} disabled={regenerateThreadNameMutation.isPending}>
+          Regenerate Name
+        </ContextMenuItem>
+        <ContextMenuSeparator />
         <ContextMenuItem
           onClick={handleDeleteClick}
           variant="destructive"
+          disabled={deleteThreadMutation.isPending || regenerateThreadNameMutation.isPending}
         >
           Delete
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   );
-});
+};
+
+export const ThreadItem = memo(ThreadItemComponent);

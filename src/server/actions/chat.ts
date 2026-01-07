@@ -5,8 +5,9 @@ import { headers } from "next/headers";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { auth } from "~/lib/auth";
-import { createThread, deleteThreadById, renameThreadById, saveMessage } from "~/server/db/queries/chat";
-import { hasApiKey } from "~/server/db/queries/settings";
+import { generateThreadTitle } from "~/server/ai/naming";
+import { createThread, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage } from "~/server/db/queries/chat";
+import { getServerApiKey, hasApiKey } from "~/server/db/queries/settings";
 import { validateThreadOwnership } from "~/server/db/utils/thread-validation";
 
 /**
@@ -82,4 +83,51 @@ export async function renameThread(threadId: string, newTitle: string): Promise<
 
   await validateThreadOwnership(threadId, session);
   await renameThreadById(threadId, newTitle);
+}
+
+/**
+ * Regenerates the title of a thread using AI.
+ * Requires either a server-stored API key or a browser-provided key.
+ *
+ * @param threadId ID of the thread to rename
+ * @param browserApiKey Optional API key provided by the client (for browser-only storage)
+ * @return {Promise<string>} The new title
+ */
+export async function regenerateThreadName(threadId: string, browserApiKey?: string): Promise<string> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  await validateThreadOwnership(threadId, session);
+  if (!session?.user)
+    throw new Error("Not authenticated");
+
+  // Resolve API key: browser-provided key takes precedence over server-stored key.
+  // This matches the behavior in the chat endpoint.
+  const serverApiKey = await getServerApiKey(session.user.id, "openrouter");
+  const resolvedApiKey = browserApiKey ?? serverApiKey;
+
+  if (!resolvedApiKey) {
+    throw new Error("No API key configured. Provide a browser key or store one on the server.");
+  }
+
+  const messages = await getMessagesByThreadId(threadId);
+  const textMessages = messages.filter(m => m.role === "user");
+
+  if (textMessages.length === 0) {
+    throw new Error("No user messages found to generate title from");
+  }
+
+  const firstUserMessage = textMessages[0];
+  const userContent = firstUserMessage.parts
+    ? firstUserMessage.parts
+        .filter(p => p.type === "text")
+        .map(p => (p as { text: string }).text)
+        .join("")
+    : "";
+
+  const newTitle = await generateThreadTitle(userContent, resolvedApiKey);
+  await renameThreadById(threadId, newTitle);
+
+  return newTitle;
 }

@@ -2,6 +2,7 @@
 
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
 
 import {
   Sidebar,
@@ -20,6 +21,14 @@ import { Skeleton } from "../ui/skeleton";
 import { ThreadList } from "./thread-list";
 import { UserProfileCard } from "./user-profile-card";
 
+function useMounted() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  return mounted;
+}
+
 function ThreadListSkeleton() {
   return (
     <div className="space-y-2">
@@ -28,6 +37,32 @@ function ThreadListSkeleton() {
       ))}
     </div>
   );
+}
+
+function ThreadListContent() {
+  const mounted = useMounted();
+  const { data: session } = useSession();
+  const { data: groupedThreads, isLoading: threadsLoading } = useThreads({
+    enabled: mounted && !!session,
+  });
+
+  if (!mounted) {
+    return <ThreadListSkeleton />;
+  }
+
+  if (!session) {
+    return null;
+  }
+
+  if (threadsLoading) {
+    return <ThreadListSkeleton />;
+  }
+
+  if (groupedThreads) {
+    return <ThreadList groupedThreads={groupedThreads} />;
+  }
+
+  return null;
 }
 
 function UserProfileSkeleton() {
@@ -44,17 +79,31 @@ function UserProfileSkeleton() {
   );
 }
 
-export function ChatSidebar() {
+function UserProfileContent() {
+  const mounted = useMounted();
   const { data: session, isPending: sessionLoading } = useSession();
-  const { data: groupedThreads, isLoading: threadsLoading } = useThreads({
-    enabled: !!session,
-  });
   const { data: settings } = useUserSettings({
-    enabled: !!session,
+    enabled: mounted && !!session,
   });
 
   const hasApiKey = settings?.apiKeyStorage?.openrouter !== undefined;
 
+  if (!mounted) {
+    return <UserProfileSkeleton />;
+  }
+
+  if (sessionLoading) {
+    return <UserProfileSkeleton />;
+  }
+
+  if (session) {
+    return <UserProfileCard session={session} hasApiKey={hasApiKey} />;
+  }
+
+  return null;
+}
+
+export function ChatSidebar() {
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="p-0">
@@ -84,27 +133,15 @@ export function ChatSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          {threadsLoading
-            ? (
-                <ThreadListSkeleton />
-              )
-            : groupedThreads
-              ? (
-                  <ThreadList groupedThreads={groupedThreads} />
-                )
-              : null}
+          <Suspense fallback={<ThreadListSkeleton />}>
+            <ThreadListContent />
+          </Suspense>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-0">
-        {sessionLoading
-          ? (
-              <UserProfileSkeleton />
-            )
-          : session
-            ? (
-                <UserProfileCard session={session} hasApiKey={hasApiKey} />
-              )
-            : null}
+        <Suspense fallback={<UserProfileSkeleton />}>
+          <UserProfileContent />
+        </Suspense>
       </SidebarFooter>
     </Sidebar>
   );

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { GroupedThreads } from "~/lib/utils/thread-grouper";
 
 import { groupThreadsByDate } from "~/lib/utils/thread-grouper";
-import { createNewThread, deleteThread, renameThread } from "~/server/actions/chat";
+import { createNewThread, deleteThread, regenerateThreadName, renameThread } from "~/server/actions/chat";
 
 export const THREADS_KEY = ["threads"] as const;
 
@@ -69,6 +69,18 @@ export function useRenameThread() {
   return useMutation({
     mutationFn: ({ threadId, newTitle }: { threadId: string; newTitle: string }) =>
       renameThread(threadId, newTitle),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: THREADS_KEY });
+    },
+  });
+}
+
+export function useRegenerateThreadName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ threadId, browserApiKey }: { threadId: string; browserApiKey?: string }) =>
+      regenerateThreadName(threadId, browserApiKey),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: THREADS_KEY });
     },

@@ -25,6 +25,7 @@ export async function getUserSettings(userId: string): Promise<UserSettingsData>
       theme: "dark",
       defaultThreadName: "New Chat",
       landingPageContent: "suggestions",
+      autoThreadNaming: false,
       apiKeyStorage: {},
     };
   }
@@ -58,6 +59,7 @@ export async function createDefaultUserSettings(userId: string): Promise<UserSet
   const defaultSettings: UserSettingsData = {
     theme: "dark",
     defaultThreadName: "New Chat",
+    autoThreadNaming: false,
     landingPageContent: "suggestions",
     apiKeyStorage: {},
   };

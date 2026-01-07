@@ -11,6 +11,7 @@ export const preferencesSchema = z.object({
     .max(255)
     .transform(v => v.trim() || "New Chat"),
   landingPageContent: z.enum(["suggestions", "greeting", "blank"]),
+  autoThreadNaming: z.boolean().default(false),
 });
 
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
