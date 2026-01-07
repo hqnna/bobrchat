@@ -42,10 +42,6 @@ export function ChatView({
 }) {
   const { scrollRef, messagesEndRef, isInitialScrollComplete } = useChatScroll(messages, { threadId });
 
-  // Get sources from the latest assistant message
-  const lastAssistantMessage = [...messages].reverse().find(m => m.role === "assistant");
-  const sources = lastAssistantMessage?.metadata?.sources || [];
-
   const handleSendMessage = useCallback((content: string) => {
     sendMessage({
       parts: [{ type: "text", text: content }],
@@ -87,7 +83,7 @@ export function ChatView({
             : `translate-y-2 scale-99 opacity-0`,
         )}
         >
-          <ChatMessages messages={messages} isLoading={isLoading} sources={sources} />
+          <ChatMessages messages={messages} isLoading={isLoading} />
         </div>
         <div ref={messagesEndRef} />
       </ScrollArea>

@@ -1,6 +1,6 @@
 import { memo, useMemo } from "react";
 
-import type { ChatUIMessage, SourceInfo } from "~/app/api/chat/route";
+import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { LoadingSpinner } from "./loading-spinner";
 import { MemoizedMarkdown } from "./markdown";
@@ -11,11 +11,9 @@ import { UserMessage } from "./user-message";
 export const ChatMessages = memo(({
   messages,
   isLoading,
-  sources,
 }: {
   messages: ChatUIMessage[];
   isLoading?: boolean;
-  sources?: SourceInfo[];
 }) => {
   const processedMessages = useMemo(() => {
     return messages.map(message => ({
@@ -33,6 +31,8 @@ export const ChatMessages = memo(({
         if (message.role === "user") {
           return <UserMessage key={message.id} content={textContent} />;
         }
+
+        const sources = message.metadata?.sources;
 
         return (
           <div key={message.id} className="group markdown text-base">

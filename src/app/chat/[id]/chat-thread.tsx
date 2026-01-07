@@ -47,6 +47,7 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
   }, [selectedModelId]);
 
   const { messages, sendMessage, status } = useChat<ChatUIMessage>({
+    id,
     transport: new DefaultChatTransport({
       api: "/api/chat",
       prepareSendMessagesRequest: ({ messages: allMessages }) => {
@@ -66,6 +67,21 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
       toast.error(error.message || "Failed to send message");
     },
   });
+
+  // Check for pending message from creation (e.g. from homepage)
+  useEffect(() => {
+    const pendingMessage = sessionStorage.getItem("pending_message");
+    if (pendingMessage) {
+      try {
+        const messageParts = JSON.parse(pendingMessage);
+        sendMessage(messageParts);
+        sessionStorage.removeItem("pending_message");
+      }
+      catch (e) {
+        console.error("Failed to parse pending message", e);
+      }
+    }
+  }, [sendMessage]);
 
   return (
     <ChatView
