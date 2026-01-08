@@ -10,6 +10,7 @@ import { FilePreview } from "~/components/chat/file-preview";
 import { useFavoriteModels, useModels } from "~/lib/queries/use-models";
 import { useChatUIStore } from "~/lib/stores/chat-ui-store";
 import { cn } from "~/lib/utils";
+import { detectLanguage, getLanguageExtension } from "~/lib/utils/detect-language";
 
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -26,6 +27,9 @@ type ChatInputProps = {
   onSearchChange?: (enabled: boolean) => void;
   hasApiKey?: boolean;
 };
+
+const PASTE_TEXT_THRESHOLD = 2000;
+const PASTE_LINE_THRESHOLD = 25;
 
 export function ChatInput({
   className,
@@ -48,7 +52,8 @@ export function ChatInput({
 
   const uploadFiles = React.useCallback(async (filesToUpload: FileList | File[]) => {
     const files = Array.from(filesToUpload);
-    if (files.length === 0) return;
+    if (files.length === 0)
+      return;
 
     const tempFiles: PendingFile[] = files.map(file => ({
       id: crypto.randomUUID(),
@@ -99,7 +104,7 @@ export function ChatInput({
     toast.promise(uploadPromise(), {
       loading: `Uploading ${fileLabel}...`,
       success: `Uploaded ${fileLabel}`,
-      error: (err) => {
+      error: () => {
         setPendingFiles(prev =>
           prev.filter(f => !tempFiles.some(tf => tf.id === f.id)),
         );
@@ -114,27 +119,76 @@ export function ChatInput({
       if (file?.url.startsWith("blob:")) {
         URL.revokeObjectURL(file.url);
       }
+
+      // If the file has been uploaded (has storagePath), delete it from the database
+      if (file?.storagePath) {
+        fetch("/api/attachments", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: [id] }),
+        }).catch((error) => {
+          console.error("Failed to delete attachment:", error);
+          toast.error("Failed to delete attachment");
+        });
+      }
+
       return prev.filter(f => f.id !== id);
     });
   }, []);
 
   const handlePaste = React.useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
-    if (!items) return;
+    if (!items)
+      return;
 
     const files: File[] = [];
+    let hasText = false;
+
     for (const item of items) {
       if (item.kind === "file") {
         const file = item.getAsFile();
-        if (file) files.push(file);
+        if (file)
+          files.push(file);
+      }
+      else if (item.kind === "string" && item.type === "text/plain") {
+        hasText = true;
       }
     }
 
+    // If we have files, upload them
     if (files.length > 0) {
       e.preventDefault();
       uploadFiles(files);
+      return;
     }
-  }, [uploadFiles]);
+
+    // Check if pasted text is long and should be treated as a file
+    if (hasText) {
+      e.preventDefault();
+      for (const item of items) {
+        if (item.kind === "string" && item.type === "text/plain") {
+          item.getAsString((text) => {
+            const lineCount = text.split("\n").length;
+            if (text.length > PASTE_TEXT_THRESHOLD || lineCount > PASTE_LINE_THRESHOLD) {
+              const language = detectLanguage(text);
+              const extension = getLanguageExtension(language);
+              const filename = `pasted-${Date.now()}.${extension}`;
+
+              const file = new File([text], filename, {
+                type: "text/plain",
+              });
+
+              uploadFiles([file]);
+            }
+            else {
+              // For short text, insert it into the textarea manually
+              onValueChange((value || "") + text);
+            }
+          });
+        }
+      }
+    }
+  }, [uploadFiles, onValueChange]);
 
   const handleAttachClick = React.useCallback(() => {
     fileInputRef.current?.click();

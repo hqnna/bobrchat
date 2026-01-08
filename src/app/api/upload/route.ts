@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 
 import { auth } from "~/lib/auth";
+import { db } from "~/lib/db";
+import { attachments } from "~/lib/db/schema/chat";
 import { saveFile } from "~/lib/storage";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -61,6 +63,17 @@ export async function POST(req: Request) {
       }
 
       const uploaded = await saveFile(file);
+
+      await db.insert(attachments).values({
+        id: uploaded.id,
+        userId: session.user.id,
+        filename: uploaded.filename,
+        mediaType: uploaded.mediaType,
+        size: String(uploaded.size),
+        storagePath: uploaded.storagePath,
+        messageId: null,
+      });
+
       results.push(uploaded);
     }
 
@@ -74,7 +87,8 @@ export async function POST(req: Request) {
         headers: { "Content-Type": "application/json" },
       },
     );
-  } catch (error) {
+  }
+  catch (error) {
     console.error("Upload error:", error);
     return new Response(
       JSON.stringify({ error: "Failed to process upload" }),

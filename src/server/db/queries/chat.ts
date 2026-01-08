@@ -1,9 +1,57 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { db } from "~/lib/db";
-import { messages, threads } from "~/lib/db/schema/chat";
+import { attachments, messages, threads } from "~/lib/db/schema/chat";
+import { serverEnv } from "~/lib/env";
+
+function extractAttachmentRefs(message: ChatUIMessage): { ids: string[]; storagePaths: string[] } {
+  const parts = (message as unknown as { parts?: unknown }).parts;
+  if (!Array.isArray(parts))
+    return { ids: [], storagePaths: [] };
+
+  const ids: string[] = [];
+  const storagePaths: string[] = [];
+
+  for (const part of parts) {
+    if (!part || typeof part !== "object")
+      continue;
+
+    const maybe = part as { type?: unknown; id?: unknown; storagePath?: unknown; url?: unknown };
+    if (maybe.type !== "file")
+      continue;
+
+    if (typeof maybe.id === "string" && maybe.id.length > 0)
+      ids.push(maybe.id);
+
+    if (typeof maybe.storagePath === "string" && maybe.storagePath.length > 0) {
+      storagePaths.push(maybe.storagePath);
+      continue;
+    }
+
+    if (typeof maybe.url === "string" && maybe.url.length > 0) {
+      try {
+        const parsed = new URL(maybe.url);
+        const prefix = `${serverEnv.R2_PUBLIC_URL}/`;
+        if (maybe.url.startsWith(prefix)) {
+          storagePaths.push(maybe.url.slice(prefix.length));
+        }
+        else if (parsed.origin === new URL(serverEnv.R2_PUBLIC_URL).origin) {
+          storagePaths.push(parsed.pathname.replace(/^\//, ""));
+        }
+      }
+      catch {
+        // ignore
+      }
+    }
+  }
+
+  return {
+    ids: Array.from(new Set(ids)),
+    storagePaths: Array.from(new Set(storagePaths)),
+  };
+}
 
 /**
  * Get all messages for a thread, ordered by creation time
@@ -33,6 +81,7 @@ export async function getMessagesByThreadId(threadId: string): Promise<ChatUIMes
  */
 export async function saveMessage(
   threadId: string,
+  userId: string,
   message: ChatUIMessage,
 ): Promise<void> {
   const dateNow = new Date();
@@ -43,12 +92,31 @@ export async function saveMessage(
     throw new Error(`Invalid role: ${message.role}`);
   }
 
+  const { ids: attachmentIds, storagePaths: attachmentStoragePaths } = extractAttachmentRefs(message);
+
   await db.transaction(async (tx) => {
-    await tx.insert(messages).values({
+    const inserted = await tx.insert(messages).values({
       threadId,
       role,
       content: message,
-    });
+    }).returning({ id: messages.id });
+
+    const messageId = inserted[0]?.id;
+    if (messageId) {
+      if (attachmentIds.length > 0) {
+        await tx
+          .update(attachments)
+          .set({ messageId })
+          .where(and(eq(attachments.userId, userId), inArray(attachments.id, attachmentIds)));
+      }
+
+      if (attachmentStoragePaths.length > 0) {
+        await tx
+          .update(attachments)
+          .set({ messageId })
+          .where(and(eq(attachments.userId, userId), inArray(attachments.storagePath, attachmentStoragePaths)));
+      }
+    }
 
     // Update thread's lastMessageAt (conversation engagement time)
     await tx

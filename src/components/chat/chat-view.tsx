@@ -48,7 +48,9 @@ export function ChatView({
   const handleSendMessage = useCallback((content: string, files?: PendingFile[]) => {
     const fileUIParts = files?.map(f => ({
       type: "file" as const,
+      id: f.id,
       url: f.url,
+      storagePath: f.storagePath,
       mediaType: f.mediaType,
       filename: f.filename,
     }));

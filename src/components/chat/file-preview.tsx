@@ -2,6 +2,7 @@
 "use client";
 
 import { FileIcon, XIcon } from "lucide-react";
+import Image from "next/image";
 
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -11,6 +12,7 @@ export type PendingFile = {
   filename: string;
   mediaType: string;
   url: string;
+  storagePath?: string;
   isUploading?: boolean;
 };
 
@@ -46,6 +48,16 @@ function FilePreviewItem({
   onRemove: () => void;
 }) {
   const isImage = file.mediaType.startsWith("image/");
+  const isTextFile = file.mediaType === "text/plain";
+
+  // Extract language from filename if it's a code file
+  let language = "";
+  if (isTextFile && file.filename) {
+    const match = file.filename.match(/\.([a-z]+)$/i);
+    if (match) {
+      language = match[1].toLowerCase();
+    }
+  }
 
   return (
     <div
@@ -57,10 +69,11 @@ function FilePreviewItem({
       {isImage
         ? (
             <div className="relative size-10 overflow-hidden rounded">
-              {/* eslint-disable-next-line next/no-img-element */}
-              <img
+              <Image
                 src={file.url}
                 alt={file.filename}
+                width={32}
+                height={32}
                 className="size-full object-cover"
               />
             </div>
@@ -77,9 +90,19 @@ function FilePreviewItem({
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{file.filename}</p>
-        <p className="text-muted-foreground text-xs">
-          {isImage ? "Image" : file.mediaType.split("/")[1]?.toUpperCase() || "File"}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-muted-foreground text-xs">
+            {isImage ? "Image" : file.mediaType.split("/")[1]?.toUpperCase() || "File"}
+          </p>
+          {isTextFile && language && (
+            <span className={`
+              bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs
+            `}
+            >
+              {language.toUpperCase()}
+            </span>
+          )}
+        </div>
       </div>
 
       <Button
@@ -128,6 +151,13 @@ export function MessageAttachments({
   const images = attachments.filter(a => a.mediaType?.startsWith("image/"));
   const files = attachments.filter(a => !a.mediaType?.startsWith("image/"));
 
+  const getLanguageLabel = (filename?: string) => {
+    if (!filename)
+      return null;
+    const match = filename.match(/\.([a-z]+)$/i);
+    return match ? match[1].toUpperCase() : null;
+  };
+
   return (
     <div className={cn("mt-2 space-y-2 pb-2", className)}>
       {images.length > 1
@@ -145,10 +175,11 @@ export function MessageAttachments({
                     shadow transition-colors
                   `}
                 >
-                  {/* eslint-disable-next-line next/no-img-element */}
-                  <img
+                  <Image
                     src={img.url}
                     alt={img.filename || "Attached image"}
+                    width={32}
+                    height={32}
                     className="aspect-square max-h-8 max-w-xs object-cover"
                   />
                   <span className="text-sm">{img.filename || "Attached image"}</span>
@@ -167,10 +198,11 @@ export function MessageAttachments({
                     rel="noopener noreferrer"
                     className="block overflow-hidden rounded-lg"
                   >
-                    {/* eslint-disable-next-line next/no-img-element */}
-                    <img
+                    <Image
                       src={img.url}
                       alt={img.filename || "Attached image"}
+                      width={32}
+                      height={32}
                       className="w-full max-w-xs object-contain"
                     />
                   </a>
@@ -181,22 +213,33 @@ export function MessageAttachments({
 
       {files.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {files.map((file, idx) => (
-            <a
-              key={idx}
-              href={file.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`
-                hover:bg-card/10
-                border-card flex items-center gap-2 rounded-md border p-2 shadow
-                transition-colors
-              `}
-            >
-              <FileIcon className="text-card size-4" />
-              <span className="text-sm">{file.filename || "File"}</span>
-            </a>
-          ))}
+          {files.map((file, idx) => {
+            const langLabel = getLanguageLabel(file.filename);
+            return (
+              <a
+                key={idx}
+                href={file.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`
+                  hover:bg-card/10
+                  border-card flex items-center gap-2 rounded-md border p-2
+                  shadow transition-colors
+                `}
+              >
+                <FileIcon className="text-card size-4" />
+                <span className="text-sm">{file.filename || "File"}</span>
+                {langLabel && (
+                  <span className={`
+                    bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs
+                  `}
+                  >
+                    {langLabel}
+                  </span>
+                )}
+              </a>
+            );
+          })}
         </div>
       )}
     </div>

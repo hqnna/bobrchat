@@ -61,7 +61,7 @@ export async function POST(req: Request) {
 
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === "user") {
-      await saveMessage(threadId, lastMessage);
+      await saveMessage(threadId, session.user.id, lastMessage);
     }
   }
 
@@ -129,7 +129,7 @@ export async function POST(req: Request) {
     },
     onFinish: async ({ responseMessage }) => {
       if (threadId) {
-        await saveMessage(threadId, responseMessage);
+        await saveMessage(threadId, session.user.id, responseMessage);
       }
     },
     sendSources: true,

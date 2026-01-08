@@ -1,4 +1,4 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { Buffer } from "node:buffer";
 import path from "node:path";
 
@@ -10,6 +10,7 @@ export type UploadedFile = {
   mediaType: string;
   size: number;
   url: string;
+  storagePath: string;
 };
 
 function getR2Client() {
@@ -54,5 +55,16 @@ export async function saveFile(file: File): Promise<UploadedFile> {
     mediaType: file.type,
     size: file.size,
     url: publicUrl,
+    storagePath: key,
   };
+}
+
+export async function deleteFile(storagePath: string): Promise<void> {
+  const client = getR2Client();
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: serverEnv.R2_BUCKET_NAME,
+      Key: storagePath,
+    }),
+  );
 }

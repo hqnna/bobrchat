@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     });
   }
 
-  await saveMessage(threadId, message);
+  await saveMessage(threadId, session.user.id, message);
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,

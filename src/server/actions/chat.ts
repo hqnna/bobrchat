@@ -5,10 +5,44 @@ import { headers } from "next/headers";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { auth } from "~/lib/auth";
+import { serverEnv } from "~/lib/env";
+import { deleteFile } from "~/lib/storage";
 import { generateThreadTitle } from "~/server/ai/naming";
+import { deleteUserAttachmentsByIds, listThreadAttachments, resolveUserAttachmentsByStoragePaths } from "~/server/db/queries/attachments";
 import { createThread, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage } from "~/server/db/queries/chat";
 import { getServerApiKey, hasApiKey } from "~/server/db/queries/settings";
 import { validateThreadOwnership } from "~/server/db/utils/thread-validation";
+
+function extractStoragePathsFromThreadMessages(messages: ChatUIMessage[]): string[] {
+  const storagePaths: string[] = [];
+  const prefix = `${serverEnv.R2_PUBLIC_URL}/`;
+
+  for (const message of messages) {
+    const parts = (message as unknown as { parts?: unknown }).parts;
+    if (!Array.isArray(parts))
+      continue;
+
+    for (const part of parts) {
+      if (!part || typeof part !== "object")
+        continue;
+
+      const maybe = part as { type?: unknown; storagePath?: unknown; url?: unknown };
+      if (maybe.type !== "file")
+        continue;
+
+      if (typeof maybe.storagePath === "string" && maybe.storagePath.length > 0) {
+        storagePaths.push(maybe.storagePath);
+        continue;
+      }
+
+      if (typeof maybe.url === "string" && maybe.url.startsWith(prefix)) {
+        storagePaths.push(maybe.url.slice(prefix.length));
+      }
+    }
+  }
+
+  return Array.from(new Set(storagePaths));
+}
 
 /**
  * Creates a new chat thread for the authenticated user.
@@ -49,7 +83,7 @@ export async function saveUserMessage(threadId: string, message: ChatUIMessage):
   });
 
   await validateThreadOwnership(threadId, session);
-  await saveMessage(threadId, message);
+  await saveMessage(threadId, session!.user!.id, message);
 }
 
 /**
@@ -65,6 +99,27 @@ export async function deleteThread(threadId: string): Promise<void> {
   });
 
   await validateThreadOwnership(threadId, session);
+
+  const userId = session!.user!.id;
+  const threadMessages = await getMessagesByThreadId(threadId);
+
+  const fromLinked = await listThreadAttachments({ userId, threadId });
+  const fromMessageUrls = await resolveUserAttachmentsByStoragePaths({
+    userId,
+    storagePaths: extractStoragePathsFromThreadMessages(threadMessages),
+  });
+
+  const ids = Array.from(new Set([...fromLinked.ids, ...fromMessageUrls.ids]));
+  const storagePaths = Array.from(new Set([...fromLinked.storagePaths, ...fromMessageUrls.storagePaths]));
+
+  if (storagePaths.length > 0) {
+    await Promise.all(storagePaths.map(p => deleteFile(p)));
+  }
+
+  if (ids.length > 0) {
+    await deleteUserAttachmentsByIds({ userId, ids });
+  }
+
   await deleteThreadById(threadId);
 }
 
