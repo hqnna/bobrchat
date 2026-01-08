@@ -71,8 +71,9 @@ export function processStreamChunk(part: TextStreamPart<ToolSet>, handlers: Stre
   }
   else if (part.type === "tool-result") {
     const toolPart = part as any;
+    const resultData = toolPart.output ?? toolPart.result;
     if (toolPart.toolName === "search") {
-      const sources = extractSourcesFromToolResult(toolPart.result);
+      const sources = extractSourcesFromToolResult(resultData);
       sources.forEach(handlers.onSource);
     }
   }

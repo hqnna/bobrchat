@@ -33,11 +33,11 @@ export function calculateResponseMetadata(options: MetadataOptions) {
     sources,
   } = options;
 
-  // TODO: Calculate actual search result count from tool calls.
-  // Currently using the default of 10 results for cost estimation.
-  const searchPricing = searchEnabled
-    ? calculateSearchCost(10)
-    : 0;
+  // Use actual number of discovered sources (if any) to estimate search cost.
+  // `sources` is populated via stream handlers when tool results or source
+  // events are emitted. Fall back to 10 if not provided.
+  const resultCount = searchEnabled && sources ? sources.length : 10;
+  const searchPricing = resultCount > 0 ? calculateSearchCost(resultCount) : 0;
 
   const totalCost = calculateChatCost(
     { inputTokens, outputTokens },
