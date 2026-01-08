@@ -54,5 +54,6 @@ export const attachments = pgTable(
   table => [
     index("attachments_userId_idx").on(table.userId),
     index("attachments_messageId_idx").on(table.messageId),
+    index("attachments_userId_storagePath_idx").on(table.userId, table.storagePath),
   ],
 );

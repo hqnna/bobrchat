@@ -17,7 +17,7 @@ function createDb() {
   const pool = new Pool({
     connectionString: serverEnv.DATABASE_URL,
     max: 10,
-    idleTimeoutMillis: 20000,
+    idleTimeoutMillis: 60000, // 60 seconds - keep connections warm longer
     connectionTimeoutMillis: 10000,
   });
 

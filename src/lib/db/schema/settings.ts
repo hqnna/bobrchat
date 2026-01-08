@@ -1,5 +1,5 @@
 import { defineRelations } from "drizzle-orm";
-import { jsonb, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { users } from "./auth";
 
@@ -28,26 +28,30 @@ export type UserSettingsData = {
 // Values are in "hex(iv):hex(ciphertext):hex(authTag)" format
 export type EncryptedApiKeysData = Partial<Record<ApiKeyProvider, string>>;
 
-export const userSettings = pgTable("user_settings", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .unique()
-    .references(() => users.id, { onDelete: "cascade" }),
-  settings: jsonb("settings").notNull().default({
-    theme: "dark",
-    defaultThreadName: "New Chat",
-    landingPageContent: "suggestions",
-    autoThreadNaming: false,
-    apiKeyStorage: {},
-  } as UserSettingsData),
-  encryptedApiKeys: jsonb("encrypted_api_keys").notNull().default({} as EncryptedApiKeysData),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+export const userSettings = pgTable(
+  "user_settings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: "cascade" }),
+    settings: jsonb("settings").notNull().default({
+      theme: "dark",
+      defaultThreadName: "New Chat",
+      landingPageContent: "suggestions",
+      autoThreadNaming: false,
+      apiKeyStorage: {},
+    } as UserSettingsData),
+    encryptedApiKeys: jsonb("encrypted_api_keys").notNull().default({} as EncryptedApiKeysData),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => [index("user_settings_userId_idx").on(table.userId)],
+);
 
 export const userSettingsRelations = defineRelations({ userSettings, users }, r => ({
   userSettings: {
