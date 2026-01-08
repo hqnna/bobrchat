@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import type { ApiKeyProvider, EncryptedApiKeysData, UserSettingsData } from "~/lib/db/schema/settings";
 
@@ -298,30 +298,23 @@ export async function deleteApiKey(userId: string, provider: ApiKeyProvider): Pr
 export async function hasApiKey(userId: string, provider: ApiKeyProvider): Promise<boolean> {
   const start = Date.now();
   const result = await db
-    .select({ settings: userSettings.settings, encryptedApiKeys: userSettings.encryptedApiKeys })
+    .select({ count: sql<number>`1` })
     .from(userSettings)
-    .where(eq(userSettings.userId, userId))
+    .where(and(
+      eq(userSettings.userId, userId),
+      sql`(${userSettings.settings}->'apiKeyStorage'->>${provider}) IS NOT NULL`,
+      sql`
+        CASE 
+          WHEN (${userSettings.settings}->'apiKeyStorage'->>${provider}) = 'server' 
+          THEN (${userSettings.encryptedApiKeys}->>${provider}) IS NOT NULL
+          ELSE true
+        END
+      `,
+    ))
     .limit(1);
   logTiming("db.hasApiKey", start);
 
-  if (!result.length)
-    return false;
-
-  const settings = result[0].settings as UserSettingsData;
-  const encryptedApiKeys = result[0].encryptedApiKeys as EncryptedApiKeysData;
-
-  // Check if provider has a storage preference configured
-  const storageType = settings.apiKeyStorage[provider];
-  if (!storageType)
-    return false;
-
-  // If server-side, check if encrypted key exists
-  if (storageType === "server") {
-    return !!encryptedApiKeys[provider];
-  }
-
-  // If client-side, we assume it's configured (actual key is in browser)
-  return true;
+  return result.length > 0;
 }
 
 /**

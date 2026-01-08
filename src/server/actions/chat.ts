@@ -69,19 +69,22 @@ export async function createNewThread(defaultName?: string): Promise<string> {
   if (!session?.user)
     throw new Error("Not authenticated");
 
-  // Check if user has an API key configured
-  const hasKeyStart = Date.now();
-  const hasKey = await hasApiKey(session.user.id, "openrouter");
-  logTiming("createNewThread.hasApiKey", hasKeyStart);
+  const threadName = defaultName || "New Chat";
+
+  // Run hasApiKey and createThread in parallel to hide cold start latency
+  // If user doesn't have an API key, we'll delete the thread (rare case)
+  const dbStart = Date.now();
+  const [hasKey, threadId] = await Promise.all([
+    hasApiKey(session.user.id, "openrouter"),
+    createThread(session.user.id, threadName),
+  ]);
+  logTiming("createNewThread.parallelDbOps", dbStart, { hasKey });
 
   if (!hasKey) {
+    // Rare case: user somehow doesn't have API key, clean up the thread we just created
+    await deleteThreadById(threadId, session.user.id);
     throw new Error("API key not configured. Please set up your OpenRouter API key in settings before creating a thread.");
   }
-
-  const threadName = defaultName || "New Chat";
-  const createStart = Date.now();
-  const threadId = await createThread(session.user.id, threadName);
-  logTiming("createNewThread.createThread", createStart);
 
   logTiming("createNewThread.total", totalStart);
   return threadId;
