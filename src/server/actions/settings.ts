@@ -146,19 +146,30 @@ export async function updateProfile(updates: ProfileUpdate): Promise<void> {
  * @return {Promise<UserSettingsData | null>} Fresh user settings after cleanup, or null if not authenticated
  */
 export async function syncUserSettings(): Promise<UserSettingsData | null> {
+  const totalStart = Date.now();
+
+  const sessionStart = Date.now();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  console.warn(`[PERF] syncUserSettings.getSession: ${Date.now() - sessionStart}ms`);
 
   if (!session?.user) {
     return null;
   }
 
-  // Clean up orphaned encrypted keys
-  await cleanupEncryptedApiKeys();
+  // Clean up orphaned encrypted keys (using internal helper to avoid extra session check)
+  const cleanupStart = Date.now();
+  await cleanupEncryptedApiKeysForUser(session.user.id);
+  console.warn(`[PERF] syncUserSettings.cleanupEncryptedApiKeys: ${Date.now() - cleanupStart}ms`);
 
   // Return fresh settings
-  return getUserSettings(session.user.id);
+  const getSettingsStart = Date.now();
+  const settings = await getUserSettings(session.user.id);
+  console.warn(`[PERF] syncUserSettings.getUserSettings: ${Date.now() - getSettingsStart}ms`);
+
+  console.warn(`[PERF] syncUserSettings.total: ${Date.now() - totalStart}ms`);
+  return settings;
 }
 
 /**
@@ -183,6 +194,37 @@ export async function cleanupMissingClientApiKey(provider: ApiKeyProvider): Prom
 }
 
 /**
+ * Internal helper to clean up orphaned encrypted API keys for a specific user
+ * Does not check authentication - caller must verify
+ *
+ * @param userId ID of the user
+ * @return {Promise<void>}
+ */
+async function cleanupEncryptedApiKeysForUser(userId: string): Promise<void> {
+  // Fetch user settings with metadata to check encrypted keys
+  const userRecord = await getUserSettingsWithMetadata(userId);
+  if (!userRecord) {
+    return;
+  }
+
+  const settings = userRecord.settings as UserSettingsData;
+  const encryptedApiKeys = (userRecord.encryptedApiKeys || {}) as EncryptedApiKeysData;
+
+  // Find and remove encrypted keys that don't have a matching "server" storage preference
+  const cleanupPromises: Promise<void>[] = [];
+  for (const provider of Object.keys(encryptedApiKeys) as ApiKeyProvider[]) {
+    if (settings.apiKeyStorage[provider] !== "server") {
+      // This encrypted key doesn't have a matching server preference, remove it
+      cleanupPromises.push(removeEncryptedKey(userId, provider));
+    }
+  }
+
+  if (cleanupPromises.length > 0) {
+    await Promise.all(cleanupPromises);
+  }
+}
+
+/**
  * Clean up orphaned encrypted API keys (keys without matching storage preferences)
  * Queries user settings and removes any encrypted keys that don't have a matching
  * "server" storage preference in apiKeyStorage
@@ -200,24 +242,7 @@ export async function cleanupEncryptedApiKeys(): Promise<void> {
     throw new Error("Not authenticated");
   }
 
-  const userId = session.user.id;
-
-  // Fetch user settings with metadata to check encrypted keys
-  const userRecord = await getUserSettingsWithMetadata(userId);
-  if (!userRecord) {
-    return;
-  }
-
-  const settings = userRecord.settings as UserSettingsData;
-  const encryptedApiKeys = (userRecord.encryptedApiKeys || {}) as EncryptedApiKeysData;
-
-  // Find and remove encrypted keys that don't have a matching "server" storage preference
-  for (const provider of Object.keys(encryptedApiKeys) as ApiKeyProvider[]) {
-    if (settings.apiKeyStorage[provider] !== "server") {
-      // This encrypted key doesn't have a matching server preference, remove it
-      await removeEncryptedKey(userId, provider);
-    }
-  }
+  await cleanupEncryptedApiKeysForUser(session.user.id);
 }
 
 /**

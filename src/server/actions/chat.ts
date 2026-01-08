@@ -12,6 +12,12 @@ import { deleteUserAttachmentsByIds, listThreadAttachments, resolveUserAttachmen
 import { createThread, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage } from "~/server/db/queries/chat";
 import { getServerApiKey, hasApiKey } from "~/server/db/queries/settings";
 
+// Performance logging helper
+function logTiming(operation: string, startTime: number, metadata?: Record<string, unknown>) {
+  const duration = Date.now() - startTime;
+  console.warn(`[PERF] ${operation}: ${duration}ms`, metadata ? JSON.stringify(metadata) : "");
+}
+
 function extractStoragePathsFromThreadMessages(messages: ChatUIMessage[]): string[] {
   const storagePaths: string[] = [];
   const prefix = `${serverEnv.R2_PUBLIC_URL}/`;
@@ -52,20 +58,32 @@ function extractStoragePathsFromThreadMessages(messages: ChatUIMessage[]): strin
  * @throws {Error} If user is not authenticated or doesn't have an API key configured.
  */
 export async function createNewThread(defaultName?: string): Promise<string> {
+  const totalStart = Date.now();
+
+  const sessionStart = Date.now();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  logTiming("createNewThread.getSession", sessionStart);
+
   if (!session?.user)
     throw new Error("Not authenticated");
 
   // Check if user has an API key configured
+  const hasKeyStart = Date.now();
   const hasKey = await hasApiKey(session.user.id, "openrouter");
+  logTiming("createNewThread.hasApiKey", hasKeyStart);
+
   if (!hasKey) {
     throw new Error("API key not configured. Please set up your OpenRouter API key in settings before creating a thread.");
   }
 
   const threadName = defaultName || "New Chat";
+  const createStart = Date.now();
   const threadId = await createThread(session.user.id, threadName);
+  logTiming("createNewThread.createThread", createStart);
+
+  logTiming("createNewThread.total", totalStart);
   return threadId;
 }
 
@@ -97,9 +115,13 @@ export async function saveUserMessage(threadId: string, message: ChatUIMessage):
  * @return {Promise<void>}
  */
 export async function deleteThread(threadId: string): Promise<void> {
+  const totalStart = Date.now();
+
+  const sessionStart = Date.now();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  logTiming("deleteThread.getSession", sessionStart);
 
   if (!session?.user) {
     throw new Error("Not authenticated");
@@ -108,31 +130,58 @@ export async function deleteThread(threadId: string): Promise<void> {
   const userId = session.user.id;
 
   // Fetch messages and linked attachments in parallel
+  const fetchStart = Date.now();
   const [threadMessages, fromLinked] = await Promise.all([
     getMessagesByThreadId(threadId),
     listThreadAttachments({ userId, threadId }),
   ]);
+  logTiming("deleteThread.fetchMessagesAndAttachments", fetchStart, {
+    messageCount: threadMessages.length,
+    linkedAttachmentCount: fromLinked.ids.length,
+  });
 
+  const resolveStart = Date.now();
   const fromMessageUrls = await resolveUserAttachmentsByStoragePaths({
     userId,
     storagePaths: extractStoragePathsFromThreadMessages(threadMessages),
+  });
+  logTiming("deleteThread.resolveStoragePaths", resolveStart, {
+    resolvedCount: fromMessageUrls.ids.length,
   });
 
   const ids = Array.from(new Set([...fromLinked.ids, ...fromMessageUrls.ids]));
   const storagePaths = Array.from(new Set([...fromLinked.storagePaths, ...fromMessageUrls.storagePaths]));
 
+  // Run file deletion, attachment record deletion, and thread deletion in parallel
+  // Thread deletion will cascade to messages, which is safe since we've already extracted attachment info
+  const cleanupStart = Date.now();
+  const cleanupPromises: Promise<unknown>[] = [];
+
   if (storagePaths.length > 0) {
-    await Promise.all(storagePaths.map(p => deleteFile(p)));
+    cleanupPromises.push(
+      Promise.all(storagePaths.map(p => deleteFile(p)))
+        .then(() => logTiming("deleteThread.deleteFiles", cleanupStart, { fileCount: storagePaths.length })),
+    );
   }
 
   if (ids.length > 0) {
-    await deleteUserAttachmentsByIds({ userId, ids });
+    cleanupPromises.push(
+      deleteUserAttachmentsByIds({ userId, ids })
+        .then(() => logTiming("deleteThread.deleteAttachmentRecords", cleanupStart, { count: ids.length })),
+    );
   }
 
-  const deleted = await deleteThreadById(threadId, userId);
-  if (!deleted) {
-    throw new Error("Thread not found or unauthorized");
-  }
+  cleanupPromises.push(
+    deleteThreadById(threadId, userId).then((deleted) => {
+      logTiming("deleteThread.deleteThreadById", cleanupStart);
+      if (!deleted) {
+        throw new Error("Thread not found or unauthorized");
+      }
+    }),
+  );
+
+  await Promise.all(cleanupPromises);
+  logTiming("deleteThread.total", totalStart);
 }
 
 /**

@@ -6,6 +6,12 @@ import { db } from "~/lib/db";
 import { attachments, messages, threads } from "~/lib/db/schema/chat";
 import { serverEnv } from "~/lib/env";
 
+// Performance logging helper
+function logTiming(operation: string, startTime: number, metadata?: Record<string, unknown>) {
+  const duration = Date.now() - startTime;
+  console.warn(`[PERF] ${operation}: ${duration}ms`, metadata ? JSON.stringify(metadata) : "");
+}
+
 function extractAttachmentRefs(message: ChatUIMessage): { ids: string[]; storagePaths: string[] } {
   const parts = (message as unknown as { parts?: unknown }).parts;
   if (!Array.isArray(parts))
@@ -59,11 +65,13 @@ function extractAttachmentRefs(message: ChatUIMessage): { ids: string[]; storage
  * @return {Promise<ChatUIMessage[]>} Array of chat messages
  */
 export async function getMessagesByThreadId(threadId: string): Promise<ChatUIMessage[]> {
+  const start = Date.now();
   const rows = await db
     .select({ id: messages.id, content: messages.content })
     .from(messages)
     .where(eq(messages.threadId, threadId))
     .orderBy(messages.createdAt);
+  logTiming("db.getMessagesByThreadId", start, { count: rows.length });
 
   return rows.map((row) => {
     const message = row.content as ChatUIMessage;
@@ -92,6 +100,7 @@ export async function isThreadOwnedByUser(threadId: string, userId: string): Pro
  * Save a single message to a thread
  *
  * @param threadId ID of the thread
+ * @param userId ID of the user
  * @param message Message to save
  * @return {Promise<void>}
  */
@@ -184,6 +193,7 @@ export async function saveMessages(
  * @return {Promise<string>} The ID of the newly created thread
  */
 export async function createThread(userId: string, title?: string): Promise<string> {
+  const start = Date.now();
   const now = new Date();
   const result = await db
     .insert(threads)
@@ -193,6 +203,7 @@ export async function createThread(userId: string, title?: string): Promise<stri
       lastMessageAt: now,
     })
     .returning();
+  logTiming("db.createThread", start);
 
   return result[0].id;
 }
@@ -204,11 +215,13 @@ export async function createThread(userId: string, title?: string): Promise<stri
  * @return {Promise<any>} Thread info or undefined if not found
  */
 export async function getThreadById(threadId: string) {
+  const start = Date.now();
   const result = await db
     .select()
     .from(threads)
     .where(eq(threads.id, threadId))
     .limit(1);
+  logTiming("db.getThreadById", start);
   return result[0];
 }
 
@@ -219,11 +232,14 @@ export async function getThreadById(threadId: string) {
  * @return {Promise<any[]>} Array of threads
  */
 export async function getThreadsByUserId(userId: string) {
-  return db
+  const start = Date.now();
+  const result = await db
     .select()
     .from(threads)
     .where(eq(threads.userId, userId))
     .orderBy(desc(threads.lastMessageAt));
+  logTiming("db.getThreadsByUserId", start, { count: result.length });
+  return result;
 }
 
 /**
@@ -235,10 +251,12 @@ export async function getThreadsByUserId(userId: string) {
  * @return {Promise<boolean>} True if deleted, false if not found or not owned
  */
 export async function deleteThreadById(threadId: string, userId: string): Promise<boolean> {
+  const start = Date.now();
   const result = await db
     .delete(threads)
     .where(and(eq(threads.id, threadId), eq(threads.userId, userId)))
     .returning();
+  logTiming("db.deleteThreadById", start);
   return result.length > 0;
 }
 
