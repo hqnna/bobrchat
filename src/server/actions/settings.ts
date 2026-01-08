@@ -139,8 +139,7 @@ export async function updateProfile(updates: ProfileUpdate): Promise<void> {
 
 /**
  * Sync user settings and clean up orphaned data
- * Cleans up orphaned encrypted API keys (keys without matching storage preferences)
- * and returns fresh user settings
+ * Cleanup is performed lazily (roughly 1 in 10 calls) to reduce DB overhead
  * Requires authentication
  *
  * @return {Promise<UserSettingsData | null>} Fresh user settings after cleanup, or null if not authenticated
@@ -158,10 +157,13 @@ export async function syncUserSettings(): Promise<UserSettingsData | null> {
     return null;
   }
 
-  // Clean up orphaned encrypted keys (using internal helper to avoid extra session check)
-  const cleanupStart = Date.now();
-  await cleanupEncryptedApiKeysForUser(session.user.id);
-  console.warn(`[PERF] syncUserSettings.cleanupEncryptedApiKeys: ${Date.now() - cleanupStart}ms`);
+  // Lazy cleanup: only run ~10% of the time to reduce DB overhead
+  // Orphaned keys are rare and not critical to clean up immediately
+  if (Math.random() < 0.1) {
+    const cleanupStart = Date.now();
+    await cleanupEncryptedApiKeysForUser(session.user.id);
+    console.warn(`[PERF] syncUserSettings.cleanupEncryptedApiKeys: ${Date.now() - cleanupStart}ms`);
+  }
 
   // Return fresh settings
   const getSettingsStart = Date.now();

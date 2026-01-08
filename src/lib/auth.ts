@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { nextCookies } from "better-auth/next-js";
 
 import { createDefaultUserSettings } from "~/server/db/queries/settings";
 
@@ -23,6 +24,21 @@ export const auth = betterAuth({
       clientSecret: serverEnv.GITHUB_CLIENT_SECRET,
     },
   },
+  session: {
+    // Enable cookie caching to avoid DB lookups on every request
+    // Session data is stored in a signed cookie, refreshed every 5 minutes
+
+    // NOTE: If we ever add custom session fields (roles, permissions, etc.),
+    // use disableCookieCache: true after changing those fields:
+    // await auth.api.getSession({
+    //   headers: await headers(),
+    //   query: { disableCookieCache: true }
+    // });
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes - session is cached in cookie
+    },
+  },
   databaseHooks: {
     user: {
       create: {
@@ -37,6 +53,7 @@ export const auth = betterAuth({
       generateId: () => crypto.randomUUID(),
     },
   },
+  plugins: [nextCookies()],
 });
 
 // i really hate that this is how the docs want me to do this

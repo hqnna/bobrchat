@@ -140,14 +140,21 @@ export async function deleteThread(threadId: string): Promise<void> {
     linkedAttachmentCount: fromLinked.ids.length,
   });
 
-  const resolveStart = Date.now();
-  const fromMessageUrls = await resolveUserAttachmentsByStoragePaths({
-    userId,
-    storagePaths: extractStoragePathsFromThreadMessages(threadMessages),
-  });
-  logTiming("deleteThread.resolveStoragePaths", resolveStart, {
-    resolvedCount: fromMessageUrls.ids.length,
-  });
+  // Extract storage paths from message content (only if there are messages)
+  const extractedPaths = extractStoragePathsFromThreadMessages(threadMessages);
+
+  // Only resolve paths if we found any in message content
+  let fromMessageUrls = { ids: [] as string[], storagePaths: [] as string[] };
+  if (extractedPaths.length > 0) {
+    const resolveStart = Date.now();
+    fromMessageUrls = await resolveUserAttachmentsByStoragePaths({
+      userId,
+      storagePaths: extractedPaths,
+    });
+    logTiming("deleteThread.resolveStoragePaths", resolveStart, {
+      resolvedCount: fromMessageUrls.ids.length,
+    });
+  }
 
   const ids = Array.from(new Set([...fromLinked.ids, ...fromMessageUrls.ids]));
   const storagePaths = Array.from(new Set([...fromLinked.storagePaths, ...fromMessageUrls.storagePaths]));
