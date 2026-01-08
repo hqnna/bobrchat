@@ -99,7 +99,7 @@ export async function saveMessage(
       threadId,
       role,
       content: message,
-    }).returning({ id: messages.id });
+    }).returning();
 
     const messageId = inserted[0]?.id;
     if (messageId) {
@@ -176,7 +176,7 @@ export async function createThread(userId: string, title?: string): Promise<stri
       title: title || "New Chat", // Default will be overridden in the action
       lastMessageAt: now,
     })
-    .returning({ id: threads.id });
+    .returning();
 
   return result[0].id;
 }

@@ -91,7 +91,7 @@ export async function updateUserSettings(
       updatedAt: new Date(),
     })
     .where(eq(userSettings.userId, userId))
-    .returning({ settings: userSettings.settings });
+    .returning();
 
   if (!result.length) {
     await db.insert(userSettings).values({

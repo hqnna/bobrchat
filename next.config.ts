@@ -5,7 +5,11 @@ import { serverEnv } from "./src/lib/env";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["tiktoken", "tokenlens"],
   images: {
-    domains: [serverEnv.R2_PUBLIC_URL?.replace(/^https?:\/\//, "") || ""],
+    remotePatterns: [
+      {
+        hostname: serverEnv.R2_PUBLIC_URL?.replace(/^https?:\/\//, "") || "",
+      },
+    ],
   },
 };
 
