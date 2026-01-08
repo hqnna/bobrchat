@@ -182,7 +182,7 @@ export async function deleteUserAttachmentsByIds(params: {
   const result = await db
     .delete(attachments)
     .where(and(eq(attachments.userId, params.userId), inArray(attachments.id, params.ids)))
-    .returning({ id: attachments.id });
+    .returning();
 
   return result.length;
 }
