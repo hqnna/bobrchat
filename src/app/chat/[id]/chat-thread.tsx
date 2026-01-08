@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport } from "ai";
-import { use, useEffect } from "react";
+import { use, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
@@ -30,6 +30,7 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
     loadApiKeysFromStorage,
     consumePendingMessage,
     setStreamingThreadId,
+    markAssistantMessageStopped,
   } = useChatUIStore();
 
   // Load API keys from localStorage on mount
@@ -37,7 +38,7 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
     loadApiKeysFromStorage();
   }, [loadApiKeysFromStorage]);
 
-  const { messages, sendMessage, status } = useChat<ChatUIMessage>({
+  const { messages, sendMessage, status, stop } = useChat<ChatUIMessage>({
     id,
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -87,6 +88,30 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
     }
   }, [consumePendingMessage, sendMessage, clearInput]);
 
+  const handleStop = useCallback(() => {
+    const lastAssistantMessage = [...messages].reverse().find(m => m.role === "assistant");
+    if (lastAssistantMessage) {
+      const state = useChatUIStore.getState();
+      markAssistantMessageStopped(lastAssistantMessage.id, state.selectedModelId);
+
+      // Persist the partial assistant message so the stopped state survives refresh.
+      // Fire-and-forget; UI state is handled locally.
+      fetch("/api/chat/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          threadId: id,
+          message: {
+            ...lastAssistantMessage,
+            stoppedByUser: true,
+            stoppedModelId: state.selectedModelId,
+          },
+        }),
+      }).catch(() => {});
+    }
+    stop();
+  }, [markAssistantMessageStopped, messages, stop]);
+
   return (
     <ChatView
       messages={messages}
@@ -94,6 +119,7 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
       setInput={setInput}
       sendMessage={sendMessage}
       isLoading={status === "submitted" || status === "streaming"}
+      onStop={handleStop}
       searchEnabled={searchEnabled}
       onSearchChange={setSearchEnabled}
       hasApiKey={hasApiKey}

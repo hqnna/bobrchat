@@ -32,6 +32,10 @@ type ChatUIStore = {
   // Streaming indicator (not persisted)
   streamingThreadId: string | null;
   setStreamingThreadId: (threadId: string | null) => void;
+
+  // Messages stopped by the user (not persisted)
+  stoppedAssistantMessageInfoById: Record<string, { modelId: string | null }>;
+  markAssistantMessageStopped: (messageId: string, modelId: string | null) => void;
 };
 
 export const useChatUIStore = create<ChatUIStore>()(
@@ -73,6 +77,14 @@ export const useChatUIStore = create<ChatUIStore>()(
 
       streamingThreadId: null,
       setStreamingThreadId: threadId => set({ streamingThreadId: threadId }),
+
+      stoppedAssistantMessageInfoById: {},
+      markAssistantMessageStopped: (messageId, modelId) => set(state => ({
+        stoppedAssistantMessageInfoById: {
+          ...state.stoppedAssistantMessageInfoById,
+          [messageId]: { modelId },
+        },
+      })),
     }),
     {
       name: "bobrchat-ui",

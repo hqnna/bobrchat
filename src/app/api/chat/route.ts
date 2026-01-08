@@ -26,7 +26,10 @@ export type MessageMetadata = {
   sources?: SourceInfo[];
 };
 
-export type ChatUIMessage = UIMessage<MessageMetadata>;
+export type ChatUIMessage = UIMessage<MessageMetadata> & {
+  stoppedByUser?: boolean;
+  stoppedModelId?: string | null;
+};
 
 export async function POST(req: Request) {
   const session = await auth.api.getSession({

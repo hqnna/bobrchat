@@ -1,7 +1,11 @@
 /* eslint-disable react/no-array-index-key */
+"use client";
+
 import { memo } from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
+
+import { useChatUIStore } from "~/lib/stores/chat-ui-store";
 
 import { LoadingSpinner } from "./loading-spinner";
 import { MemoizedMarkdown } from "./markdown";
@@ -18,6 +22,8 @@ export const ChatMessages = memo(({
   isLoading?: boolean;
   searchEnabled?: boolean;
 }) => {
+  const stoppedAssistantMessageInfoById = useChatUIStore(state => state.stoppedAssistantMessageInfoById);
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 p-4 py-8">
       {messages.map((message, messageIndex) => {
@@ -31,6 +37,11 @@ export const ChatMessages = memo(({
         }
 
         const isLastMessage = messageIndex === messages.length - 1;
+
+        const stoppedInfo = stoppedAssistantMessageInfoById[message.id];
+        const persistedStopped = (message as any).stoppedByUser === true;
+        const stoppedModelId = (message as any).stoppedModelId as string | null | undefined;
+        const isStopped = persistedStopped || !!stoppedInfo;
 
         return (
           <div key={message.id} className="group markdown text-base">
@@ -101,21 +112,23 @@ export const ChatMessages = memo(({
               <SearchingSources sources={[]} isSearching={true} />
             )}
 
-            {message.metadata && (
+            {(message.metadata || isStopped) && (
               <MessageMetrics
                 metrics={{
                   id: message.id,
-                  model: message.metadata.model || null,
-                  tokensPerSecond: message.metadata.tokensPerSecond.toFixed(2) || null,
-                  totalTokens: message.metadata.inputTokens + message.metadata.outputTokens || null,
-                  inputTokens: message.metadata.inputTokens || null,
-                  outputTokens: message.metadata.outputTokens || null,
-                  ttft: message.metadata.timeToFirstTokenMs || null,
-                  costUsd: message.metadata.costUSD.toFixed(6) || null,
+                  model: message.metadata?.model || stoppedModelId || stoppedInfo?.modelId || (isStopped ? "unknown" : null),
+                  tokensPerSecond: message.metadata ? message.metadata.tokensPerSecond.toFixed(2) : null,
+                  totalTokens: message.metadata ? message.metadata.inputTokens + message.metadata.outputTokens : null,
+                  inputTokens: message.metadata ? message.metadata.inputTokens : null,
+                  outputTokens: message.metadata ? message.metadata.outputTokens : null,
+                  ttft: message.metadata ? message.metadata.timeToFirstTokenMs : null,
+                  costUsd: message.metadata ? message.metadata.costUSD.toFixed(6) : null,
                   content: textContent,
                 }}
                 onRetry={() => { }}
                 isRetrying={false}
+                variant={isStopped ? "minimal" : "full"}
+                stopped={isStopped}
               />
             )}
           </div>

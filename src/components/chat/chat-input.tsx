@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, PaperclipIcon, SearchIcon, SendIcon } from "lucide-react";
+import { AlertCircle, PaperclipIcon, SearchIcon, SendIcon, SquareIcon } from "lucide-react";
 import * as React from "react";
 
 import { useFavoriteModels, useModels } from "~/lib/queries/use-models";
@@ -16,6 +16,8 @@ type ChatInputProps = {
   value: string;
   onValueChange: (value: string) => void;
   onSendMessage: (content: string) => void;
+  isLoading?: boolean;
+  onStop?: () => void;
   searchEnabled?: boolean;
   onSearchChange?: (enabled: boolean) => void;
   hasApiKey?: boolean;
@@ -26,17 +28,29 @@ export function ChatInput({
   value,
   onValueChange,
   onSendMessage,
+  isLoading = false,
+  onStop,
   searchEnabled = false,
   onSearchChange,
   hasApiKey,
 }: ChatInputProps) {
   const favoriteModels = useFavoriteModels();
-  const { isLoading } = useModels({ enabled: hasApiKey });
+  const { isLoading: isModelsLoading } = useModels({ enabled: hasApiKey });
   const { selectedModelId, setSelectedModelId } = useChatUIStore();
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isLoading) {
+      onStop?.();
+      return;
+    }
+
+    if (!value.trim()) {
+      return;
+    }
+
     onSendMessage(value);
     onValueChange("");
     textareaRef.current?.focus();
@@ -113,31 +127,31 @@ export function ChatInput({
               models={favoriteModels}
               selectedModelId={selectedModelId || undefined}
               onSelectModel={setSelectedModelId}
-              isLoading={isLoading}
+              isLoading={isModelsLoading}
             />
 
             <div className="flex-1" />
             <div className="flex items-center gap-2">
               <Button
-                 type="button"
-                 variant="ghost"
-                 size="sm"
-                 onClick={() => onSearchChange?.(!searchEnabled)}
-                 className={cn(`
-                   hover:text-foreground
-                   gap-2 transition-colors
-                 `, searchEnabled
-                   ? `
-                     text-primary
-                     hover:text-primary/80 hover:bg-primary/10
-                     dark:hover:text-primary/80 dark:hover:bg-primary/10
-                   `
-                   : `text-muted-foreground`)}
-                 title={searchEnabled ? "Search enabled" : "Search disabled"}
-               >
-                 <SearchIcon size={16} />
-                 Search
-               </Button>
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onSearchChange?.(!searchEnabled)}
+                className={cn(`
+                  hover:text-foreground
+                  gap-2 transition-colors
+                `, searchEnabled
+                  ? `
+                    text-primary
+                    hover:text-primary/80 hover:bg-primary/10
+                    dark:hover:text-primary/80 dark:hover:bg-primary/10
+                  `
+                  : `text-muted-foreground`)}
+                title={searchEnabled ? "Search enabled" : "Search disabled"}
+              >
+                <SearchIcon size={16} />
+                Search
+              </Button>
 
               <Button
                 type="button"
@@ -154,13 +168,16 @@ export function ChatInput({
               </Button>
 
               <Button
-                type="submit"
+                type={isLoading ? "button" : "submit"}
                 size="icon"
-                disabled={!value.trim()}
+                onClick={isLoading ? onStop : undefined}
+                disabled={isLoading ? !onStop : !value.trim()}
                 className="ml-1 size-8 shrink-0"
-                title="Send message"
+                title={isLoading ? "Stop generating" : "Send message"}
               >
-                <SendIcon size={8} />
+                {isLoading
+                  ? <SquareIcon size={8} />
+                  : <SendIcon size={8} />}
               </Button>
             </div>
           </div>

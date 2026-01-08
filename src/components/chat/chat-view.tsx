@@ -21,6 +21,7 @@ export function ChatView({
   setInput,
   sendMessage,
   isLoading,
+  onStop,
   threadId,
   searchEnabled,
   onSearchChange,
@@ -33,6 +34,7 @@ export function ChatView({
   setInput: (value: string) => void;
   sendMessage: UseChatHelpers<ChatUIMessage>["sendMessage"];
   isLoading?: boolean;
+  onStop?: () => void;
   threadId?: string;
   searchEnabled?: boolean;
   onSearchChange?: (enabled: boolean) => void;
@@ -92,6 +94,8 @@ export function ChatView({
           value={input}
           onValueChange={setInput}
           onSendMessage={handleSendMessage}
+          isLoading={isLoading}
+          onStop={onStop}
           searchEnabled={searchEnabled}
           onSearchChange={onSearchChange}
           hasApiKey={hasApiKey}
