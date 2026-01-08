@@ -229,6 +229,7 @@ export async function getThreadById(threadId: string) {
  * Get paginated threads for a user, sorted by last message (most recent first)
  *
  * @param userId ID of the user
+ * @param options Options for pagination
  * @param options.limit Number of threads to fetch (default 50)
  * @param options.cursor Cursor for pagination (lastMessageAt of last thread from previous page)
  * @return {Promise<{ threads: any[]; nextCursor: string | null }>}

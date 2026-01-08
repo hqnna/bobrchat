@@ -5,7 +5,6 @@ import {
   LoaderIcon,
   MessageCircleIcon,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -15,7 +14,6 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { authClient } from "~/lib/auth-client";
-import { useQueryClient } from "@tanstack/react-query";
 
 const signInSchema = z.object({
   email: z.email("Invalid email address"),
@@ -34,8 +32,6 @@ type ValidationError = {
 };
 
 export function LoginForm() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

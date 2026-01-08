@@ -10,7 +10,7 @@ export default antfu({
     semi: true,
     quotes: "double",
   },
-  ignores: ["**/nix/**", "**/node_modules/**", "**/.next/**", "**/.direnv/**"],
+  ignores: ["**/nix/**", "**/node_modules/**", "**/.next/**", "**/.direnv/**", "**/components/ui/**"],
 
 }, {
   plugins: {

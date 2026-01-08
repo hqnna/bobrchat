@@ -127,6 +127,7 @@ function ChatThread({ params, initialMessages, hasApiKey }: ChatThreadProps): Re
       }).catch(() => {});
     }
     stop();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markAssistantMessageStopped, messages, stop]);
 
   return (

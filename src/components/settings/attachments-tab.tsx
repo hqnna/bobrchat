@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownIcon, ArrowUpIcon, FileTextIcon, FileTypeCornerIcon, TrashIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, FileTypeCornerIcon, TrashIcon } from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
 import { toast } from "sonner";
@@ -357,16 +357,22 @@ export function AttachmentsTab() {
         </div>
       </div>
 
-      <Dialog open={confirmOpen} onOpenChange={(open) => {
-        setConfirmOpen(open);
-        if (!open) {
-          setConfirmIds([]);
-          setConfirmLinkedCount(0);
-        }
-      }}>
+      <Dialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) {
+            setConfirmIds([]);
+            setConfirmLinkedCount(0);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete attachment{confirmIds.length === 1 ? "" : "s"}</DialogTitle>
+            <DialogTitle>
+              Delete attachment
+              {confirmIds.length === 1 ? "" : "s"}
+            </DialogTitle>
             <DialogDescription>
               {confirmLinkedCount > 0
                 ? `${confirmLinkedCount} of ${confirmIds.length} selected attachment${confirmIds.length === 1 ? " is" : "s are"} linked to chat history. Deleting will remove file references from those messages. This cannot be undone.`

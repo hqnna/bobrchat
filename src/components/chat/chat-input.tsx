@@ -246,6 +246,7 @@ export function ChatInput({
         }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadFiles, onValueChange, canUpload, capabilities.supportsFiles]);
 
   const handleAttachClick = React.useCallback(() => {
@@ -381,7 +382,7 @@ export function ChatInput({
             <ModelSelector
               models={favoriteModels}
               selectedModelId={selectedModelId || undefined}
-              onSelectModel={setSelectedModelId}
+              onSelectModelAction={setSelectedModelId}
               isLoading={isModelsLoading}
             />
 

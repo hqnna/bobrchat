@@ -1,5 +1,6 @@
+import type { NextRequest } from "next/server";
+
 import { headers } from "next/headers";
-import { type NextRequest } from "next/server";
 
 import { auth } from "~/lib/auth";
 import { getThreadsByUserId } from "~/server/db/queries/chat";

@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     searchEnabled,
     parallelApiKey,
     undefined,
-    modelSupportsFiles
+    modelSupportsFiles,
   );
 
   // Fire and forget: Auto-rename thread if enabled and this is the first message

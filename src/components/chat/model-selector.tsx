@@ -25,7 +25,7 @@ import {
 type ModelSelectorProps = {
   models: Model[];
   selectedModelId?: string;
-  onSelectModel: (modelId: string) => void;
+  onSelectModelAction: (modelId: string) => void;
   className?: string;
   isLoading?: boolean;
 };
@@ -33,7 +33,7 @@ type ModelSelectorProps = {
 export function ModelSelector({
   models,
   selectedModelId,
-  onSelectModel,
+  onSelectModelAction,
   className,
   isLoading = false,
 }: ModelSelectorProps) {
@@ -89,7 +89,7 @@ export function ModelSelector({
                       key={model.id}
                       variant="ghost"
                       onClick={() => {
-                        onSelectModel(model.id);
+                        onSelectModelAction(model.id);
                         setIsOpen(false);
                       }}
                       className={cn(`

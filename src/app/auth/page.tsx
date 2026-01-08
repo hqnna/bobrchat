@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { AuthDialog } from "~/components/auth/auth-dialog";
 import { auth } from "~/lib/auth";

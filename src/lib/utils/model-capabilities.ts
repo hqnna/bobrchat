@@ -53,8 +53,6 @@ export function getModelCapabilities(model: Model | undefined): ModelCapabilitie
 
   const contextLength = model.contextLength || 0;
 
-  console.log(model);
-
   const supportsImages = inputModalities.includes("image");
   const supportsFiles = inputModalities.includes("file");
   const supportsTools = supportedParams.includes("tools");
