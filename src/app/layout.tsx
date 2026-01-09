@@ -12,7 +12,7 @@ import { ThemeInitializer } from "~/components/theme/theme-initializer";
 import { ThemeProvider } from "~/components/theme/theme-provider";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { Toaster } from "~/components/ui/sonner";
-import { auth } from "~/lib/auth";
+import { auth } from "~/features/auth/lib/auth";
 import { THREADS_KEY, USER_SETTINGS_KEY } from "~/lib/queries/query-keys";
 import { QueryProvider } from "~/lib/queries/query-provider";
 import { syncUserSettings } from "~/server/actions/settings";

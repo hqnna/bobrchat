@@ -13,7 +13,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
-import { signOut } from "~/lib/auth-client";
+import { signOut } from "~/features/auth/lib/auth-client";
 import { cn } from "~/lib/utils";
 
 import { Button } from "../ui/button";

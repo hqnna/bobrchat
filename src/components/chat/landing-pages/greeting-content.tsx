@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "~/lib/auth-client";
+import { useSession } from "~/features/auth/lib/auth-client";
 
 type GreetingContentProps = {
   children?: React.ReactNode;

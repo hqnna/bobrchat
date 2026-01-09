@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 import type { ApiKeyProvider, EncryptedApiKeysData, UserSettingsData } from "~/lib/db/schema/settings";
 import type { FavoriteModelsInput, PreferencesUpdate, ProfileUpdate } from "~/lib/schemas/settings";
 
-import { auth } from "~/lib/auth";
+import { auth } from "~/features/auth/lib/auth";
 import {
   apiKeyUpdateSchema,
   favoriteModelsUpdateSchema,

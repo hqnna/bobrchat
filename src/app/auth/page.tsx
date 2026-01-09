@@ -1,8 +1,8 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AuthDialog } from "~/components/auth/auth-dialog";
-import { auth } from "~/lib/auth";
+import { AuthDialog } from "~/features/auth/components/auth-dialog";
+import { auth } from "~/features/auth/lib/auth";
 
 export default async function AuthPage() {
   const session = await auth.api.getSession({

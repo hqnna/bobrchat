@@ -2,10 +2,9 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 
+import { db } from "~/lib/db";
+import { serverEnv } from "~/lib/env";
 import { createDefaultUserSettings } from "~/server/db/queries/settings";
-
-import { db } from "./db";
-import { serverEnv } from "./env";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -16,7 +15,7 @@ export const auth = betterAuth({
   baseURL: serverEnv.BETTER_AUTH_URL,
   baseAuthPath: "/api/auth",
   emailAndPassword: {
-    enabled: true,
+    enabled: false,
   },
   socialProviders: {
     github: {

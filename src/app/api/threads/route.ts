@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 
 import { headers } from "next/headers";
 
-import { auth } from "~/lib/auth";
+import { auth } from "~/features/auth/lib/auth";
 import { getThreadsByUserId } from "~/server/db/queries/chat";
 
 export async function GET(request: NextRequest) {

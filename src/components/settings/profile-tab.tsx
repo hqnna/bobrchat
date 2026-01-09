@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "~/lib/auth-client";
+import { useSession } from "~/features/auth/lib/auth-client";
 import { cn } from "~/lib/utils";
 
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";

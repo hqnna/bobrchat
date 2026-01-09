@@ -12,7 +12,7 @@ import {
   SidebarHeader,
   SidebarTrigger,
 } from "~/components/ui/sidebar";
-import { useSession } from "~/lib/auth-client";
+import { useSession } from "~/features/auth/lib/auth-client";
 import { useThreads } from "~/lib/queries/use-threads";
 import { useUserSettings } from "~/lib/queries/use-user-settings";
 

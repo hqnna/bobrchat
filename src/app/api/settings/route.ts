@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 
 import type { UserSettingsData } from "~/lib/db/schema/settings";
 
-import { auth } from "~/lib/auth";
+import { auth } from "~/features/auth/lib/auth";
 import { getUserSettings } from "~/server/db/queries/settings";
 
 /**

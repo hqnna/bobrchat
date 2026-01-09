@@ -2,7 +2,7 @@ import { fileTypeFromBuffer } from "file-type";
 import { headers } from "next/headers";
 import { Buffer } from "node:buffer";
 
-import { auth } from "~/lib/auth";
+import { auth } from "~/features/auth/lib/auth";
 import { db } from "~/lib/db";
 import { attachments } from "~/lib/db/schema/chat";
 import { saveFile } from "~/lib/storage";

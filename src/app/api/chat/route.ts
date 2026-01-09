@@ -2,7 +2,7 @@ import type { UIMessage } from "ai";
 
 import { headers } from "next/headers";
 
-import { auth } from "~/lib/auth";
+import { auth } from "~/features/auth/lib/auth";
 import { generateThreadTitle } from "~/server/ai/naming";
 import { streamChatResponse } from "~/server/ai/service";
 import { isThreadOwnedByUser, renameThreadById, saveMessage } from "~/server/db/queries/chat";

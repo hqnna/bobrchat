@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { ChatView } from "~/components/chat/chat-view";
-import { useSession } from "~/lib/auth-client";
+import { useSession } from "~/features/auth/lib/auth-client";
 import { useCreateThread } from "~/lib/queries/use-threads";
 import { useUserSettings } from "~/lib/queries/use-user-settings";
 import { useChatUIStore } from "~/lib/stores/chat-ui-store";

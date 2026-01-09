@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-import { auth } from "~/lib/auth";
+import { auth } from "~/features/auth/lib/auth";
 import { hasApiKey } from "~/server/db/queries/settings";
 
 export async function GET() {

@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
-import { auth } from "~/lib/auth";
+import { auth } from "~/features/auth/lib/auth";
 import { isThreadOwnedByUser, saveMessage } from "~/server/db/queries/chat";
 
 export async function POST(req: Request) {

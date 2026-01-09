@@ -1,7 +1,7 @@
 import { KeyIcon } from "lucide-react";
 import Link from "next/link";
 
-import type { Session } from "~/lib/auth";
+import type { Session } from "~/features/auth/lib/auth";
 
 import { cn } from "~/lib/utils";
 
