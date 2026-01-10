@@ -4,7 +4,7 @@ import type { ApiKeyProvider, EncryptedApiKeysData, UserSettingsData } from "~/f
 
 import { db } from "~/lib/db";
 import { userSettings } from "~/lib/db/schema/settings";
-import { encryptValue } from "~/lib/encryption";
+import { encryptValue } from "~/lib/api-keys/encryption";
 
 // Performance logging helper
 function logTiming(operation: string, startTime: number, metadata?: Record<string, unknown>) {

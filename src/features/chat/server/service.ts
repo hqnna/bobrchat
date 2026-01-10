@@ -6,7 +6,7 @@ import { convertToModelMessages, stepCountIs, streamText } from "ai";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
-import { getFileContent } from "~/lib/storage";
+import { getFileContent } from "~/features/attachments/lib/storage";
 
 import { getTokenCosts } from "./cost";
 import { calculateResponseMetadata } from "./metrics";

@@ -2,11 +2,11 @@
 
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { GroupedThreads } from "~/lib/utils/thread-grouper";
+import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
 
+import { createNewThread, deleteThread, regenerateThreadName, renameThread } from "~/features/chat/actions";
 import { THREADS_KEY } from "~/lib/queries/query-keys";
-import { groupThreadsByDate } from "~/lib/utils/thread-grouper";
-import { createNewThread, deleteThread, regenerateThreadName, renameThread } from "~/server/actions/chat";
+import { groupThreadsByDate } from "~/features/chat/utils/thread-grouper";
 
 export { THREADS_KEY };
 

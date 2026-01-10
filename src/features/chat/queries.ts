@@ -6,12 +6,6 @@ import { db } from "~/lib/db";
 import { attachments, messages, threads } from "~/lib/db/schema/chat";
 import { serverEnv } from "~/lib/env";
 
-// Performance logging helper
-function logTiming(operation: string, startTime: number, metadata?: Record<string, unknown>) {
-  const duration = Date.now() - startTime;
-  console.warn(`[PERF] ${operation}: ${duration}ms`, metadata ? JSON.stringify(metadata) : "");
-}
-
 function extractAttachmentRefs(message: ChatUIMessage): { ids: string[]; storagePaths: string[] } {
   const parts = (message as unknown as { parts?: unknown }).parts;
   if (!Array.isArray(parts))
@@ -65,13 +59,11 @@ function extractAttachmentRefs(message: ChatUIMessage): { ids: string[]; storage
  * @return {Promise<ChatUIMessage[]>} Array of chat messages
  */
 export async function getMessagesByThreadId(threadId: string): Promise<ChatUIMessage[]> {
-  const start = Date.now();
   const rows = await db
     .select({ id: messages.id, content: messages.content })
     .from(messages)
     .where(eq(messages.threadId, threadId))
     .orderBy(messages.createdAt);
-  logTiming("db.getMessagesByThreadId", start, { count: rows.length });
 
   return rows.map((row) => {
     const message = row.content as ChatUIMessage;
@@ -193,7 +185,6 @@ export async function saveMessages(
  * @return {Promise<string>} The ID of the newly created thread
  */
 export async function createThread(userId: string, title?: string): Promise<string> {
-  const start = Date.now();
   const now = new Date();
   const result = await db
     .insert(threads)
@@ -203,7 +194,6 @@ export async function createThread(userId: string, title?: string): Promise<stri
       lastMessageAt: now,
     })
     .returning();
-  logTiming("db.createThread", start);
 
   return result[0].id;
 }
@@ -215,13 +205,11 @@ export async function createThread(userId: string, title?: string): Promise<stri
  * @return {Promise<any>} Thread info or undefined if not found
  */
 export async function getThreadById(threadId: string) {
-  const start = Date.now();
   const result = await db
     .select()
     .from(threads)
     .where(eq(threads.id, threadId))
     .limit(1);
-  logTiming("db.getThreadById", start);
   return result[0];
 }
 
@@ -239,7 +227,6 @@ export async function getThreadsByUserId(
   options: { limit?: number; cursor?: string } = {},
 ) {
   const { limit = 50, cursor } = options;
-  const start = Date.now();
 
   const conditions = [eq(threads.userId, userId)];
 
@@ -261,8 +248,6 @@ export async function getThreadsByUserId(
     ? threadList[threadList.length - 1].lastMessageAt?.toISOString() ?? null
     : null;
 
-  logTiming("db.getThreadsByUserId", start, { count: threadList.length, hasMore });
-
   return { threads: threadList, nextCursor };
 }
 
@@ -275,12 +260,10 @@ export async function getThreadsByUserId(
  * @return {Promise<boolean>} True if deleted, false if not found or not owned
  */
 export async function deleteThreadById(threadId: string, userId: string): Promise<boolean> {
-  const start = Date.now();
   const result = await db
     .delete(threads)
     .where(and(eq(threads.id, threadId), eq(threads.userId, userId)))
     .returning();
-  logTiming("db.deleteThreadById", start);
   return result.length > 0;
 }
 

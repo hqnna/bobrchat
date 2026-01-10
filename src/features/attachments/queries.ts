@@ -5,24 +5,7 @@ import { db } from "~/lib/db";
 import { attachments, messages } from "~/lib/db/schema/chat";
 import { serverEnv } from "~/lib/env";
 
-export type AttachmentTypeFilter = "all" | "image" | "pdf" | "text";
-export type AttachmentOrder = "asc" | "desc";
-
-export type AttachmentListItem = {
-  id: string;
-  filename: string;
-  mediaType: string;
-  size: number;
-  storagePath: string;
-  url: string;
-  createdAt: Date;
-  isLinked: boolean;
-};
-
-type Cursor = {
-  createdAt: string;
-  id: string;
-};
+import type { AttachmentListItem, AttachmentOrder, AttachmentTypeFilter, Cursor } from "./types";
 
 function encodeCursor(cursor: Cursor): string {
   return Buffer.from(JSON.stringify(cursor)).toString("base64url");

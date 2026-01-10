@@ -5,7 +5,7 @@ import Image from "next/image";
 import * as React from "react";
 import { toast } from "sonner";
 
-import type { AttachmentOrder, AttachmentTypeFilter } from "~/lib/queries/use-attachments";
+import type { AttachmentOrder, AttachmentTypeFilter } from "~/features/attachments/hooks/use-attachments";
 
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import { useAttachmentsPage, useDeleteAttachments } from "~/lib/queries/use-attachments";
+import { useAttachmentsPage, useDeleteAttachments } from "~/features/attachments/hooks/use-attachments";
 
 function FilePreview({ url, mediaType, filename }: { url: string; mediaType: string; filename: string }) {
   const isImage = mediaType.startsWith("image/");

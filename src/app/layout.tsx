@@ -16,7 +16,7 @@ import { syncUserSettings } from "~/features/settings/actions";
 import { SettingsModalProvider } from "~/features/settings/components/settings-modal-provider";
 import { THREADS_KEY, USER_SETTINGS_KEY } from "~/lib/queries/query-keys";
 import { QueryProvider } from "~/lib/queries/query-provider";
-import { getThreadsByUserId } from "~/server/db/queries/chat";
+import { getThreadsByUserId } from "~/features/chat/queries";
 
 const rethinkSans = Rethink_Sans({ subsets: ["latin"], variable: "--font-sans" });
 

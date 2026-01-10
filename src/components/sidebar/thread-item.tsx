@@ -14,8 +14,8 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu";
-import { useDeleteThread, useRegenerateThreadName, useRenameThread } from "~/lib/queries/use-threads";
-import { useChatUIStore } from "~/lib/stores/chat-ui-store";
+import { useDeleteThread, useRegenerateThreadName, useRenameThread } from "~/features/chat/hooks/use-threads";
+import { useChatUIStore } from "~/features/chat/store";
 import { cn } from "~/lib/utils";
 
 type ThreadItemProps = {

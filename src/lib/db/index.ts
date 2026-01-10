@@ -9,7 +9,11 @@ import * as schema from "./schema";
 
 function createDb() {
   if (serverEnv.NODE_ENV === "development") {
-    const client = postgres(serverEnv.DATABASE_URL);
+    const client = postgres(serverEnv.DATABASE_URL, {
+      max: 20,
+      idle_timeout: 60,
+      connect_timeout: 10,
+    });
     return drizzlePostgres({ client, casing: "snake_case", schema });
   }
 

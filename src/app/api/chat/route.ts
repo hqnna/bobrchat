@@ -3,11 +3,11 @@ import type { UIMessage } from "ai";
 import { headers } from "next/headers";
 
 import { auth } from "~/features/auth/lib/auth";
+import { isThreadOwnedByUser, renameThreadById, saveMessage } from "~/features/chat/queries";
+import { generateThreadTitle } from "~/features/chat/server/naming";
+import { streamChatResponse } from "~/features/chat/server/service";
 import { getUserSettings } from "~/features/settings/queries";
 import { resolveKey } from "~/lib/api-keys/server";
-import { generateThreadTitle } from "~/server/ai/naming";
-import { streamChatResponse } from "~/server/ai/service";
-import { isThreadOwnedByUser, renameThreadById, saveMessage } from "~/server/db/queries/chat";
 
 export type SourceInfo = {
   id: string;

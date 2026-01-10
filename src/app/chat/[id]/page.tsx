@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "~/features/auth/lib/auth";
-import { getMessagesByThreadId, getThreadById } from "~/server/db/queries/chat";
+import { getMessagesByThreadId, getThreadById } from "~/features/chat/queries";
 
 import ChatThread from "./chat-thread";
 

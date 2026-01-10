@@ -6,9 +6,8 @@ import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
+import { CodeBlock } from "~/features/chat/components/messages/code-block";
 import { cn } from "~/lib/utils";
-
-import { CodeBlock } from "./code-block";
 
 function parseMarkdownIntoBlocks(markdown: string): string[] {
   const tokens = marked.lexer(markdown);

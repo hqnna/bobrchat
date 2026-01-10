@@ -1,4 +1,4 @@
-import { MessageAttachments } from "~/components/chat/file-preview";
+import { MessageAttachments } from "~/features/chat/components/messages/file-preview";
 import { cn } from "~/lib/utils";
 
 type Attachment = {

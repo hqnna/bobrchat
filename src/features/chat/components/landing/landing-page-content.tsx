@@ -2,8 +2,8 @@
 
 import type { LandingPageContentType } from "~/features/settings/types";
 
-import { GreetingContent } from "./landing-pages/greeting-content";
-import { SuggestionsContent } from "./landing-pages/suggestions-content";
+import { GreetingContent } from "./greeting-content";
+import { SuggestionsContent } from "./suggestions-content";
 
 export function LandingPageContent({
   type,

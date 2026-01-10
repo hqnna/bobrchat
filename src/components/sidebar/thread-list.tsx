@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { GroupedThreads } from "~/lib/utils/thread-grouper";
+import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
 
 import { Skeleton } from "~/components/ui/skeleton";
 

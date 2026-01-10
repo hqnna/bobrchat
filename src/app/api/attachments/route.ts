@@ -1,12 +1,12 @@
 import { headers } from "next/headers";
 
 import { auth } from "~/features/auth/lib/auth";
-import { deleteFile } from "~/lib/storage";
+import { deleteFile } from "~/features/attachments/lib/storage";
 import {
   deleteUserAttachments,
   deleteUserAttachmentsByIds,
   listUserAttachments,
-} from "~/server/db/queries/attachments";
+} from "~/features/attachments/queries";
 
 const PAGE_SIZE = 12;
 

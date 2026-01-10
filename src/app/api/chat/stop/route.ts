@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { auth } from "~/features/auth/lib/auth";
-import { isThreadOwnedByUser, saveMessage } from "~/server/db/queries/chat";
+import { isThreadOwnedByUser, saveMessage } from "~/features/chat/queries";
 
 export async function POST(req: Request) {
   const session = await auth.api.getSession({

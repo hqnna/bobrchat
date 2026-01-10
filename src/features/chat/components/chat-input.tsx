@@ -4,19 +4,19 @@ import { AlertCircle, PaperclipIcon, SearchIcon, SendIcon, SquareIcon } from "lu
 import * as React from "react";
 import { toast } from "sonner";
 
-import type { PendingFile } from "~/components/chat/file-preview";
+import type { PendingFile } from "~/features/chat/components/messages/file-preview";
 
-import { FilePreview } from "~/components/chat/file-preview";
+import { FilePreview } from "~/features/chat/components/messages/file-preview";
+import { Button } from "~/components/ui/button";
+import { Textarea } from "~/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { canUploadFiles, getAcceptedFileTypes, getModelCapabilities, useFavoriteModels, useModels, validateFilesForModel } from "~/features/models";
 import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
-import { useChatUIStore } from "~/lib/stores/chat-ui-store";
+import { useChatUIStore } from "~/features/chat/store";
 import { cn } from "~/lib/utils";
-import { detectLanguage, getLanguageExtension } from "~/lib/utils/detect-language";
+import { detectLanguage, getLanguageExtension } from "~/features/chat/utils/detect-language";
 
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import { ModelSelector } from "./model-selector";
+import { ModelSelector } from "./ui/model-selector";
 
 type ChatInputProps = {
   className?: string;

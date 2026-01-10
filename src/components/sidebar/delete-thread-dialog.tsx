@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { useDeleteThread } from "~/lib/queries/use-threads";
+import { useDeleteThread } from "~/features/chat/hooks/use-threads";
 
 type DeleteThreadDialogProps = {
   open: boolean;

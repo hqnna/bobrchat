@@ -3,11 +3,11 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { ChatView } from "~/components/chat/chat-view";
+import { ChatView } from "~/features/chat/components/chat-view";
 import { useSession } from "~/features/auth/lib/auth-client";
 import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
-import { useCreateThread } from "~/lib/queries/use-threads";
-import { useChatUIStore } from "~/lib/stores/chat-ui-store";
+import { useCreateThread } from "~/features/chat/hooks/use-threads";
+import { useChatUIStore } from "~/features/chat/store";
 
 export default function HomePage(): React.ReactNode {
   const router = useRouter();

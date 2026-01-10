@@ -5,16 +5,17 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 import { useCallback } from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
-import type { PendingFile } from "~/components/chat/file-preview";
 import type { LandingPageContentType } from "~/features/settings/types";
 
-import { ChatInput } from "~/components/chat/chat-input";
-import { LandingPageContent } from "~/components/chat/landing-page-content";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { useChatScroll } from "~/hooks/use-chat-scroll";
+import { useChatScroll } from "~/features/chat/hooks/use-chat-scroll";
 import { cn } from "~/lib/utils";
 
+import type { PendingFile } from "./messages/file-preview";
+
+import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
+import { LandingPageContent } from "./landing/landing-page-content";
 
 export function ChatView({
   messages,

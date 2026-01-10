@@ -22,7 +22,7 @@ import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useRemoveApiKey, useSetApiKey, useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { removeClientKey, setClientKey } from "~/lib/api-keys/client";
-import { useChatUIStore } from "~/lib/stores/chat-ui-store";
+import { useChatUIStore } from "~/features/chat/store";
 import { cn } from "~/lib/utils";
 
 import { apiKeyUpdateSchema } from "../../types";

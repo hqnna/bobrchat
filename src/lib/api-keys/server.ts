@@ -4,7 +4,7 @@ import type { EncryptedApiKeysData } from "~/features/settings/types";
 
 import { db } from "~/lib/db";
 import { userSettings } from "~/lib/db/schema/settings";
-import { decryptValue } from "~/lib/encryption";
+import { decryptValue } from "~/lib/api-keys/encryption";
 
 import type { ApiKeyProvider } from "./types";
 

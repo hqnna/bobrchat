@@ -5,13 +5,13 @@ import { memo } from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
-import { useChatUIStore } from "~/lib/stores/chat-ui-store";
+import { useChatUIStore } from "~/features/chat/store";
 
-import { LoadingSpinner } from "./loading-spinner";
-import { MemoizedMarkdown } from "./markdown";
-import { MessageMetrics } from "./message-metrics";
-import { SearchingSources } from "./searching-sources";
-import { UserMessage } from "./user-message";
+import { MemoizedMarkdown } from "./messages/markdown";
+import { UserMessage } from "./messages/user-message";
+import { LoadingSpinner } from "./ui/loading-spinner";
+import { MessageMetrics } from "./ui/message-metrics";
+import { SearchingSources } from "./ui/searching-sources";
 
 export const ChatMessages = memo(({
   messages,
