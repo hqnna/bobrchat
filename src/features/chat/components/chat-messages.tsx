@@ -29,16 +29,16 @@ export const ChatMessages = memo(({
       {messages.map((message, messageIndex) => {
         const textContent = message.parts
           .filter(part => part.type === "text")
-          .map(part => (part as any).text)
+          .map(part => part.text)
           .join("");
 
         if (message.role === "user") {
           const fileAttachments = message.parts
             .filter(part => part.type === "file")
             .map(part => ({
-              url: (part as any).url,
-              filename: (part as any).filename,
-              mediaType: (part as any).mediaType,
+              url: part.url,
+              filename: part.filename,
+              mediaType: part.mediaType,
             }));
 
           return (

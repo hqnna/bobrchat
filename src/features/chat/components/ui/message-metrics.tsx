@@ -61,7 +61,7 @@ export function MessageMetrics({
 
   if (stopped) {
     return (
-      <div className="text-muted-foreground relative mt-2 h-6 text-xs">
+      <div className="text-muted-foreground relative mt-1 h-6 text-xs">
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge

@@ -112,13 +112,16 @@ export async function saveMessage(
   const { ids: attachmentIds, storagePaths: attachmentStoragePaths } = extractAttachmentRefs(message);
 
   await db.transaction(async (tx) => {
-    const inserted = await tx.insert(messages).values({
+    const messageId = crypto.randomUUID();
+    const messageWithId = { ...message, id: messageId };
+
+    await tx.insert(messages).values({
+      id: messageId,
       threadId,
       role,
-      content: message,
-    }).returning();
+      content: messageWithId,
+    });
 
-    const messageId = inserted[0]?.id;
     if (messageId) {
       if (attachmentIds.length > 0) {
         await tx

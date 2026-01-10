@@ -1,5 +1,6 @@
 import type { UIMessage } from "ai";
 
+import { createIdGenerator } from "ai";
 import { headers } from "next/headers";
 
 import { auth } from "~/features/auth/lib/auth";
@@ -122,6 +123,7 @@ export async function POST(req: Request) {
 
   const response = stream.toUIMessageStreamResponse({
     originalMessages: messages,
+    generateMessageId: createIdGenerator(),
     messageMetadata: ({ part }) => {
       const metadata = createMetadata(part);
       return metadata;
