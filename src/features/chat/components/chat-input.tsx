@@ -65,6 +65,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const { data: settings } = useUserSettings();
   const hasOpenRouterKey = settings?.configuredApiKeys?.openrouter;
+  const hasParallelApiKey = settings?.configuredApiKeys?.parallel;
 
   const favoriteModels = useFavoriteModels();
   const { isLoading: isModelsLoading } = useModels({ enabled: hasOpenRouterKey });
@@ -392,26 +393,43 @@ export function ChatInput({
             <div className="flex-1" />
             <div className="flex items-center gap-2">
               {capabilities.supportsSearch && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onSearchChange?.(!searchEnabled)}
-                  className={cn(`
-                    hover:text-foreground
-                    gap-2 transition-colors
-                  `, searchEnabled
-                    ? `
-                      text-primary
-                      hover:text-primary/80 hover:bg-primary/10
-                      dark:hover:text-primary/80 dark:hover:bg-primary/10
-                    `
-                    : `text-muted-foreground`)}
-                  title={searchEnabled ? "Search enabled" : "Search disabled"}
-                >
-                  <SearchIcon size={16} />
-                  Search
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onSearchChange?.(!searchEnabled)}
+                        disabled={hasParallelApiKey === false}
+                        className={cn(`
+                          hover:text-foreground
+                          gap-2 transition-colors
+                        `, searchEnabled
+                          ? `
+                            text-primary
+                            hover:text-primary/80 hover:bg-primary/10
+                            dark:hover:text-primary/80 dark:hover:bg-primary/10
+                          `
+                          : `text-muted-foreground`)}
+                        title={searchEnabled ? "Search enabled" : "Search disabled"}
+                      >
+                        <SearchIcon size={16} />
+                        Search
+                      </Button>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {hasParallelApiKey === false
+                        ? "Configure your Parallel API key in settings to use search"
+                        : searchEnabled
+                          ? "Search is enabled for this message"
+                          : "Search is disabled for this message"}
+                    </p>
+                  </TooltipContent>
+
+                </Tooltip>
               )}
 
               {canUpload && (

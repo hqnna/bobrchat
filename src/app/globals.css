@@ -190,10 +190,10 @@ html.boring.dark {
   @apply border-border border px-3 py-2;
 }
 
-.katex-html {
-  display: none;
+mjx-container[jax="SVG"] > svg {
+  @apply inline;
 }
 
-.katex-mathml {
-  @apply text-lg leading-loose tracking-wider;
+mjx-container[jax="SVG"][display="true"] > svg {
+  @apply mx-auto;
 }
