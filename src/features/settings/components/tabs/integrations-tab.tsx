@@ -20,9 +20,9 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
+import { useChatUIStore } from "~/features/chat/store";
 import { useRemoveApiKey, useSetApiKey, useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { removeClientKey, setClientKey } from "~/lib/api-keys/client";
-import { useChatUIStore } from "~/features/chat/store";
 import { cn } from "~/lib/utils";
 
 import { apiKeyUpdateSchema } from "../../types";

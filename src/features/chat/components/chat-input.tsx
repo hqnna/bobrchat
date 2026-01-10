@@ -6,15 +6,15 @@ import { toast } from "sonner";
 
 import type { PendingFile } from "~/features/chat/components/messages/file-preview";
 
-import { FilePreview } from "~/features/chat/components/messages/file-preview";
 import { Button } from "~/components/ui/button";
 import { Textarea } from "~/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
+import { FilePreview } from "~/features/chat/components/messages/file-preview";
+import { useChatUIStore } from "~/features/chat/store";
+import { detectLanguage, getLanguageExtension } from "~/features/chat/utils/detect-language";
 import { canUploadFiles, getAcceptedFileTypes, getModelCapabilities, useFavoriteModels, useModels, validateFilesForModel } from "~/features/models";
 import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
-import { useChatUIStore } from "~/features/chat/store";
 import { cn } from "~/lib/utils";
-import { detectLanguage, getLanguageExtension } from "~/features/chat/utils/detect-language";
 
 import { ModelSelector } from "./ui/model-selector";
 

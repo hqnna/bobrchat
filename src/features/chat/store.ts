@@ -22,15 +22,6 @@ type ChatUIStore = {
   parallelKey: string | null;
   loadApiKeysFromStorage: () => void;
 
-  // TODO: Properly type this
-  // Pending message for new thread creation
-
-  pendingMessage: any | null;
-
-  setPendingMessage: (message: any | null) => void;
-
-  consumePendingMessage: () => any | null;
-
   // Streaming indicator (not persisted)
   streamingThreadId: string | null;
   setStreamingThreadId: (threadId: string | null) => void;
@@ -42,7 +33,7 @@ type ChatUIStore = {
 
 export const useChatUIStore = create<ChatUIStore>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       // Chat input
       input: "",
       setInput: value => set({ input: value }),
@@ -64,15 +55,6 @@ export const useChatUIStore = create<ChatUIStore>()(
           openrouterKey: getClientKey("openrouter"),
           parallelKey: getClientKey("parallel"),
         });
-      },
-
-      // Pending message
-      pendingMessage: null,
-      setPendingMessage: message => set({ pendingMessage: message }),
-      consumePendingMessage: () => {
-        const message = get().pendingMessage;
-        set({ pendingMessage: null });
-        return message;
       },
 
       streamingThreadId: null,

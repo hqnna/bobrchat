@@ -2,9 +2,9 @@ import { eq } from "drizzle-orm";
 
 import type { ApiKeyProvider, EncryptedApiKeysData, UserSettingsData } from "~/features/settings/types";
 
+import { encryptValue } from "~/lib/api-keys/encryption";
 import { db } from "~/lib/db";
 import { userSettings } from "~/lib/db/schema/settings";
-import { encryptValue } from "~/lib/api-keys/encryption";
 
 // Performance logging helper
 function logTiming(operation: string, startTime: number, metadata?: Record<string, unknown>) {

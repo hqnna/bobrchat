@@ -4,13 +4,13 @@ import { headers } from "next/headers";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
+import { deleteFile } from "~/features/attachments/lib/storage";
+import { deleteUserAttachmentsByIds, listThreadAttachments, resolveUserAttachmentsByStoragePaths } from "~/features/attachments/queries";
 import { auth } from "~/features/auth/lib/auth";
 import { createThread, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage } from "~/features/chat/queries";
+import { generateThreadTitle } from "~/features/chat/server/naming";
 import { hasKeyConfigured, resolveKey } from "~/lib/api-keys/server";
 import { serverEnv } from "~/lib/env";
-import { deleteFile } from "~/features/attachments/lib/storage";
-import { generateThreadTitle } from "~/features/chat/server/naming";
-import { deleteUserAttachmentsByIds, listThreadAttachments, resolveUserAttachmentsByStoragePaths } from "~/features/attachments/queries";
 
 function extractStoragePathsFromThreadMessages(messages: ChatUIMessage[]): string[] {
   const storagePaths: string[] = [];

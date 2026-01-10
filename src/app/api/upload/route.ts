@@ -2,10 +2,10 @@ import { fileTypeFromBuffer } from "file-type";
 import { headers } from "next/headers";
 import { Buffer } from "node:buffer";
 
+import { saveFile } from "~/features/attachments/lib/storage";
 import { auth } from "~/features/auth/lib/auth";
 import { db } from "~/lib/db";
 import { attachments } from "~/lib/db/schema/chat";
-import { saveFile } from "~/features/attachments/lib/storage";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = new Set([

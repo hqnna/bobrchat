@@ -13,8 +13,8 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar";
 import { useSession } from "~/features/auth/lib/auth-client";
-import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { useThreads } from "~/features/chat/hooks/use-threads";
+import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
 
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";

@@ -3,22 +3,24 @@
 import { useChat } from "@ai-sdk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport } from "ai";
+import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { ChatView } from "~/features/chat/components/chat-view";
-import { getModelCapabilities, useModels } from "~/features/models";
 import { THREADS_KEY } from "~/features/chat/hooks/use-threads";
 import { useChatUIStore } from "~/features/chat/store";
+import { getModelCapabilities, useModels } from "~/features/models";
 
 type ChatThreadProps = {
   params: Promise<{ id: string }>;
   initialMessages: ChatUIMessage[];
+  initialPendingMessage?: any | null;
 };
 
-function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNode {
+function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThreadProps): React.ReactNode {
   const { id } = use(params);
   const queryClient = useQueryClient();
   const {
@@ -28,7 +30,6 @@ function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNo
     searchEnabled,
     setSearchEnabled,
     loadApiKeysFromStorage,
-    consumePendingMessage,
     setStreamingThreadId,
     markAssistantMessageStopped,
   } = useChatUIStore();
@@ -94,14 +95,21 @@ function ChatThread({ params, initialMessages }: ChatThreadProps): React.ReactNo
     };
   }, [id, setStreamingThreadId, status]);
 
-  // Handle pending message from homepage
+  // Handle initial pending message (from URL search params when creating new thread)
+  const hasSentInitialRef = useRef(false);
+  const router = useRouter();
+
   useEffect(() => {
-    const pending = consumePendingMessage();
-    if (pending) {
-      sendMessage(pending);
-      clearInput();
-    }
-  }, [consumePendingMessage, sendMessage, clearInput]);
+    if (!initialPendingMessage || hasSentInitialRef.current)
+      return;
+
+    hasSentInitialRef.current = true;
+    sendMessage(initialPendingMessage);
+    clearInput();
+    // Remove the `initial` search param so navigating doesn't re-trigger sending.
+    // Use replace so we don't add a history entry
+    router.replace(window.location.pathname);
+  }, [initialPendingMessage, sendMessage, clearInput, router]);
 
   const handleStop = useCallback(() => {
     const lastAssistantMessage = [...messages].reverse().find(m => m.role === "assistant");
