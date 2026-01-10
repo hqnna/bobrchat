@@ -95,12 +95,36 @@ export function ModelsTab() {
   const fuse = useMemo(() => {
     if (!models.length)
       return null;
+
     return new Fuse(models, {
-      keys: ["name", "id", "description"],
-      threshold: 0.2,
-      minMatchCharLength: 3,
+      keys: ["name"],
+      threshold: 0.3,
+      minMatchCharLength: 2,
+      ignoreLocation: true,
+      useExtendedSearch: true,
+      sortFn: (a, b) => {
+        const queryNumbers = searchQuery.match(/\d+(\.\d+)?/g) || [];
+
+        const getNumericScore = (item: any) => {
+          if (!item || queryNumbers.length === 0)
+            return 0;
+          const combined = `${item.name} ${item.id}`.toLowerCase();
+
+          const exactMatches = queryNumbers.filter(n => combined.includes(n.toLowerCase()));
+          return exactMatches.length;
+        };
+
+        const scoreA = getNumericScore(a.item);
+        const scoreB = getNumericScore(b.item);
+
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA;
+        }
+
+        return a.score - b.score;
+      },
     });
-  }, [models]);
+  }, [models, searchQuery]);
 
   const searchResults = useMemo(() => {
     let results = models;

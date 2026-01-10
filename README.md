@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BobrChat — Internal README
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# enter nix dev shell (provides toolchain used by the repo)
+nix develop
+
+# install JS deps
+bun install
+
+# start local services (Postgres, etc.)
+docker-compose up -d
+
+# run the dev server
+bun run dev
+
+# migrate the database
+bun db:push
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Overview
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Stack:** `Next.js 16` (App Router), React 19, Tailwind v4.
+- **DB:** PostgreSQL via Drizzle ORM (`src/lib/db/` / `src/lib/db/schema/`).
+- **Auth:** better-auth integration (`src/features/auth/lib/auth.ts`, `src/features/auth/lib/auth-client.ts`).
+- **AI:** Vercel AI SDK + OpenRouter (`src/features/chat`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Structure
 
-## Learn More
+- **`src/app/`**: Next App Router pages and API routes. API endpoints live under `src/app/api/*`.
+- **`src/components/`**: Shared UI primitives and higher-level components (shadcn/radix based).
+- **`src/features/`**: Feature folders (e.g., `chat`, `auth`, `attachments`, `settings`). Each feature typically contains `components/`, `hooks/`, `server/`, `actions.ts`, `queries.ts`, and `types.ts`.
+- **`src/lib/`**: Utilities and infra glue: `env`, `db` exports, API key helpers, and query keys/provider.
 
-To learn more about Next.js, take a look at the following resources:
+## State + Data Flow
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **react-query**: We centralize remote data through a query provider (`src/lib/queries/query-provider.tsx`) and per-feature query files (`src/features/*/queries.ts`). Use react-query for:
+  - caching server data (threads, attachments, settings)
+  - optimistic updates for user actions
+  - invalidation patterns after mutations (see feature `actions.ts` implementations)
+- **zustand**: Local client state for UI-only or fast ephemeral state lives in feature stores (e.g., `src/features/chat/store.ts`). Use cases:
+  - local UI toggles, ephemeral chat input state
+  - session-scoped data shared across components without prop drilling
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Feature Conventions
 
-## Deploy on Vercel
+- Each feature folder follows a similar layout: `components/`, `hooks/`, `server/`, `types.ts`, `queries.ts`, `actions.ts`.
+- Server-only logic (database queries, server-side AI calls) belongs in `server/` subfolders or under `src/app/api/*` routes.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Database & Migrations
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Drizzle ORM schemas are in `src/lib/db/schema/` and migrations in `src/lib/db/migrations/`.
+
+## Where to look
+
+- **App shell / routes:** `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/api/*`.
+- **Chat flow:** `src/features/chat/*` — store, actions, queries, components.
+- **UI primitives:** `src/components/ui/*` for shared building blocks.
+- **Auth:** `src/features/auth/lib/auth.ts` and `src/app/api/auth/*`.
+
+## Developer Notes
+
+- Local run and build commands are in `package.json` (dev: `bun run dev`).
+- DB scripts and Drizzle tasks exist in the repo—see `AGENTS.md` for developer commands and conventions.
