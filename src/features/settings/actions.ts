@@ -164,13 +164,9 @@ export async function createDefaultUserSettings(userId: string): Promise<UserSet
  * @return {Promise<UserSettingsData | null>} Fresh user settings after cleanup, or null if not authenticated
  */
 export async function syncUserSettings(): Promise<UserSettingsData | null> {
-  const totalStart = Date.now();
-
-  const sessionStart = Date.now();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
-  console.warn(`[PERF] syncUserSettings.getSession: ${Date.now() - sessionStart}ms`);
 
   if (!session?.user) {
     return null;
@@ -179,21 +175,16 @@ export async function syncUserSettings(): Promise<UserSettingsData | null> {
   // Lazy cleanup: only run ~10% of the time to reduce DB overhead
   // Orphaned keys are rare and not critical to clean up immediately
   if (Math.random() < 0.1) {
-    const cleanupStart = Date.now();
     await cleanupEncryptedApiKeysForUser(session.user.id);
-    console.warn(`[PERF] syncUserSettings.cleanupEncryptedApiKeys: ${Date.now() - cleanupStart}ms`);
   }
 
   // Return fresh settings with configured API keys info
-  const getSettingsStart = Date.now();
   const [settings, hasOpenRouter, hasParallel] = await Promise.all([
     getUserSettings(session.user.id),
     hasKeyConfigured(session.user.id, "openrouter"),
     hasKeyConfigured(session.user.id, "parallel"),
   ]);
-  console.warn(`[PERF] syncUserSettings.getUserSettings: ${Date.now() - getSettingsStart}ms`);
 
-  console.warn(`[PERF] syncUserSettings.total: ${Date.now() - totalStart}ms`);
   return {
     ...settings,
     configuredApiKeys: {

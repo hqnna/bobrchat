@@ -264,11 +264,45 @@ export function ChatInput({
     [uploadFiles],
   );
 
+  const isUploading = pendingFiles.some(f => f.isUploading);
+
+  const canSendMessage = () => {
+    if (isLoading) {
+      return false;
+    }
+
+    if (!value.trim()) {
+      return false;
+    }
+
+    if (isUploading) {
+      return false;
+    }
+
+    if (pendingFiles.length > 0) {
+      return false;
+    }
+
+    if (hasOpenRouterKey === false) {
+      return false;
+    }
+
+    if (selectedModel === undefined) {
+      return false;
+    }
+
+    return true;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (isLoading) {
       onStop?.();
+      return;
+    }
+
+    if (!canSendMessage()) {
       return;
     }
 
@@ -295,39 +329,11 @@ export function ChatInput({
     }
   };
 
-  const isUploading = pendingFiles.some(f => f.isUploading);
-
   return (
     <div className={cn(`bg-background p-4 pt-0`, className)}>
       <div className="mx-auto max-w-3xl space-y-3">
-        {/* API Key Warning */}
         {hasOpenRouterKey === false && (
-          <div
-            className={`
-              flex gap-3 border border-amber-500/50 bg-amber-500/5 p-3
-            `}
-          >
-            <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-600" />
-            <div
-              className={`
-                text-sm text-amber-800
-                dark:text-amber-200
-              `}
-            >
-              No API key configured. Set up your OpenRouter API key in
-              <a
-                href="?settings=integrations"
-                className={`
-                  ml-1 font-semibold underline
-                  hover:no-underline
-                `}
-              >
-                settings
-              </a>
-              {" "}
-              to send messages.
-            </div>
-          </div>
+          <ApiWarningBadge />
         )}
         <form
           onSubmit={handleSubmit}
@@ -442,7 +448,7 @@ export function ChatInput({
                 type={isLoading ? "button" : "submit"}
                 size="icon"
                 onClick={isLoading ? onStop : undefined}
-                disabled={isLoading ? !onStop : (!value.trim() && pendingFiles.length === 0) || isUploading}
+                disabled={!canSendMessage()}
                 className="ml-1 size-8 shrink-0"
                 title={isLoading ? "Stop generating" : "Send message"}
               >
@@ -453,6 +459,35 @@ export function ChatInput({
             </div>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+function ApiWarningBadge() {
+  return (
+    <div
+      className="flex gap-3 border border-amber-500/50 bg-amber-500/5 p-3"
+    >
+      <AlertCircle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+      <div
+        className={`
+          text-sm text-amber-800
+          dark:text-amber-200
+        `}
+      >
+        No API key configured. Set up your OpenRouter API key in
+        <a
+          href="?settings=integrations"
+          className={`
+            ml-1 font-semibold underline
+            hover:no-underline
+          `}
+        >
+          settings
+        </a>
+        {" "}
+        to send messages.
       </div>
     </div>
   );

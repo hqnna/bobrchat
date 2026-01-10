@@ -1,5 +1,8 @@
+import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 
 import { auth } from "~/features/auth/lib/auth";
 import { getMessagesByThreadId, getThreadById } from "~/features/chat/queries";
@@ -10,6 +13,10 @@ type ChatServerProps = {
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
+
+const getThreadCached = cache(async (id: string) => {
+  return getThreadById(id);
+});
 
 export default async function ChatServer({ params, searchParams }: ChatServerProps) {
   const { id } = await params;
@@ -31,7 +38,7 @@ export default async function ChatServer({ params, searchParams }: ChatServerPro
 
   // Fetch thread and messages in parallel
   const [thread, initialMessages] = await Promise.all([
-    getThreadById(id),
+    getThreadCached(id),
     getMessagesByThreadId(id),
   ]);
 
@@ -54,4 +61,14 @@ export default async function ChatServer({ params, searchParams }: ChatServerPro
   }
 
   return <ChatThread params={Promise.resolve({ id })} initialMessages={initialMessages} initialPendingMessage={initialPendingMessage} />;
+}
+
+export async function generateMetadata({ params }: ChatServerProps): Promise<Metadata> {
+  const { id } = await params;
+
+  const thread = await getThreadCached(id);
+
+  return {
+    title: thread ? `${thread.title} - BobrChat` : "Chat",
+  };
 }

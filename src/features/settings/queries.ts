@@ -6,12 +6,6 @@ import { encryptValue } from "~/lib/api-keys/encryption";
 import { db } from "~/lib/db";
 import { userSettings } from "~/lib/db/schema/settings";
 
-// Performance logging helper
-function logTiming(operation: string, startTime: number, metadata?: Record<string, unknown>) {
-  const duration = Date.now() - startTime;
-  console.warn(`[PERF] ${operation}: ${duration}ms`, metadata ? JSON.stringify(metadata) : "");
-}
-
 /**
  * Get user settings by user ID (does not include actual API keys)
  *
@@ -19,13 +13,11 @@ function logTiming(operation: string, startTime: number, metadata?: Record<strin
  * @return {Promise<UserSettingsData>} User settings or default settings if not found
  */
 export async function getUserSettings(userId: string): Promise<UserSettingsData> {
-  const start = Date.now();
   const result = await db
     .select({ settings: userSettings.settings })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
     .limit(1);
-  logTiming("db.getUserSettings", start);
 
   if (!result.length) {
     // Return default settings if user settings don't exist yet

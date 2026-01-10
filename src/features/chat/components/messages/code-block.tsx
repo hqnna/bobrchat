@@ -16,41 +16,45 @@ type CodeBlockProps = {
   value: string;
 };
 
-// Initialize highlighter once
-// We include common languages to avoid downloading everything
-const highlighterPromise = createHighlighter({
-  themes: ["github-dark-dimmed", "github-light"],
-  langs: [
-    "javascript",
-    "typescript",
-    "tsx",
-    "jsx",
-    "json",
-    "css",
-    "html",
-    "python",
-    "bash",
-    "sql",
-    "markdown",
-    "yaml",
-    "go",
-    "rust",
-    "c",
-    "cpp",
-    "java",
-    "csharp",
-    "php",
-    "ruby",
-    "swift",
-    "kotlin",
-    "dart",
-    "r",
-    "dockerfile",
-    "makefile",
-    "plaintext",
-    "nix",
-  ],
-});
+// Initialize highlighter once and cache across HMR/dev on `globalThis`
+// to avoid creating multiple Shiki instances (see Shiki docs: cache highlighter).
+const __SHIKI_GLOBAL_KEY = "__bobrchat_shiki_highlighter_promise";
+
+const highlighterPromise: Promise<any> = (globalThis as any)[__SHIKI_GLOBAL_KEY] ?? (
+  (globalThis as any)[__SHIKI_GLOBAL_KEY] = createHighlighter({
+    themes: ["github-dark-dimmed", "github-light"],
+    langs: [
+      "javascript",
+      "typescript",
+      "tsx",
+      "jsx",
+      "json",
+      "css",
+      "html",
+      "python",
+      "bash",
+      "sql",
+      "markdown",
+      "yaml",
+      "go",
+      "rust",
+      "c",
+      "cpp",
+      "java",
+      "csharp",
+      "php",
+      "ruby",
+      "swift",
+      "kotlin",
+      "dart",
+      "r",
+      "dockerfile",
+      "makefile",
+      "plaintext",
+      "nix",
+    ],
+  })
+);
 
 export const CodeBlock: FC<CodeBlockProps> = memo(({ language: propLanguage, value }) => {
   const [isCopied, setIsCopied] = useState(false);

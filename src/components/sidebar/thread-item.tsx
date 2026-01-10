@@ -18,6 +18,8 @@ import { useDeleteThread, useRegenerateThreadName, useRenameThread } from "~/fea
 import { useChatUIStore } from "~/features/chat/store";
 import { cn } from "~/lib/utils";
 
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+
 type ThreadItemProps = {
   id: string;
   title: string;
@@ -146,48 +148,50 @@ function ThreadItemComponent({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div className="group/thread relative">
-          <Link
-            href={`/chat/${id}`}
-            className={cn(
-              `
-                flex items-center gap-2 rounded-md px-2 py-1.5 text-sm
-                transition-colors
-              `,
-              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              isActive
-                ? "bg-sidebar-accent"
-                : "text-sidebar-foreground",
-            )}
-          >
-            {regenerateThreadNameMutation.isPending || isStreaming
-              ? (
-                  <Loader2 className="size-4 shrink-0 animate-spin" />
-                )
-              : (
-                  <MessageCircle
-                    className="size-4 shrink-0"
-                    fill={isActive ? "currentColor" : "none"}
-                  />
-                )}
-            <span className="flex-1 truncate pr-6">{title}</span>
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className={
-              `
-                absolute top-1 right-1 size-6 p-2 opacity-0 transition-opacity
-                group-hover/thread:opacity-100
-              `
-            }
-            onClick={handleDeleteClick}
-            disabled={deleteThreadMutation.isPending}
-            title="Delete thread (Ctrl+Click to delete immediately)"
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        </div>
+        <ThreadTooltip title={title}>
+          <div className="group/thread relative">
+            <Link
+              href={`/chat/${id}`}
+              className={cn(
+                `
+                  flex items-center gap-2 rounded-md px-2 py-1.5 text-sm
+                  transition-colors
+                `,
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                isActive
+                  ? "bg-sidebar-accent"
+                  : "text-sidebar-foreground",
+              )}
+            >
+              {regenerateThreadNameMutation.isPending || isStreaming
+                ? (
+                    <Loader2 className="size-4 shrink-0 animate-spin" />
+                  )
+                : (
+                    <MessageCircle
+                      className="size-4 shrink-0"
+                      fill={isActive ? "currentColor" : "none"}
+                    />
+                  )}
+              <span className="flex-1 truncate pr-6">{title}</span>
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={
+                `
+                  absolute top-1 right-1 size-6 p-2 opacity-0 transition-opacity
+                  group-hover/thread:opacity-100
+                `
+              }
+              onClick={handleDeleteClick}
+              disabled={deleteThreadMutation.isPending}
+              title="Delete thread (Ctrl+Click to delete immediately)"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
+        </ThreadTooltip>
       </ContextMenuTrigger>
       <ContextMenuContent>
         <ContextMenuItem onClick={handleRenameClick} disabled={regenerateThreadNameMutation.isPending}>
@@ -208,5 +212,25 @@ function ThreadItemComponent({
     </ContextMenu>
   );
 };
+
+function ThreadTooltip({ title, children}: { title: string; children: React.ReactNode }) {
+  return (
+    <Tooltip delayDuration={1000}>
+      <TooltipTrigger asChild>
+        <div>
+          {children}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent
+        side="right"
+        sideOffset={-4}
+        align="center"
+        className="text-sm"
+      >
+        {title}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export const ThreadItem = memo(ThreadItemComponent);
