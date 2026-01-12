@@ -1,4 +1,4 @@
-import { calculateChatCost, calculateSearchCost } from "./cost";
+import { calculateChatCost, calculateOcrCost, calculateSearchCost } from "./cost";
 
 type MetadataOptions = {
   inputTokens: number;
@@ -11,6 +11,7 @@ type MetadataOptions = {
   outputCostPerMillion: number;
   searchEnabled?: boolean;
   sources?: Array<{ id: string; sourceType: string; url?: string; title?: string }>;
+  ocrPageCount?: number;
 };
 
 /**
@@ -31,6 +32,7 @@ export function calculateResponseMetadata(options: MetadataOptions) {
     outputCostPerMillion,
     searchEnabled,
     sources,
+    ocrPageCount,
   } = options;
 
   // Use actual number of discovered sources (if any) to estimate search cost.
@@ -40,19 +42,27 @@ export function calculateResponseMetadata(options: MetadataOptions) {
   // If search isn't enabled, cost is zero.
   // If search is enabled but no sources are found, assume a default of 10 results.
   const resultCount = sources ? sources.length : 0;
-  const searchPricing = searchEnabled ? (calculateSearchCost(resultCount > 0 ? resultCount : 10)) : 0;
+  const searchCost = searchEnabled ? calculateSearchCost(resultCount > 0 ? resultCount : 10) : 0;
 
-  const totalCost = calculateChatCost(
+  const ocrCost = ocrPageCount ? calculateOcrCost(ocrPageCount) : 0;
+
+  const modelCost = calculateChatCost(
     { inputTokens, outputTokens },
     inputCostPerMillion,
     outputCostPerMillion,
-    searchPricing,
   );
+
+  const totalCost = modelCost + searchCost + ocrCost;
 
   return {
     inputTokens,
     outputTokens,
-    costUSD: totalCost,
+    costUSD: {
+      model: modelCost,
+      search: searchCost,
+      ocr: ocrCost,
+      total: totalCost,
+    },
     model: modelId,
     tokensPerSecond: outputTokens > 0 ? outputTokens / (totalTime / 1000) : 0,
     timeToFirstTokenMs: firstTokenTime ? firstTokenTime - startTime : 0,

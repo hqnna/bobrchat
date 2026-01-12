@@ -62,6 +62,7 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
           ...(state.parallelKey && { parallelClientKey: state.parallelKey }),
           ...(state.selectedModelId && { modelId: state.selectedModelId }),
           modelSupportsFiles: capabilities.supportsFiles,
+          supportsNativePdf: capabilities.supportsNativePdf,
         };
         return { body };
       },

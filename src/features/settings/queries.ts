@@ -27,6 +27,7 @@ export async function getUserSettings(userId: string): Promise<UserSettingsData>
       defaultThreadName: "New Chat",
       landingPageContent: "suggestions",
       autoThreadNaming: false,
+      useOcrForPdfs: false,
       sendMessageKeyboardShortcut: "enter",
     };
   }

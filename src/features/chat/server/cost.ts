@@ -1,6 +1,21 @@
 import { getModelData } from "tokenlens";
 
 /**
+ * Calculates the cost of OCR processing via Mistral OCR.
+ *
+ * Pricing model: $2 per 1000 pages
+ *
+ * @param pageCount Number of PDF pages processed
+ * @returns Cost in USD
+ */
+export function calculateOcrCost(pageCount: number): number {
+  if (pageCount <= 0)
+    return 0;
+  const COST_PER_1000_PAGES = 2;
+  return (pageCount / 1000) * COST_PER_1000_PAGES;
+}
+
+/**
  * Calculates the cost of web search via Parallel.
  *
  * Pricing model:

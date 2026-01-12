@@ -3,6 +3,7 @@
 import { CheckIcon, CopyIcon, RefreshCwIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CostBreakdown } from "~/app/api/chat/route";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -17,7 +18,7 @@ export type MessageMetricsData = {
   inputTokens: number | null;
   outputTokens: number | null;
   ttft: number | null;
-  costUsd: string | null;
+  costUsd: CostBreakdown | null;
   content: string;
   sourceCount: number | null;
 };
@@ -51,13 +52,26 @@ export function MessageMetrics({
     }
   };
 
-  // Format cost with proper USD formatting
-  const formatCost = (cost: string | null) => {
-    if (!cost || cost === "0")
-      return "$0.00";
+  const formatCost = (cost: string) => {
     const num = Number.parseFloat(cost);
+    if (num === 0)
+      return "$0.00";
     return `$${num.toFixed(6)}`;
   };
+
+  // legacy cost handling
+  if (typeof metrics.costUsd === "number") {
+    const legacyTotalCost = metrics.costUsd as unknown as number;
+    const usedSearch = metrics.sourceCount && metrics.sourceCount > 0;
+    metrics.costUsd = {
+      total: usedSearch ? legacyTotalCost : legacyTotalCost, 
+      model: usedSearch ? legacyTotalCost - 0.015 : legacyTotalCost, 
+      search: usedSearch ? 0.015 : 0, 
+      ocr: 0,
+    }
+  }
+
+  const isFree = metrics.costUsd?.total === 0;
 
   if (stopped) {
     return (
@@ -105,7 +119,7 @@ export function MessageMetrics({
             variant="ghost"
             size="sm"
             onClick={onRetry}
-            disabled={isRetrying}
+            disabled={true} // TODO: implement retry for stopped messages
             title="Regenerate response"
             className="h-6 w-6 p-0"
           >
@@ -169,7 +183,7 @@ export function MessageMetrics({
         variant="ghost"
         size="sm"
         onClick={onRetry}
-        disabled={isRetrying}
+        disabled={true} // TODO: implement retry for stopped messages
         title="Regenerate response"
         className="h-6 w-6 p-0"
       >
@@ -232,31 +246,43 @@ export function MessageMetrics({
         )}
 
         {variant === "full" && metrics.costUsd && (
-          metrics.costUsd === "0.000000"
-            ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-help underline decoration-dotted">
-                      {formatCost(metrics.costUsd)}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    This model is either free, or pricing information is not available.
-                  </TooltipContent>
-                </Tooltip>
-              )
-            : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="cursor-help">
-                      {formatCost(metrics.costUsd)}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    This cost is an estimate based on model usage and may vary.
-                  </TooltipContent>
-                </Tooltip>
-              )
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className={cn("cursor-help", isFree && "underline decoration-dotted")}>
+                {formatCost(metrics.costUsd.total.toFixed(6))}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {isFree
+                ? (
+                    <span>This model is either free, or pricing information is not available.</span>
+                  )
+                : (
+                    <div className="flex flex-col gap-1">
+                      <div className="flex justify-between gap-4">
+                        <span>Model:</span>
+                        <span className="font-mono">{formatCost(metrics.costUsd.model.toFixed(6))}</span>
+                      </div>
+                      {Number.parseFloat(metrics.costUsd.search.toFixed(4)) > 0 && (
+                        <div className="flex justify-between gap-4">
+                          <span>Search:</span>
+                          <span className="font-mono">{formatCost(metrics.costUsd.search.toFixed(6))}</span>
+                        </div>
+                      )}
+                      {Number.parseFloat(metrics.costUsd.ocr.toFixed(4)) > 0 && (
+                        <div className="flex justify-between gap-4">
+                          <span>PDF OCR:</span>
+                          <span className="font-mono">{formatCost(metrics.costUsd.ocr.toFixed(6))}</span>
+                        </div>
+                      )}
+                      <div className="border-t pt-1 flex justify-between gap-4 font-medium">
+                        <span>Total:</span>
+                        <span className="font-mono">{formatCost(metrics.costUsd.total.toFixed(6))}</span>
+                      </div>
+                    </div>
+                  )}
+            </TooltipContent>
+          </Tooltip>
         )}
       </div>
     </div>

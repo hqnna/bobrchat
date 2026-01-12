@@ -64,6 +64,9 @@ export function PreferencesTab() {
   const [autoThreadNaming, setAutoThreadNaming] = useState(
     () => settings?.autoThreadNaming ?? false,
   );
+  const [useOcrForPdfs, setUseOcrForPdfs] = useState(
+    () => settings?.useOcrForPdfs ?? false,
+  );
 
   useEffect(() => {
     if (settings && !initializedRef.current) {
@@ -75,6 +78,7 @@ export function PreferencesTab() {
       setLandingPageContent(settings.landingPageContent);
       setSendMessageKeyboardShortcut(settings.sendMessageKeyboardShortcut);
       setAutoThreadNaming(settings.autoThreadNaming);
+      setUseOcrForPdfs(settings.useOcrForPdfs);
     }
   }, [settings]);
 
@@ -86,6 +90,7 @@ export function PreferencesTab() {
     landingPageVal: LandingPageContentType,
     sendMessageKeyboardShortcutVal: string,
     autoThreadNamingVal: boolean,
+    useOcrForPdfsVal: boolean,
   ) => {
     try {
       const updates = preferencesSchema.parse({
@@ -96,6 +101,7 @@ export function PreferencesTab() {
         landingPageContent: landingPageVal,
         sendMessageKeyboardShortcut: sendMessageKeyboardShortcutVal,
         autoThreadNaming: autoThreadNamingVal,
+        useOcrForPdfs: useOcrForPdfsVal,
       });
 
       await updatePreferences.mutateAsync(updates);
@@ -143,7 +149,7 @@ export function PreferencesTab() {
                     type="button"
                     onClick={() => {
                       setTheme(option.value);
-                      handleSave(option.value, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming);
+                      handleSave(option.value, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming, useOcrForPdfs);
                     }}
                     className={cn(
                       `
@@ -189,7 +195,7 @@ export function PreferencesTab() {
               checked={boringMode}
               onCheckedChange={(checked) => {
                 setBoringMode(checked);
-                handleSave(theme, checked, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming);
+                handleSave(theme, checked, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming, useOcrForPdfs);
               }}
             />
           </div>
@@ -202,7 +208,7 @@ export function PreferencesTab() {
               type="text"
               value={defaultThreadName}
               onChange={e => setDefaultThreadName(e.target.value)}
-              onBlur={() => handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming)}
+              onBlur={() => handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming, useOcrForPdfs)}
               placeholder="New Chat"
             />
             <p className="text-muted-foreground text-xs">
@@ -223,7 +229,25 @@ export function PreferencesTab() {
               checked={autoThreadNaming}
               onCheckedChange={(checked) => {
                 setAutoThreadNaming(checked);
-                handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, checked);
+                handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, checked, useOcrForPdfs);
+              }}
+            />
+          </div>
+
+          {/* OCR for PDF Uploads */}
+          <div className="flex items-center justify-between space-x-2">
+            <div className="flex flex-col space-y-1">
+              <Label htmlFor="useOcrForPdfs">OCR for PDF Uploads</Label>
+              <span className="text-muted-foreground text-xs">
+                Automatically extract text from PDF uploads using mistral-ocr (recommended for image-dense PDFs). $2 per 1000 pages.
+              </span>
+            </div>
+            <Switch
+              id="useOcrForPdfs"
+              checked={useOcrForPdfs}
+              onCheckedChange={(checked) => {
+                setUseOcrForPdfs(checked);
+                handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming, checked);
               }}
             />
           </div>
@@ -240,7 +264,7 @@ export function PreferencesTab() {
                     type="button"
                     onClick={() => {
                       setLandingPageContent(option.value);
-                      handleSave(theme, boringMode, customInstructions, defaultThreadName, option.value, sendMessageKeyboardShortcut, autoThreadNaming);
+                      handleSave(theme, boringMode, customInstructions, defaultThreadName, option.value, sendMessageKeyboardShortcut, autoThreadNaming, useOcrForPdfs);
                     }}
                     className={cn(
                       `
@@ -282,7 +306,7 @@ export function PreferencesTab() {
                     type="button"
                     onClick={() => {
                       setSendMessageKeyboardShortcut(option.value as typeof sendMessageKeyboardShortcut);
-                      handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, option.value, autoThreadNaming);
+                      handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, option.value, autoThreadNaming, useOcrForPdfs);
                     }}
                     className={cn(
                       `
@@ -311,7 +335,7 @@ export function PreferencesTab() {
               id="customInstructions"
               value={customInstructions}
               onChange={e => setCustomInstructions(e.target.value)}
-              onBlur={() => handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming)}
+              onBlur={() => handleSave(theme, boringMode, customInstructions, defaultThreadName, landingPageContent, sendMessageKeyboardShortcut, autoThreadNaming, useOcrForPdfs)}
               placeholder="Add any custom instructions for the AI assistant..."
               className="h-full max-h-60 resize-none"
             />

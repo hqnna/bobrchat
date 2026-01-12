@@ -1,4 +1,4 @@
-import { bigint, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { users } from "./auth";
 
@@ -49,6 +49,7 @@ export const attachments = pgTable(
     mediaType: text("media_type").notNull(),
     size: bigint("size", { mode: "number" }).notNull(),
     storagePath: text("storage_path").notNull(),
+    pageCount: integer("page_count"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   table => [

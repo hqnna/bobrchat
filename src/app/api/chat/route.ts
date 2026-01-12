@@ -1,6 +1,5 @@
 import type { UIMessage } from "ai";
 
-import { createIdGenerator } from "ai";
 import { headers } from "next/headers";
 
 import { auth } from "~/features/auth/lib/auth";
@@ -17,10 +16,17 @@ export type SourceInfo = {
   title?: string;
 };
 
+export type CostBreakdown = {
+  model: number;
+  search: number;
+  ocr: number;
+  total: number;
+};
+
 export type MessageMetadata = {
   inputTokens: number;
   outputTokens: number;
-  costUSD: number;
+  costUSD: CostBreakdown;
   model: string;
   tokensPerSecond: number;
   timeToFirstTokenMs: number;
@@ -44,7 +50,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, modelId, modelSupportsFiles }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; modelId?: string; modelSupportsFiles?: boolean }
+  const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, modelId, modelSupportsFiles, supportsNativePdf }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; modelId?: string; modelSupportsFiles?: boolean; supportsNativePdf?: boolean }
     = await req.json();
 
   if (threadId) {
@@ -85,6 +91,8 @@ export async function POST(req: Request) {
 
   const baseModelId = modelId || "google/gemini-3-flash-preview";
 
+  const settings = await getUserSettings(session.user.id);
+
   const { stream, createMetadata } = await streamChatResponse(
     messages,
     baseModelId,
@@ -94,6 +102,10 @@ export async function POST(req: Request) {
     parallelKey,
     undefined,
     modelSupportsFiles,
+    {
+      useOcrForPdfs: settings.useOcrForPdfs,
+      supportsNativePdf: supportsNativePdf ?? false,
+    },
   );
 
   // Fire and forget: Auto-rename thread if enabled and this is the first message
@@ -107,23 +119,21 @@ export async function POST(req: Request) {
       : "";
 
     // We don't await this promise so it runs in background without blocking response
-    (async () => {
-      try {
-        const settings = await getUserSettings(session.user.id);
-        if (settings.autoThreadNaming) {
+    if (settings.autoThreadNaming) {
+      (async () => {
+        try {
           const title = await generateThreadTitle(userMessage, openrouterKey);
           await renameThreadById(threadId, session.user.id, title);
         }
-      }
-      catch (error) {
-        console.error("Auto-renaming failed:", error);
-      }
-    })();
+        catch (error) {
+          console.error("Auto-renaming failed:", error);
+        }
+      })();
+    }
   }
 
   const response = stream.toUIMessageStreamResponse({
     originalMessages: messages,
-    generateMessageId: createIdGenerator(),
     messageMetadata: ({ part }) => {
       const metadata = createMetadata(part);
       return metadata;

@@ -140,6 +140,7 @@ export async function createDefaultUserSettings(userId: string): Promise<UserSet
     boringMode: false,
     defaultThreadName: "New Chat",
     autoThreadNaming: false,
+    useOcrForPdfs: false,
     landingPageContent: "suggestions",
     sendMessageKeyboardShortcut: "enter",
   };

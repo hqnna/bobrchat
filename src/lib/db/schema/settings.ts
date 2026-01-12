@@ -20,6 +20,7 @@ export const userSettings = pgTable(
       landingPageContent: "suggestions",
       sendMessageKeyboardShortcut: "enter",
       autoThreadNaming: false,
+      useOcrForPdfs: false,
     } as UserSettingsData),
     encryptedApiKeys: jsonb("encrypted_api_keys").notNull().default({} as EncryptedApiKeysData),
     createdAt: timestamp("created_at").defaultNow().notNull(),

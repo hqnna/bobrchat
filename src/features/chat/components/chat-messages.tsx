@@ -136,7 +136,9 @@ export const ChatMessages = memo(({
                   inputTokens: message.metadata ? message.metadata.inputTokens : null,
                   outputTokens: message.metadata ? message.metadata.outputTokens : null,
                   ttft: message.metadata ? message.metadata.timeToFirstTokenMs : null,
-                  costUsd: message.metadata ? message.metadata.costUSD.toFixed(6) : null,
+                  costUsd: message.metadata
+                    ? message.metadata.costUSD
+                    : null,
                   content: textContent,
                   sourceCount: message.metadata?.sources ? message.metadata.sources.length : null,
                 }}

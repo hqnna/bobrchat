@@ -63,7 +63,7 @@ export async function createNewThread(defaultName?: string): Promise<string> {
 
   // We used to check if the key existed here, but now we just let the chat service
   // handle missing keys when the user sends a message.
-  const [threadId] = await createThread(session.user.id, threadName);
+  const threadId = await createThread(session.user.id, threadName);
 
   return threadId;
 }

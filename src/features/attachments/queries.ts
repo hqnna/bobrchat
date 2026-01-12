@@ -169,3 +169,27 @@ export async function deleteUserAttachmentsByIds(params: {
 
   return result.length;
 }
+
+export async function getPdfPageCountsByStoragePaths(storagePaths: string[]): Promise<Map<string, number>> {
+  const uniquePaths = Array.from(new Set(storagePaths)).filter(p => typeof p === "string" && p.length > 0);
+  if (uniquePaths.length === 0)
+    return new Map();
+
+  const rows = await db
+    .select({ storagePath: attachments.storagePath, pageCount: attachments.pageCount })
+    .from(attachments)
+    .where(
+      and(
+        inArray(attachments.storagePath, uniquePaths),
+        eq(attachments.mediaType, "application/pdf"),
+      ),
+    );
+
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    if (row.pageCount !== null) {
+      map.set(row.storagePath, row.pageCount);
+    }
+  }
+  return map;
+}

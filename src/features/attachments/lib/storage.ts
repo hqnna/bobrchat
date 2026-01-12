@@ -11,6 +11,7 @@ export type UploadedFile = {
   size: number;
   url: string;
   storagePath: string;
+  pageCount?: number | null;
 };
 
 function getR2Client() {

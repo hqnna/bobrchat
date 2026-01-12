@@ -2,6 +2,7 @@ import { fileTypeFromBuffer } from "file-type";
 import { headers } from "next/headers";
 import { Buffer } from "node:buffer";
 
+import { getPdfPageCount } from "~/features/attachments/lib/pdf";
 import { saveFile } from "~/features/attachments/lib/storage";
 import { auth } from "~/features/auth/lib/auth";
 import { db } from "~/lib/db";
@@ -85,6 +86,10 @@ export async function POST(req: Request) {
         contentDisposition,
       });
 
+      const pageCount = preferredMime === "application/pdf"
+        ? await getPdfPageCount(buffer)
+        : null;
+
       await db.insert(attachments).values({
         id: uploaded.id,
         userId: session.user.id,
@@ -92,10 +97,11 @@ export async function POST(req: Request) {
         mediaType: uploaded.mediaType,
         size: uploaded.size,
         storagePath: uploaded.storagePath,
+        pageCount,
         messageId: null,
       });
 
-      results.push(uploaded);
+      results.push({ ...uploaded, pageCount });
     }
 
     return new Response(

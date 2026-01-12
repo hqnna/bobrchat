@@ -1,18 +1,21 @@
 import type { TextStreamPart, ToolSet } from "ai";
 
-// @ts-expect-error - patching @parallel-web/ai-sdk-tools
-import { createParallelClient, extractTool, searchTool } from "@parallel-web/ai-sdk-tools";
 import { convertToModelMessages, stepCountIs, streamText } from "ai";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
-
-import { getFileContent } from "~/features/attachments/lib/storage";
 
 import { getTokenCosts } from "./cost";
 import { calculateResponseMetadata } from "./metrics";
 import { getModelProvider } from "./models";
 import { generatePrompt } from "./prompt";
+import { createSearchTools } from "./search";
 import { createStreamHandlers, processStreamChunk } from "./stream";
+import { getTotalPdfPageCount, hasPdfAttachment, processMessageFiles } from "./uploads";
+
+export type PdfEngineConfig = {
+  useOcrForPdfs: boolean;
+  supportsNativePdf: boolean;
+};
 
 /**
  * Streams a chat response from the AI model.
@@ -25,6 +28,7 @@ import { createStreamHandlers, processStreamChunk } from "./stream";
  * @param parallelApiKey The Parallel Web API key for web search functionality.
  * @param onFirstToken Optional callback to capture first token timing from the messageMetadata handler.
  * @param modelSupportsFiles Optional boolean indicating if the model natively supports file uploads.
+ * @param pdfEngineConfig Configuration for PDF processing engine selection.
  * @returns An object containing the text stream and a function to create metadata for each message part.
  */
 export async function streamChatResponse(
@@ -36,6 +40,7 @@ export async function streamChatResponse(
   parallelApiKey?: string,
   onFirstToken?: () => void,
   modelSupportsFiles?: boolean,
+  pdfEngineConfig?: PdfEngineConfig,
 ) {
   if (!openRouterApiKey) {
     throw new Error("No API key configured. Please set up your OpenRouter API key in settings.");
@@ -50,68 +55,7 @@ export async function streamChatResponse(
   const systemPrompt = await generatePrompt(userId);
 
   // Process messages to handle file extraction if needed
-  const processedMessages = await Promise.all(messages.map(async (msg) => {
-    // If model supports files, pass through unchanged
-    if (modelSupportsFiles !== false)
-      return msg;
-
-    // Filter parts: if text file and model doesn't support files, extract content
-    if (!msg.parts)
-      return msg;
-
-    const newParts = [];
-    let textContent = "";
-
-    for (const part of msg.parts) {
-      if (part.type === "file") {
-        const filePart = part as { mediaType?: string; storagePath?: string };
-        const isText = filePart.mediaType?.startsWith("text/")
-          || filePart.mediaType === "application/json"
-          || filePart.mediaType?.includes("csv"); // loose check
-
-        if (isText && filePart.storagePath) {
-          try {
-            const content = await getFileContent(filePart.storagePath);
-            textContent += `\n\n[File Content: ${filePart.storagePath}]\n${content}\n`;
-          }
-          catch (error) {
-            console.error(`Failed to fetch file content for ${filePart.storagePath}:`, error);
-            // If failed, maybe keep the original part or just ignore?
-            // Keeping original might fail the model call if it strictly rejects files.
-            // Let's add a placeholder error note.
-            textContent += `\n\n[Failed to read file content: ${filePart.storagePath}]\n`;
-          }
-        }
-        else {
-          // Keep non-text files (images, pdfs) as is, or filter them if model strictly rejects?
-          // The client validation should prevent images/PDFs if completely unsupported.
-          // But if we are here, it means modelSupportsFiles is false.
-          // Yet images might be supported (supportsImages is separate).
-          // We only extract TEXT files here.
-          newParts.push(part);
-        }
-      }
-      else if (part.type === "text") {
-        newParts.push(part);
-      }
-      else {
-        newParts.push(part);
-      }
-    }
-
-    // Append extracted text to the last text part, or create a new one
-    if (textContent) {
-      const lastPart = newParts[newParts.length - 1];
-      if (lastPart && lastPart.type === "text") {
-        (lastPart as { text: string }).text += textContent;
-      }
-      else {
-        newParts.push({ type: "text" as const, text: textContent });
-      }
-    }
-
-    return { ...msg, parts: newParts };
-  }));
+  const processedMessages = await processMessageFiles(messages, modelSupportsFiles);
 
   const convertedMessages = await convertToModelMessages(processedMessages);
 
@@ -126,56 +70,36 @@ export async function streamChatResponse(
     },
   );
 
-  let tools: ToolSet | undefined;
-  if (searchEnabled && parallelApiKey) {
-    const parallelClient = createParallelClient(parallelApiKey);
-    // Create custom tools with the user's Pabrallel client
-    tools = {
-      search: {
-        ...searchTool,
-        execute: async (args, context) => {
-          try {
-            const result = await parallelClient.beta.search(
-              args,
-              {
-                signal: context.abortSignal,
-                headers: { "parallel-beta": "search-extract-2025-10-10" },
-              },
-            );
-            return result;
-          }
-          catch (error) {
-            console.error("[websearch] search tool error:", error);
-            throw error;
-          }
-        },
-      },
-      extract: {
-        ...extractTool,
-        execute: async (args, context) => {
-          try {
-            const result = await parallelClient.beta.extract(
-              args,
-              {
-                signal: context.abortSignal,
-                headers: { "parallel-beta": "search-extract-2025-10-10" },
-              },
-            );
-            return result;
-          }
-          catch (error) {
-            console.error("[websearch] extract tool error:", error);
-            throw error;
-          }
-        },
-      },
-    };
-  }
+  const tools = searchEnabled ? createSearchTools(parallelApiKey) : undefined;
 
-  const hasPdfAttachment = messages.some(msg =>
-    msg.parts?.some(part =>
-      part.type === "file" && (part as { mediaType?: string }).mediaType === "application/pdf",
-    ),
+  const hasPdf = hasPdfAttachment(messages);
+  const useOcr = hasPdf && pdfEngineConfig?.useOcrForPdfs && !pdfEngineConfig?.supportsNativePdf;
+  const ocrPageCount = useOcr ? await getTotalPdfPageCount(messages) : 0;
+
+  const getPdfPluginConfig = () => {
+    if (!hasPdf) {
+      console.log("No PDF attachments detected, skipping PDF plugin configuration.");
+      return undefined;
+    }
+
+    if (pdfEngineConfig?.supportsNativePdf) {
+      console.log("Model supports native PDF processing, skipping PDF plugin configuration.");
+      return undefined;
+    }
+
+    const engine = pdfEngineConfig?.useOcrForPdfs ? "mistral-ocr" : "pdf-text";
+    console.log(`Configuring PDF plugin with engine: ${engine}`);
+    return {
+      plugins: [{
+        id: "file-parser" as const,
+        pdf: { engine: engine as "pdf-text" | "mistral-ocr" },
+      }],
+    };
+  };
+
+  console.log(
+    `PDF processing configuration: hasPdf=${hasPdf}, useOcr=${useOcr}, ocrPageCount=${
+      ocrPageCount}`,
   );
 
   const result = streamText({
@@ -187,14 +111,7 @@ export async function streamChatResponse(
     providerOptions: {
       openrouter: {
         usage: { include: true },
-        ...(hasPdfAttachment && {
-          plugins: [{
-            id: "file-parser" as const,
-            pdf: {
-              engine: "pdf-text" as const,
-            },
-          }],
-        }),
+        ...getPdfPluginConfig(),
       },
     },
     onChunk({ chunk }) {
@@ -226,6 +143,7 @@ export async function streamChatResponse(
           outputCostPerMillion,
           searchEnabled,
           sources,
+          ocrPageCount,
         });
       }
     },
