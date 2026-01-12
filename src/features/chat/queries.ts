@@ -340,3 +340,37 @@ export async function renameThreadById(threadId: string, userId: string, newTitl
     .returning();
   return result.length > 0;
 }
+
+/**
+ * Delete messages from a thread, keeping only the first N messages.
+ * Used for regeneration - keeps messages up to a certain point and deletes the rest.
+ *
+ * @param threadId ID of the thread
+ * @param keepCount Number of messages to keep (from the beginning)
+ * @returns Number of messages deleted
+ */
+export async function deleteMessagesAfterCount(threadId: string, keepCount: number): Promise<number> {
+  // Get all message IDs for this thread, ordered by creation time
+  const allMessages = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(eq(messages.threadId, threadId))
+    .orderBy(messages.createdAt);
+
+  // Determine which messages to delete (everything after keepCount)
+  const messagesToDelete = allMessages.slice(keepCount);
+
+  if (messagesToDelete.length === 0) {
+    return 0;
+  }
+
+  const idsToDelete = messagesToDelete.map(m => m.id);
+
+  // Delete the messages
+  const deleted = await db
+    .delete(messages)
+    .where(inArray(messages.id, idsToDelete))
+    .returning();
+
+  return deleted.length;
+}

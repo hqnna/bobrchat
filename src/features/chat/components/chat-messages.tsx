@@ -18,10 +18,14 @@ export const ChatMessages = memo(({
   messages,
   isLoading,
   searchEnabled,
+  onRegenerate,
+  isRegenerating,
 }: {
   messages: ChatUIMessage[];
   isLoading?: boolean;
   searchEnabled?: boolean;
+  onRegenerate?: (messageId: string) => void;
+  isRegenerating?: boolean;
 }) => {
   const stoppedAssistantMessageInfoById = useChatUIStore(state => state.stoppedAssistantMessageInfoById);
 
@@ -171,8 +175,8 @@ export const ChatMessages = memo(({
                   content: textContent,
                   sourceCount: message.metadata?.sources ? message.metadata.sources.length : null,
                 }}
-                onRetry={() => { }}
-                isRetrying={false}
+                onRetry={() => onRegenerate?.(message.id)}
+                isRetrying={isRegenerating}
                 variant={isStopped ? "minimal" : "full"}
                 stopped={isStopped}
               />

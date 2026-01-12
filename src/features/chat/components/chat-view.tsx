@@ -31,6 +31,8 @@ export function ChatView({
   onReasoningChangeAction,
   landingPageContent,
   showLandingPage,
+  onRegenerate,
+  isRegenerating,
 }: {
   messages: ChatUIMessage[];
   input: string;
@@ -45,6 +47,8 @@ export function ChatView({
   onReasoningChangeAction?: (level: string) => void;
   landingPageContent?: LandingPageContentType;
   showLandingPage?: boolean;
+  onRegenerate?: (messageId: string) => void;
+  isRegenerating?: boolean;
 }) {
   const { scrollRef, messagesEndRef, isInitialScrollComplete } = useChatScroll(messages, { threadId });
 
@@ -103,7 +107,13 @@ export function ChatView({
             : `translate-y-2 scale-99 opacity-0`,
         )}
         >
-          <ChatMessages messages={messages} isLoading={isLoading} searchEnabled={searchEnabled} />
+          <ChatMessages
+            messages={messages}
+            isLoading={isLoading}
+            searchEnabled={searchEnabled}
+            onRegenerate={onRegenerate}
+            isRegenerating={isRegenerating}
+          />
         </div>
         <div ref={messagesEndRef} />
       </ScrollArea>

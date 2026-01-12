@@ -3,7 +3,6 @@
 ## Core Features
 
 - User Message Editing
-- Model Message Regeneration
 - Attachment overhaul
   - Context window limit for files (32k)
   - Orphaned attachment cleanup (cron job)
@@ -15,6 +14,7 @@
 - Better error handling for invalid API key
 
 - ## Nice to Haves
+
 - Disable auto file creation option in settings
 - Keybind listing / more binds
   - New chat bind

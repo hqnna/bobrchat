@@ -7,7 +7,7 @@ import type { ChatUIMessage } from "~/app/api/chat/route";
 import { deleteFile } from "~/features/attachments/lib/storage";
 import { deleteUserAttachmentsByIds, getThreadStats, listThreadAttachments, resolveUserAttachmentsByStoragePaths } from "~/features/attachments/queries";
 import { auth } from "~/features/auth/lib/auth";
-import { createThread, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage } from "~/features/chat/queries";
+import { createThread, deleteMessagesAfterCount, deleteThreadById, getMessagesByThreadId, isThreadOwnedByUser, renameThreadById, saveMessage } from "~/features/chat/queries";
 import { generateThreadTitle } from "~/features/chat/server/naming";
 import { resolveKey } from "~/lib/api-keys/server";
 import { serverEnv } from "~/lib/env";
@@ -247,4 +247,30 @@ export async function fetchThreadStats(threadId: string): Promise<{
   }
 
   return getThreadStats({ userId: session.user.id, threadId });
+}
+
+/**
+ * Deletes messages from a thread, keeping only the first N messages.
+ * Used for regenerating responses - keeps messages up to a certain point and deletes the rest.
+ *
+ * @param threadId ID of the thread
+ * @param keepCount Number of messages to keep (from the beginning)
+ * @returns Number of messages deleted
+ */
+export async function truncateThreadMessages(threadId: string, keepCount: number): Promise<number> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+
+  // Verify ownership
+  const isOwner = await isThreadOwnedByUser(threadId, session.user.id);
+  if (!isOwner) {
+    throw new Error("Thread not found or unauthorized");
+  }
+
+  return deleteMessagesAfterCount(threadId, keepCount);
 }

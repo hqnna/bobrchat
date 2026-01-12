@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, reasoningLevel, modelId, modelSupportsFiles, supportsNativePdf }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; reasoningLevel?: string; modelId?: string; modelSupportsFiles?: boolean; supportsNativePdf?: boolean }
+  const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, reasoningLevel, modelId, modelSupportsFiles, supportsNativePdf, isRegeneration }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; reasoningLevel?: string; modelId?: string; modelSupportsFiles?: boolean; supportsNativePdf?: boolean; isRegeneration?: boolean }
     = await req.json();
 
   if (threadId) {
@@ -62,8 +62,10 @@ export async function POST(req: Request) {
       });
     }
 
+    // Skip saving user message if this is a regeneration (user message already exists)
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === "user") {
+
+    if (lastMessage?.role === "user" && !isRegeneration) {
       await saveMessage(threadId, session.user.id, lastMessage);
     }
   }

@@ -119,11 +119,11 @@ export function MessageMetrics({
             variant="ghost"
             size="sm"
             onClick={onRetry}
-            disabled={true} // TODO: implement retry for stopped messages
+            disabled={isRetrying}
             title="Regenerate response"
             className="h-6 w-6 p-0"
           >
-            <RefreshCwIcon className="h-3.5 w-3.5" />
+            <RefreshCwIcon className={cn("h-3.5 w-3.5", isRetrying && "animate-spin")} />
           </Button>
 
           {/* Model + End Pill */}
@@ -183,11 +183,11 @@ export function MessageMetrics({
         variant="ghost"
         size="sm"
         onClick={onRetry}
-        disabled={true} // TODO: implement retry for stopped messages
+        disabled={isRetrying}
         title="Regenerate response"
         className="h-6 w-6 p-0"
       >
-        <RefreshCwIcon className="h-3.5 w-3.5" />
+        <RefreshCwIcon className={cn("h-3.5 w-3.5", isRetrying && "animate-spin")} />
       </Button>
 
       {/* Metrics Text */}

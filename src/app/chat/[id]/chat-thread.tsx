@@ -4,11 +4,12 @@ import { useChat } from "@ai-sdk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport } from "ai";
 import { useRouter } from "next/navigation";
-import { use, useCallback, useEffect, useRef } from "react";
+import { use, useCallback, useEffect, useRef, useTransition } from "react";
 import { toast } from "sonner";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
+import { truncateThreadMessages } from "~/features/chat/actions";
 import { ChatView } from "~/features/chat/components/chat-view";
 import { THREADS_KEY } from "~/features/chat/hooks/use-threads";
 import { useChatUIStore } from "~/features/chat/store";
@@ -44,11 +45,13 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     modelsRef.current = models;
   }, [models]);
 
-  const { messages, sendMessage, status, stop } = useChat<ChatUIMessage>({
+  const [isRegenerating, startRegenerateTransition] = useTransition();
+
+  const { messages, sendMessage, status, stop, regenerate } = useChat<ChatUIMessage>({
     id,
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      prepareSendMessagesRequest: ({ messages: allMessages }) => {
+      prepareSendMessagesRequest: ({ messages: allMessages, body: requestBody, trigger }) => {
         // Access Zustand state directly - always current, no refs needed
         const state = useChatUIStore.getState();
 
@@ -66,6 +69,10 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
           ...(state.selectedModelId && { modelId: state.selectedModelId }),
           modelSupportsFiles: capabilities.supportsFiles,
           supportsNativePdf: capabilities.supportsNativePdf,
+          // Mark as regeneration if triggered by regenerate function
+          isRegeneration: trigger === "regenerate-message",
+          // Merge any additional body properties from the request
+          ...requestBody,
         };
         return { body };
       },
@@ -128,11 +135,37 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
             stoppedModelId: state.selectedModelId,
           },
         }),
-      }).catch(() => {});
+      }).catch(() => { });
     }
     stop();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markAssistantMessageStopped, messages, stop]);
+
+  const handleRegenerate = useCallback((messageId: string) => {
+    // Find the message index to calculate how many messages to keep in DB
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1)
+      return;
+
+    startRegenerateTransition(async () => {
+      try {
+        // Delete the assistant message (and any after it) from the database
+        // We keep messages up to (but not including) the assistant message
+        await truncateThreadMessages(id, messageIndex);
+
+        // Use the SDK's built-in regenerate function which:
+        // 1. Removes the assistant message from local state
+        // 2. Re-triggers the API call with the remaining messages
+        // 3. Does NOT add a new user message
+        // The trigger will be "regenerate-message" which our transport uses to set isRegeneration
+        regenerate({ messageId });
+      }
+      catch (error) {
+        console.error("Failed to regenerate:", error);
+        toast.error("Failed to regenerate response");
+      }
+    });
+  }, [id, messages, regenerate]);
 
   return (
     <ChatView
@@ -146,6 +179,8 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
       onSearchChangeAction={setSearchEnabled}
       reasoningLevel={reasoningLevel}
       onReasoningChangeAction={setReasoningLevel}
+      onRegenerate={handleRegenerate}
+      isRegenerating={isRegenerating}
     />
   );
 }
