@@ -9,7 +9,6 @@
   - Visual indicator of storage
   - Context window limit for files (32k)
 - Thread search
-- Thinking / reasoning
 
 ## Bugs
 

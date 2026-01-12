@@ -11,7 +11,9 @@ import { DeleteThreadDialog } from "./delete-thread-dialog";
 import { ThreadItem } from "./thread-item";
 
 type ThreadListProps = {
-  groupedThreads: GroupedThreads;
+  groupedThreads?: GroupedThreads;
+  flatResults?: Array<{ id: string; title: string }>;
+  isSearching?: boolean;
   hasNextPage?: boolean;
   fetchNextPage?: () => void;
   isFetchingNextPage?: boolean;
@@ -19,6 +21,8 @@ type ThreadListProps = {
 
 export function ThreadList({
   groupedThreads,
+  flatResults,
+  isSearching,
   hasNextPage,
   fetchNextPage,
   isFetchingNextPage,
@@ -94,6 +98,46 @@ export function ThreadList({
       </div>
     );
   };
+
+  if (isSearching) {
+    return (
+      <div className="space-y-1 py-2">
+        {flatResults && flatResults.length > 0
+          ? (
+              flatResults.map(thread => (
+                <ThreadItem
+                  key={thread.id}
+                  id={thread.id}
+                  title={thread.title}
+                  isActive={currentChatId === thread.id}
+                  onDeleteClick={handleDeleteClick}
+                />
+              ))
+            )
+          : (
+              <p className="text-muted-foreground px-2 py-4 text-center text-sm">
+                No threads found
+              </p>
+            )}
+
+        {threadToDelete && (
+          <DeleteThreadDialog
+            open={!!threadToDelete}
+            threadId={threadToDelete.id}
+            threadTitle={threadToDelete.title}
+            onOpenChange={(open) => {
+              if (!open)
+                setThreadToDelete(null);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (!groupedThreads) {
+    return null;
+  }
 
   return (
     <div className="space-y-4 py-2">

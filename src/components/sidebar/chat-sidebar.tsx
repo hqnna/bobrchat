@@ -1,6 +1,6 @@
 "use client";
 
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, SearchIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 
@@ -13,10 +13,12 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar";
 import { useSession } from "~/features/auth/lib/auth-client";
+import { useFilteredThreads } from "~/features/chat/hooks/use-filtered-threads";
 import { useThreads } from "~/features/chat/hooks/use-threads";
 import { useApiKeyStatus } from "~/features/settings/hooks/use-api-status";
 
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { Skeleton } from "../ui/skeleton";
 import { ThreadList } from "./thread-list";
 import { UserProfileCard } from "./user-profile-card";
@@ -39,7 +41,7 @@ function ThreadListSkeleton() {
   );
 }
 
-function ThreadListContent() {
+function ThreadListContent({ searchQuery }: { searchQuery: string }) {
   const hydrated = useHydrated();
   const { data: session } = useSession();
   const {
@@ -49,6 +51,11 @@ function ThreadListContent() {
     fetchNextPage,
     isFetchingNextPage,
   } = useThreads();
+
+  const { groupedThreads: filteredGrouped, flatResults, isSearching } = useFilteredThreads(
+    groupedThreads,
+    searchQuery,
+  );
 
   if (!hydrated) {
     return <ThreadListSkeleton />;
@@ -62,10 +69,19 @@ function ThreadListContent() {
     return <ThreadListSkeleton />;
   }
 
-  if (groupedThreads) {
+  if (isSearching) {
     return (
       <ThreadList
-        groupedThreads={groupedThreads}
+        flatResults={flatResults}
+        isSearching
+      />
+    );
+  }
+
+  if (filteredGrouped) {
+    return (
+      <ThreadList
+        groupedThreads={filteredGrouped}
         hasNextPage={hasNextPage}
         fetchNextPage={fetchNextPage}
         isFetchingNextPage={isFetchingNextPage}
@@ -109,6 +125,8 @@ function UserProfileContent() {
 }
 
 export function ChatSidebar() {
+  const [searchQuery, setSearchQuery] = useState("");
+
   return (
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="p-0">
@@ -135,11 +153,35 @@ export function ChatSidebar() {
             <SidebarTrigger />
           </div>
         </div>
+        <div className="relative px-3 pb-2">
+          <SearchIcon className={`
+            text-muted-foreground pointer-events-none absolute top-4 left-5
+            size-4 -translate-y-1/2
+          `}
+          />
+          <Input
+            type="text"
+            placeholder="Search threads..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="h-8 pr-8 pl-8"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="absolute top-4 right-4 size-6 -translate-y-1/2"
+              onClick={() => setSearchQuery("")}
+            >
+              <XIcon className="size-3" />
+            </Button>
+          )}
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <Suspense fallback={<ThreadListSkeleton />}>
-            <ThreadListContent />
+            <ThreadListContent searchQuery={searchQuery} />
           </Suspense>
         </SidebarGroup>
       </SidebarContent>
