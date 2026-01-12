@@ -1,3 +1,4 @@
+import { KeyIcon } from "lucide-react";
 import Link from "next/link";
 
 import type { Session } from "~/features/auth/lib/auth";
@@ -8,12 +9,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 type UserProfileCardProps = {
   session: Session;
+  hasOpenRouterKey?: boolean;
+  hasParallelKey?: boolean;
 };
 
-export function UserProfileCard({ session }: UserProfileCardProps) {
+export function UserProfileCard({ session, hasOpenRouterKey, hasParallelKey }: UserProfileCardProps) {
   if (!session) {
     return null;
   }
+
+  const getApiKeyStatus = () => {
+    if (!hasOpenRouterKey && !hasParallelKey) {
+      return "No API Keys Set";
+    }
+    if (hasOpenRouterKey && !hasParallelKey) {
+      return "OpenRouter Key Set";
+    }
+    if (!hasOpenRouterKey && hasParallelKey) {
+      return "No OpenRouter Key Set";
+    }
+    return "All API Keys Set";
+  };
 
   return (
     <Link
@@ -36,6 +52,10 @@ export function UserProfileCard({ session }: UserProfileCardProps) {
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium">
           {session.user.name}
+        </span>
+        <span className="text-muted-foreground flex items-center gap-1 text-xs">
+          <KeyIcon className="text-muted-foreground size-3" />
+          {getApiKeyStatus()}
         </span>
       </div>
     </Link>

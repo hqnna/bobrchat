@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-import { getClientKey } from "~/lib/api-keys/client";
+import { getClientKey, removeClientKey, setClientKey } from "~/lib/api-keys/client";
 
 type ChatUIStore = {
   // Chat input
@@ -21,6 +21,12 @@ type ChatUIStore = {
   openrouterKey: string | null;
   parallelKey: string | null;
   loadApiKeysFromStorage: () => void;
+
+  setOpenRouterKey: (key: string) => void;
+  setParallelKey: (key: string) => void;
+
+  removeOpenRouterKey: () => void;
+  removeParallelKey: () => void;
 
   // Streaming indicator (not persisted)
   streamingThreadId: string | null;
@@ -55,6 +61,26 @@ export const useChatUIStore = create<ChatUIStore>()(
           openrouterKey: getClientKey("openrouter"),
           parallelKey: getClientKey("parallel"),
         });
+      },
+
+      setOpenRouterKey: (key: string) => {
+        setClientKey("openrouter", key);
+        set({ openrouterKey: key });
+      },
+
+      removeOpenRouterKey: () => {
+        removeClientKey("openrouter");
+        set({ openrouterKey: null });
+      },
+
+      setParallelKey: (key: string) => {
+        setClientKey("parallel", key);
+        set({ parallelKey: key });
+      },
+
+      removeParallelKey: () => {
+        removeClientKey("parallel");
+        set({ parallelKey: null });
       },
 
       streamingThreadId: null,

@@ -91,9 +91,6 @@ export type UserSettingsData = {
   landingPageContent: LandingPageContentType;
   sendMessageKeyboardShortcut: "enter" | "ctrlEnter" | "shiftEnter";
   autoThreadNaming: boolean;
-  // Tracks which API key providers have server-side encrypted storage enabled
-  // 'client' = stored in browser localStorage, 'server' = stored encrypted on server
-  apiKeyStorage: Partial<Record<ApiKeyProvider, "client" | "server">>;
   // List of favorite model IDs from OpenRouter (max 10)
   favoriteModels?: string[];
   // Derived: which providers have a key configured (server can verify server-stored keys,

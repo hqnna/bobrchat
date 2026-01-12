@@ -66,12 +66,10 @@ export function useSetApiKey() {
     mutationFn: ({
       provider,
       apiKey,
-      storeServerSide,
     }: {
       provider: ApiKeyProvider;
       apiKey: string;
-      storeServerSide?: boolean;
-    }) => updateApiKey(provider, apiKey, storeServerSide),
+    }) => updateApiKey(provider, apiKey),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: USER_SETTINGS_KEY });
     },

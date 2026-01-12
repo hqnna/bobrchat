@@ -3,7 +3,9 @@
 import type { DehydratedState } from "@tanstack/react-query";
 
 import { HydrationBoundary, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import { useChatUIStore } from "~/features/chat/store";
 
 export function QueryProvider({
   children,
@@ -23,6 +25,12 @@ export function QueryProvider({
         },
       }),
   );
+
+  const loadApiKeysFromStorage = useChatUIStore(s => s.loadApiKeysFromStorage);
+
+  useEffect(() => {
+    loadApiKeysFromStorage();
+  }, [loadApiKeysFromStorage]);
 
   return (
     <QueryClientProvider client={queryClient}>

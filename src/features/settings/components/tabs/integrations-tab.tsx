@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckIcon,
   EyeIcon,
@@ -22,9 +23,9 @@ import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useChatUIStore } from "~/features/chat/store";
 import { useRemoveApiKey, useSetApiKey, useUserSettings } from "~/features/settings/hooks/use-user-settings";
-import { removeClientKey, setClientKey } from "~/lib/api-keys/client";
 import { cn } from "~/lib/utils";
 
+import { useApiKeyStatus } from "../../hooks/use-api-status";
 import { apiKeyUpdateSchema } from "../../types";
 
 type StorageType = "client" | "server";
@@ -45,10 +46,12 @@ const storageOptions: { value: StorageType; label: string; description: string; 
 ];
 
 export function IntegrationsTab() {
-  const { data: settings, isLoading } = useUserSettings({ enabled: true });
   const setApiKeyMutation = useSetApiKey();
   const removeApiKeyMutation = useRemoveApiKey();
-  const loadApiKeysFromStorage = useChatUIStore(state => state.loadApiKeysFromStorage);
+  const setOpenrouterKey = useChatUIStore(state => state.setOpenRouterKey);
+  const setParallelKey = useChatUIStore(state => state.setParallelKey);
+  const removeOpenrouterKey = useChatUIStore(state => state.removeOpenRouterKey);
+  const removeParallelKey = useChatUIStore(state => state.removeParallelKey);
 
   const openRouterInitializedRef = useRef(false);
   const parallelInitializedRef = useRef(false);
@@ -61,22 +64,10 @@ export function IntegrationsTab() {
   const [showParallelApiKey, setShowParallelApiKey] = useState(false);
   const [parallelStorageType, setParallelStorageType] = useState<StorageType | null>(null);
 
-  const hasExistingKey = settings?.apiKeyStorage?.openrouter !== undefined;
-  const hasExistingParallelKey = settings?.apiKeyStorage?.parallel !== undefined;
+  const { hasKey: hasOpenRouterKey, source: openRouterSource, isLoading: isOpenRouterLoading } = useApiKeyStatus("openrouter");
+  const { hasKey: hasParallelKey, source: parallelSource, isLoading: isParallelLoading } = useApiKeyStatus("parallel");
 
-  useEffect(() => {
-    if (settings?.apiKeyStorage?.openrouter && !openRouterInitializedRef.current) {
-      openRouterInitializedRef.current = true;
-      setStorageType(settings.apiKeyStorage.openrouter);
-    }
-  }, [settings?.apiKeyStorage?.openrouter]);
-
-  useEffect(() => {
-    if (settings?.apiKeyStorage?.parallel && !parallelInitializedRef.current) {
-      parallelInitializedRef.current = true;
-      setParallelStorageType(settings.apiKeyStorage.parallel);
-    }
-  }, [settings?.apiKeyStorage?.parallel]);
+  const queryClient = useQueryClient();
 
   const handleSave = async () => {
     if (!openRouterApiKey.trim() || !storageType)
@@ -88,21 +79,19 @@ export function IntegrationsTab() {
         storeServerSide: storageType === "server",
       });
 
-      await setApiKeyMutation.mutateAsync({
-        provider: "openrouter",
-        apiKey: validated.apiKey,
-        storeServerSide: validated.storeServerSide,
-      });
-
+      // if we're storing server-side, set on the server
       if (validated.storeServerSide) {
-        removeClientKey("openrouter");
+        await setApiKeyMutation.mutateAsync({
+          provider: "openrouter",
+          apiKey: validated.apiKey,
+        });
+        queryClient.invalidateQueries({ queryKey: ["api-key-exists", "openrouter"] });
       }
       else {
-        setClientKey("openrouter", validated.apiKey);
+        setOpenrouterKey(validated.apiKey);
       }
-      loadApiKeysFromStorage();
       setOpenRouterApiKey("");
-      toast.success(hasExistingKey ? "API key updated" : "API key saved");
+      toast.success(hasOpenRouterKey ? "API key updated" : "API key saved");
     }
     catch (error) {
       console.error("Failed to save API key:", error);
@@ -118,9 +107,9 @@ export function IntegrationsTab() {
   const handleDelete = async () => {
     try {
       await removeApiKeyMutation.mutateAsync("openrouter");
-      removeClientKey("openrouter");
-      loadApiKeysFromStorage();
-      setStorageType(null);
+      queryClient.invalidateQueries({ queryKey: ["api-key-exists", "openrouter"] });
+      removeOpenrouterKey();
+
       openRouterInitializedRef.current = false;
       toast.success("API key removed");
     }
@@ -139,21 +128,18 @@ export function IntegrationsTab() {
         storeServerSide: parallelStorageType === "server",
       });
 
-      await setApiKeyMutation.mutateAsync({
-        provider: "parallel",
-        apiKey: validated.apiKey,
-        storeServerSide: validated.storeServerSide,
-      });
-
       if (validated.storeServerSide) {
-        removeClientKey("parallel");
+        await setApiKeyMutation.mutateAsync({
+          provider: "parallel",
+          apiKey: validated.apiKey,
+        });
+        queryClient.invalidateQueries({ queryKey: ["api-key-exists", "parallel"] });
       }
       else {
-        setClientKey("parallel", validated.apiKey);
+        setParallelKey(validated.apiKey);
       }
-      loadApiKeysFromStorage();
       setParallelApiKeyValue("");
-      toast.success(hasExistingParallelKey ? "API key updated" : "API key saved");
+      toast.success(hasParallelKey ? "API key updated" : "API key saved");
     }
     catch (error) {
       console.error("Failed to save API key:", error);
@@ -169,9 +155,9 @@ export function IntegrationsTab() {
   const handleParallelDelete = async () => {
     try {
       await removeApiKeyMutation.mutateAsync("parallel");
-      removeClientKey("parallel");
-      loadApiKeysFromStorage();
-      setParallelStorageType(null);
+      queryClient.invalidateQueries({ queryKey: ["api-key-exists", "parallel"] });
+      removeParallelKey();
+
       parallelInitializedRef.current = false;
       toast.success("API key removed");
     }
@@ -180,7 +166,7 @@ export function IntegrationsTab() {
     }
   };
 
-  if (isLoading) {
+  if (isOpenRouterLoading || isParallelLoading) {
     return <IntegrationsTabSkeleton />;
   }
 
@@ -205,7 +191,7 @@ export function IntegrationsTab() {
             <div className="flex items-center gap-2">
               <KeyIcon className="size-5" />
               <h4 className="font-medium">OpenRouter API Key</h4>
-              {hasExistingKey
+              {hasOpenRouterKey
                 ? (
                     <Badge
                       variant="outline"
@@ -230,7 +216,7 @@ export function IntegrationsTab() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="apiKey">
-                  {hasExistingKey ? "Update API Key" : "Enter API Key"}
+                  {hasOpenRouterKey ? "Update API Key" : "Enter API Key"}
                 </Label>
               </div>
               <div className="relative flex gap-2">
@@ -279,11 +265,11 @@ export function IntegrationsTab() {
             <div className="space-y-3">
               <Label>
                 Storage Method
-                {!hasExistingKey && (
+                {!hasOpenRouterKey && (
                   <span className="text-destructive -ml-1">*</span>
                 )}
               </Label>
-              {hasExistingKey && storageType
+              {hasOpenRouterKey && openRouterSource
                 ? (
                     <div
                       className={cn(`
@@ -293,7 +279,7 @@ export function IntegrationsTab() {
                     >
                       {(() => {
                         const option = storageOptions.find(
-                          o => o.value === storageType,
+                          o => o.value === openRouterSource,
                         );
                         if (!option)
                           return null;
@@ -367,7 +353,7 @@ export function IntegrationsTab() {
                     </div>
                   )}
               <p className="text-muted-foreground text-xs">
-                {hasExistingKey
+                {hasOpenRouterKey
                   ? "Storage method is locked. Delete your key to change it."
                   : storageType === "server"
                     ? "Your key will be encrypted and stored securely on our servers."
@@ -381,9 +367,9 @@ export function IntegrationsTab() {
                   disabled={!openRouterApiKey.trim() || !storageType || isSaving}
                 >
                   <SaveIcon className="size-4" />
-                  {isSaving ? "Saving..." : hasExistingKey ? "Update Key" : "Save Key"}
+                  {isSaving ? "Saving..." : hasOpenRouterKey ? "Update Key" : "Save Key"}
                 </Button>
-                {hasExistingKey && (
+                {hasOpenRouterKey && (
                   <Button
                     variant="destructive"
                     size="sm"
@@ -406,7 +392,7 @@ export function IntegrationsTab() {
             <div className="flex items-center gap-2">
               <KeyIcon className="size-5" />
               <h4 className="font-medium">Parallel.ai API Key</h4>
-              {hasExistingParallelKey
+              {hasParallelKey
                 ? (
                     <Badge
                       variant="outline"
@@ -431,7 +417,7 @@ export function IntegrationsTab() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="parallelApiKey">
-                  {hasExistingParallelKey ? "Update API Key" : "Enter API Key"}
+                  {hasParallelKey ? "Update API Key" : "Enter API Key"}
                 </Label>
               </div>
               <div className="relative flex gap-2">
@@ -480,11 +466,11 @@ export function IntegrationsTab() {
             <div className="space-y-3">
               <Label>
                 Storage Method
-                {!hasExistingParallelKey && (
+                {!hasParallelKey && (
                   <span className="text-destructive -ml-1">*</span>
                 )}
               </Label>
-              {hasExistingParallelKey && parallelStorageType
+              {hasParallelKey && parallelSource
                 ? (
                     <div
                       className={cn(`
@@ -494,7 +480,7 @@ export function IntegrationsTab() {
                     >
                       {(() => {
                         const option = storageOptions.find(
-                          o => o.value === parallelStorageType,
+                          o => o.value === parallelSource,
                         );
                         if (!option)
                           return null;
@@ -568,7 +554,7 @@ export function IntegrationsTab() {
                     </div>
                   )}
               <p className="text-muted-foreground text-xs">
-                {hasExistingParallelKey
+                {hasParallelKey
                   ? "Storage method is locked. Delete your key to change it."
                   : parallelStorageType === "server"
                     ? "Your key will be encrypted and stored securely on our servers."
@@ -582,9 +568,9 @@ export function IntegrationsTab() {
                   disabled={!parallelApiKey.trim() || !parallelStorageType || isParallelSaving}
                 >
                   <SaveIcon className="size-4" />
-                  {isParallelSaving ? "Saving..." : hasExistingParallelKey ? "Update Key" : "Save Key"}
+                  {isParallelSaving ? "Saving..." : hasParallelKey ? "Update Key" : "Save Key"}
                 </Button>
-                {hasExistingParallelKey && (
+                {hasParallelKey && (
                   <Button
                     variant="destructive"
                     size="sm"

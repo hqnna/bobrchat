@@ -4,8 +4,10 @@
 export type ApiKeyProvider = "openrouter" | "parallel";
 
 /**
- * Where an API key is stored.
- * - "client": stored in browser localStorage
- * - "server": stored encrypted on the server
+ * localStorage keys for client-side API key storage.
+ * Kept for backwards compatibility with existing user data.
  */
-export type ApiKeyStorageLocation = "client" | "server";
+export const CLIENT_STORAGE_KEYS: Record<ApiKeyProvider, string> = {
+  openrouter: "openrouter_api_key",
+  parallel: "parallel_api_key",
+};

@@ -14,6 +14,7 @@ import {
 } from "~/components/ui/sidebar";
 import { useSession } from "~/features/auth/lib/auth-client";
 import { useThreads } from "~/features/chat/hooks/use-threads";
+import { useApiKeyStatus } from "~/features/settings/hooks/use-api-status";
 
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
@@ -93,12 +94,15 @@ function UserProfileContent() {
   const hydrated = useHydrated();
   const { data: session, isPending: sessionLoading } = useSession();
 
-  if (!hydrated || sessionLoading) {
+  const { hasKey: hasOpenRouterKey, isLoading: isOpenRouterLoading } = useApiKeyStatus("openrouter");
+  const { hasKey: hasParallelKey, isLoading: isParallelLoading } = useApiKeyStatus("parallel");
+
+  if (!hydrated || sessionLoading || isOpenRouterLoading || isParallelLoading) {
     return <UserProfileSkeleton />;
   }
 
   if (session) {
-    return <UserProfileCard session={session} />;
+    return <UserProfileCard session={session} hasOpenRouterKey={hasOpenRouterKey} hasParallelKey={hasParallelKey} />;
   }
 
   return null;

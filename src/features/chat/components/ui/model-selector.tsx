@@ -31,7 +31,11 @@ type ModelSelectorProps = {
   isLoading?: boolean;
 };
 
-export function NoModelsToolip({ models, children }: { models: Model[], children: React.ReactNode }) {
+export function NoModelsToolip({ models, isLoading, children }: { models: Model[], isLoading?: boolean, children: React.ReactNode }) {
+  if (isLoading) {
+    return children;
+  }
+
   if (models.length > 0) {
     return children;
   }
@@ -71,7 +75,7 @@ export function ModelSelector({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <div className="relative">
-        <NoModelsToolip models={models}>
+        <NoModelsToolip models={models} isLoading={isLoading}>
           <PopoverTrigger asChild>
             <Button
               type="button"

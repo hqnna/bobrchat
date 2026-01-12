@@ -29,7 +29,6 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     clearInput,
     searchEnabled,
     setSearchEnabled,
-    loadApiKeysFromStorage,
     setStreamingThreadId,
     markAssistantMessageStopped,
   } = useChatUIStore();
@@ -42,11 +41,6 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
   useEffect(() => {
     modelsRef.current = models;
   }, [models]);
-
-  // Load API keys from localStorage on mount
-  useEffect(() => {
-    loadApiKeysFromStorage();
-  }, [loadApiKeysFromStorage]);
 
   const { messages, sendMessage, status, stop } = useChat<ChatUIMessage>({
     id,

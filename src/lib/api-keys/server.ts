@@ -45,18 +45,13 @@ export async function getEncryptedKey(
 }
 
 /**
- * Check if user has an API key configured for a provider (either client or server).
- * This checks the user's storage preference, and for server-stored keys,
- * verifies the encrypted key actually exists.
- *
- * Note: For client-stored keys, this only verifies the preference is set.
- * The server cannot verify the key actually exists in the browser.
+ * Check if user has an encrypted API key stored for a provider.
  *
  * @param userId ID of the user
  * @param provider API provider name
- * @returns True if user has a key configured
+ * @returns True if user has an encrypted key stored
  */
-export async function hasKeyConfigured(
+export async function hasEncryptedKey(
   userId: string,
   provider: ApiKeyProvider,
 ): Promise<boolean> {
@@ -65,14 +60,7 @@ export async function hasKeyConfigured(
     .from(userSettings)
     .where(and(
       eq(userSettings.userId, userId),
-      sql`(${userSettings.settings}->'apiKeyStorage'->>${sql.raw(`'${provider}'`)}) IS NOT NULL`,
-      sql`
-        CASE 
-          WHEN (${userSettings.settings}->'apiKeyStorage'->>${sql.raw(`'${provider}'`)}) = 'server' 
-          THEN (${userSettings.encryptedApiKeys}->>${sql.raw(`'${provider}'`)}) IS NOT NULL
-          ELSE true
-        END
-      `,
+      sql`(${userSettings.encryptedApiKeys}->>${sql.raw(`'${provider}'`)}) IS NOT NULL`,
     ))
     .limit(1);
 

@@ -4,6 +4,7 @@ import type { Model } from "@openrouter/sdk/models";
 
 import { useQuery } from "@tanstack/react-query";
 
+import { useApiKeyStatus } from "~/features/settings/hooks/use-api-status";
 import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { getClientKey } from "~/lib/api-keys/client";
 
@@ -12,21 +13,17 @@ import { fetchOpenRouterModels } from "../actions";
 export const MODELS_KEY = ["models"] as const;
 
 export function useModels(options: { enabled?: boolean } = {}) {
-  const { data: settings } = useUserSettings({ enabled: options.enabled });
-
-  const hasApiKey
-    = settings?.apiKeyStorage?.openrouter === "client"
-      || settings?.apiKeyStorage?.openrouter === "server";
+  const { hasKey, source } = useApiKeyStatus("openrouter");
 
   return useQuery({
     queryKey: MODELS_KEY,
     queryFn: async () => {
-      const clientKey = settings?.apiKeyStorage?.openrouter === "client"
+      const clientKey = source === "client"
         ? getClientKey("openrouter") ?? undefined
         : undefined;
       return fetchOpenRouterModels(clientKey);
     },
-    enabled: hasApiKey && options.enabled,
+    enabled: hasKey && options.enabled,
     staleTime: 24 * 60 * 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,
   });

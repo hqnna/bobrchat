@@ -1,6 +1,6 @@
 import type { ApiKeyProvider } from "./types";
 
-import { CLIENT_STORAGE_KEYS } from "./constants";
+import { CLIENT_STORAGE_KEYS } from "./types";
 
 /**
  * Get an API key from browser localStorage.

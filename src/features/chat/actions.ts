@@ -9,7 +9,7 @@ import { deleteUserAttachmentsByIds, listThreadAttachments, resolveUserAttachmen
 import { auth } from "~/features/auth/lib/auth";
 import { createThread, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage } from "~/features/chat/queries";
 import { generateThreadTitle } from "~/features/chat/server/naming";
-import { hasKeyConfigured, resolveKey } from "~/lib/api-keys/server";
+import { resolveKey } from "~/lib/api-keys/server";
 import { serverEnv } from "~/lib/env";
 
 function extractStoragePathsFromThreadMessages(messages: ChatUIMessage[]): string[] {
@@ -61,18 +61,9 @@ export async function createNewThread(defaultName?: string): Promise<string> {
 
   const threadName = defaultName || "New Chat";
 
-  // Run hasKeyConfigured and createThread in parallel to hide cold start latency
-  // If user doesn't have an API key, we'll delete the thread (rare case)
-  const [hasKey, threadId] = await Promise.all([
-    hasKeyConfigured(session.user.id, "openrouter"),
-    createThread(session.user.id, threadName),
-  ]);
-
-  if (!hasKey) {
-    // Rare case: user somehow doesn't have API key, clean up the thread we just created
-    await deleteThreadById(threadId, session.user.id);
-    throw new Error("API key not configured. Please set up your OpenRouter API key in settings before creating a thread.");
-  }
+  // We used to check if the key existed here, but now we just let the chat service
+  // handle missing keys when the user sends a message.
+  const [threadId] = await createThread(session.user.id, threadName);
 
   return threadId;
 }

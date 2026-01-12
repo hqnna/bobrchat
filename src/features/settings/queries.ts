@@ -28,7 +28,6 @@ export async function getUserSettings(userId: string): Promise<UserSettingsData>
       landingPageContent: "suggestions",
       autoThreadNaming: false,
       sendMessageKeyboardShortcut: "enter",
-      apiKeyStorage: {},
     };
   }
 
@@ -102,11 +101,6 @@ export async function updateUserSettingsPartial(
   const merged: UserSettingsData = {
     ...currentSettings,
     ...updates,
-    // Ensure apiKeyStorage is merged, not replaced
-    apiKeyStorage: {
-      ...currentSettings.apiKeyStorage,
-      ...(updates.apiKeyStorage || {}),
-    },
   };
 
   return updateUserSettings(userId, merged);
@@ -118,14 +112,12 @@ export async function updateUserSettingsPartial(
  * @param userId ID of the user
  * @param provider API provider name (e.g., 'openrouter', 'parallel')
  * @param apiKey The plain API key value
- * @param storeServerSide Whether to store it encrypted on the server (default: false)
  * @return {Promise<void>}
  */
 export async function updateApiKey(
   userId: string,
   provider: ApiKeyProvider,
   apiKey: string,
-  storeServerSide: boolean = false,
 ): Promise<void> {
   const currentSettings = await getUserSettings(userId);
 
@@ -137,37 +129,18 @@ export async function updateApiKey(
 
   const currentEncrypted = (settingsResult[0]?.encryptedApiKeys || {}) as EncryptedApiKeysData;
 
-  // Update storage preference
-  const updatedApiKeyStorage = {
-    ...currentSettings.apiKeyStorage,
-    [provider]: storeServerSide ? "server" : "client",
-  };
-
   // Update encrypted keys if storing server-side
   let updatedEncrypted = currentEncrypted;
-  if (storeServerSide) {
-    updatedEncrypted = {
-      ...currentEncrypted,
-      [provider]: encryptValue(apiKey),
-    };
-  }
-  else {
-    // Remove from server storage if switching to client
-    const cleanedEncrypted: EncryptedApiKeysData = {};
-    Object.entries(currentEncrypted).forEach(([key, value]) => {
-      if (key !== provider && value !== undefined) {
-        cleanedEncrypted[key as "openrouter" | "parallel"] = value;
-      }
-    });
-    updatedEncrypted = cleanedEncrypted;
-  }
+  updatedEncrypted = {
+    ...currentEncrypted,
+    [provider]: encryptValue(apiKey),
+  };
 
   await db
     .update(userSettings)
     .set({
       settings: {
         ...currentSettings,
-        apiKeyStorage: updatedApiKeyStorage,
       },
       encryptedApiKeys: updatedEncrypted,
       updatedAt: new Date(),
@@ -193,14 +166,6 @@ export async function deleteApiKey(userId: string, provider: ApiKeyProvider): Pr
 
   const currentEncrypted = (settingsResult[0]?.encryptedApiKeys || {}) as EncryptedApiKeysData;
 
-  // Remove from storage preferences
-  const cleanedApiKeyStorage: Record<string, "client" | "server"> = {};
-  Object.entries(currentSettings.apiKeyStorage).forEach(([key, value]) => {
-    if (key !== provider && value !== undefined) {
-      cleanedApiKeyStorage[key] = value;
-    }
-  });
-
   // Remove from encrypted keys
   const cleanedEncrypted: EncryptedApiKeysData = {};
   Object.entries(currentEncrypted).forEach(([key, value]) => {
@@ -214,39 +179,8 @@ export async function deleteApiKey(userId: string, provider: ApiKeyProvider): Pr
     .set({
       settings: {
         ...currentSettings,
-        apiKeyStorage: cleanedApiKeyStorage,
       },
       encryptedApiKeys: cleanedEncrypted,
-      updatedAt: new Date(),
-    })
-    .where(eq(userSettings.userId, userId));
-}
-
-/**
- * Remove a provider from apiKeyStorage (when client-side key is missing)
- *
- * @param userId ID of the user
- * @param provider API provider name (e.g., 'openrouter', 'parallel')
- * @return {Promise<void>}
- */
-export async function removeApiKeyPreference(userId: string, provider: ApiKeyProvider): Promise<void> {
-  const currentSettings = await getUserSettings(userId);
-
-  // Remove provider from storage preferences
-  const cleanedApiKeyStorage: Record<string, "client" | "server"> = {};
-  Object.entries(currentSettings.apiKeyStorage).forEach(([key, value]) => {
-    if (key !== provider && value !== undefined) {
-      cleanedApiKeyStorage[key] = value;
-    }
-  });
-
-  await db
-    .update(userSettings)
-    .set({
-      settings: {
-        ...currentSettings,
-        apiKeyStorage: cleanedApiKeyStorage,
-      },
       updatedAt: new Date(),
     })
     .where(eq(userSettings.userId, userId));

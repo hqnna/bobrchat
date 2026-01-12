@@ -13,6 +13,7 @@ import { FilePreview } from "~/features/chat/components/messages/file-preview";
 import { useFileAttachments } from "~/features/chat/hooks/use-file-attachments";
 import { useChatUIStore } from "~/features/chat/store";
 import { canUploadFiles, getAcceptedFileTypes, getModelCapabilities, useFavoriteModels, useModels } from "~/features/models";
+import { useApiKeyStatus } from "~/features/settings/hooks/use-api-status";
 import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { cn } from "~/lib/utils";
 
@@ -61,8 +62,9 @@ export function ChatInput({
   onSearchChange,
 }: ChatInputProps) {
   const { data: settings } = useUserSettings();
-  const hasOpenRouterKey = settings?.configuredApiKeys?.openrouter;
-  const hasParallelApiKey = settings?.configuredApiKeys?.parallel;
+
+  const { hasKey: hasOpenRouterKey, isLoading: isOpenRouterLoading } = useApiKeyStatus("openrouter");
+  const { hasKey: hasParallelApiKey, isLoading: isParallelApiLoading } = useApiKeyStatus("parallel");
 
   const keyboardShortcut = settings?.sendMessageKeyboardShortcut || "enter";
 
@@ -160,7 +162,7 @@ export function ChatInput({
   return (
     <div className={cn(`bg-background p-4 pt-0`, className)}>
       <div className="mx-auto max-w-3xl space-y-3">
-        {hasOpenRouterKey === false && (
+        {hasOpenRouterKey === false && !isOpenRouterLoading && (
           <ApiWarningBadge />
         )}
         <form
@@ -237,7 +239,7 @@ export function ChatInput({
               models={favoriteModels}
               selectedModelId={selectedModelId || undefined}
               onSelectModelAction={setSelectedModelId}
-              isLoading={isModelsLoading}
+              isLoading={isModelsLoading || isOpenRouterLoading}
             />
 
             <div className="flex-1" />
@@ -271,7 +273,7 @@ export function ChatInput({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      {hasParallelApiKey === false
+                      {hasParallelApiKey === false && !isParallelApiLoading
                         ? "Configure your Parallel API key in settings to use search"
                         : searchEnabled
                           ? "Search is enabled for this message"
