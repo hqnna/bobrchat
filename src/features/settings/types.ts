@@ -23,6 +23,7 @@ export const preferencesSchema = z.object({
   sendMessageKeyboardShortcut: z.enum(["enter", "ctrlEnter", "shiftEnter"]).default("enter"),
   autoThreadNaming: z.boolean().default(false),
   useOcrForPdfs: z.boolean().default(false),
+  inputHeightScale: z.number().int().min(0).max(4).default(0),
 });
 
 export const preferencesUpdateSchema = preferencesSchema.partial();
@@ -93,6 +94,7 @@ export type UserSettingsData = {
   sendMessageKeyboardShortcut: "enter" | "ctrlEnter" | "shiftEnter";
   autoThreadNaming: boolean;
   useOcrForPdfs: boolean;
+  inputHeightScale: number;
   // List of favorite model IDs from OpenRouter (max 10)
   favoriteModels?: string[];
   // Derived: which providers have a key configured (server can verify server-stored keys,

@@ -29,6 +29,7 @@ export async function getUserSettings(userId: string): Promise<UserSettingsData>
       autoThreadNaming: false,
       useOcrForPdfs: false,
       sendMessageKeyboardShortcut: "enter",
+      inputHeightScale: 0,
     };
   }
 

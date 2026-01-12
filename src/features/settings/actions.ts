@@ -143,6 +143,7 @@ export async function createDefaultUserSettings(userId: string): Promise<UserSet
     useOcrForPdfs: false,
     landingPageContent: "suggestions",
     sendMessageKeyboardShortcut: "enter",
+    inputHeightScale: 0,
   };
 
   await updateUserSettings(userId, defaultSettings);

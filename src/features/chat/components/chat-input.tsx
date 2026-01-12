@@ -72,6 +72,7 @@ export function ChatInput({
   const { hasKey: hasParallelApiKey, isLoading: isParallelApiLoading } = useApiKeyStatus("parallel");
 
   const keyboardShortcut = settings?.sendMessageKeyboardShortcut || "enter";
+  const inputHeightScale = settings?.inputHeightScale ?? 0;
 
   const favoriteModels = useFavoriteModels();
   const { isLoading: isModelsLoading } = useModels({ enabled: hasOpenRouterKey });
@@ -97,6 +98,20 @@ export function ChatInput({
     onValueChange,
     textareaRef,
   });
+
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!textareaRef.current)
+      return;
+
+    const lineCount = value.split("\n").length;
+    const shouldExpand = lineCount > 2;
+
+    if (shouldExpand !== isExpanded) {
+      setIsExpanded(shouldExpand);
+    }
+  }, [value, isExpanded]);
 
   const canSendMessage = () => {
     if (isLoading) {
@@ -196,12 +211,24 @@ export function ChatInput({
               onPaste={handlePaste}
               placeholder="Type your message here..."
               disabled={hasOpenRouterKey === false}
-              className={`
-                max-h-50 min-h-16 resize-none rounded-none border-0 px-3 py-3
-                pr-12 text-base
+              className={cn(`
+                resize-none rounded-none border-0 px-3 py-3 pr-12 text-base
+                transition-all duration-200 ease-out
                 focus-visible:ring-0
                 disabled:opacity-50
-              `}
+              `, isExpanded
+                ? (
+                    inputHeightScale === 1
+                      ? "max-h-32 min-h-32"
+                      : inputHeightScale === 2
+                        ? `max-h-48 min-h-48`
+                        : inputHeightScale === 3
+                          ? `max-h-64 min-h-64`
+                          : inputHeightScale === 4
+                            ? `max-h-80 min-h-80`
+                            : `max-h-16 min-h-16`
+                  )
+                : "max-h-16 min-h-16")}
               rows={2}
             />
 
