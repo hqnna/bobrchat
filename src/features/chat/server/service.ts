@@ -31,6 +31,8 @@ export type PdfEngineConfig = {
  * @param pdfEngineConfig Configuration for PDF processing engine selection.
  * @returns An object containing the text stream and a function to create metadata for each message part.
  */
+export type ReasoningLevel = "xhigh" | "high" | "medium" | "low" | "minimal" | "none";
+
 export async function streamChatResponse(
   messages: ChatUIMessage[],
   modelId: string,
@@ -41,6 +43,7 @@ export async function streamChatResponse(
   onFirstToken?: () => void,
   modelSupportsFiles?: boolean,
   pdfEngineConfig?: PdfEngineConfig,
+  reasoningLevel?: string,
 ) {
   if (!openRouterApiKey) {
     throw new Error("No API key configured. Please set up your OpenRouter API key in settings.");
@@ -94,6 +97,17 @@ export async function streamChatResponse(
     };
   };
 
+  const getReasoningConfig = () => {
+    if (!reasoningLevel || reasoningLevel === "none") {
+      return undefined;
+    }
+    return {
+      reasoning: {
+        effort: reasoningLevel as ReasoningLevel,
+      },
+    };
+  };
+
   const result = streamText({
     model: provider(modelId),
     system: systemPrompt,
@@ -104,9 +118,7 @@ export async function streamChatResponse(
       openrouter: {
         usage: { include: true },
         ...getPdfPluginConfig(),
-        reasoning: {
-          effort: "xhigh",
-        },
+        ...getReasoningConfig(),
       },
     },
     onChunk({ chunk }) {

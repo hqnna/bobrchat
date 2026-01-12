@@ -6,6 +6,56 @@ import { db } from "~/lib/db";
 import { attachments, messages, threads } from "~/lib/db/schema/chat";
 import { serverEnv } from "~/lib/env";
 
+function cleanReasoningPart(part: unknown): unknown | null {
+  if (!part || typeof part !== "object")
+    return part;
+
+  const p = part as {
+    type?: string;
+    text?: string;
+    providerMetadata?: unknown;
+    [key: string]: unknown;
+  };
+
+  if (p.type !== "reasoning")
+    return part;
+
+  // Strip [REDACTED] from the text (including leading newlines before it)
+  const cleanedText = (p.text || "")
+    .replace(/\n\s*\[REDACTED\]/g, "") // Remove newlines before [REDACTED]
+    .replace(/\[REDACTED\]/g, "") // Remove any remaining [REDACTED]
+    .replace(/\\n/g, "\n") // Unescape literal \n to actual newlines
+    .replace(/\n\s*\n/g, "\n") // Collapse multiple newlines to single
+    .trim();
+
+  // If the cleaned text is empty, filter out this part entirely
+  if (!cleanedText) {
+    return null;
+  }
+
+  // Return cleaned part without providerMetadata (it's junk data)
+  const { providerMetadata, ...rest } = p;
+  return {
+    ...rest,
+    text: cleanedText,
+  };
+}
+
+function filterAndCleanReasoningParts(message: ChatUIMessage): ChatUIMessage {
+  const parts = (message as unknown as { parts?: unknown[] }).parts;
+  if (!Array.isArray(parts))
+    return message;
+
+  const cleanedParts = parts
+    .map(part => cleanReasoningPart(part))
+    .filter(part => part !== null);
+
+  return {
+    ...message,
+    parts: cleanedParts,
+  } as ChatUIMessage;
+}
+
 function extractAttachmentRefs(message: ChatUIMessage): { ids: string[]; storagePaths: string[] } {
   const parts = (message as unknown as { parts?: unknown }).parts;
   if (!Array.isArray(parts))
@@ -109,11 +159,14 @@ export async function saveMessage(
     throw new Error(`Invalid role: ${message.role}`);
   }
 
-  const { ids: attachmentIds, storagePaths: attachmentStoragePaths } = extractAttachmentRefs(message);
+  // Filter out encrypted reasoning parts before saving
+  const filteredMessage = filterAndCleanReasoningParts(message);
+
+  const { ids: attachmentIds, storagePaths: attachmentStoragePaths } = extractAttachmentRefs(filteredMessage);
 
   await db.transaction(async (tx) => {
     const messageId = crypto.randomUUID();
-    const messageWithId = { ...message, id: messageId };
+    const messageWithId = { ...filteredMessage, id: messageId };
 
     await tx.insert(messages).values({
       id: messageId,

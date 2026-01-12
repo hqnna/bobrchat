@@ -11,7 +11,7 @@ import {
   SmartphoneIcon,
   TrashIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -22,7 +22,7 @@ import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useChatUIStore } from "~/features/chat/store";
-import { useRemoveApiKey, useSetApiKey, useUserSettings } from "~/features/settings/hooks/use-user-settings";
+import { useRemoveApiKey, useSetApiKey } from "~/features/settings/hooks/use-user-settings";
 import { cn } from "~/lib/utils";
 
 import { useApiKeyStatus } from "../../hooks/use-api-status";

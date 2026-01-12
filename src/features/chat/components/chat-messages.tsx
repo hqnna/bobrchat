@@ -11,6 +11,7 @@ import { MemoizedMarkdown } from "./messages/markdown";
 import { UserMessage } from "./messages/user-message";
 import { LoadingSpinner } from "./ui/loading-spinner";
 import { MessageMetrics } from "./ui/message-metrics";
+import { ReasoningContent } from "./ui/reasoning-content";
 import { SearchingSources } from "./ui/searching-sources";
 
 export const ChatMessages = memo(({
@@ -60,6 +61,34 @@ export const ChatMessages = memo(({
         return (
           <div key={message.id} className="group markdown text-base">
             {message.parts.map((part, index) => {
+              if (part.type === "reasoning") {
+                const reasoningPart = part as {
+                  type: "reasoning";
+                  text: string;
+                  state?: string;
+                };
+
+                // Strip [REDACTED] (including leading newlines before it) and skip if empty
+                const cleanedText = (reasoningPart.text || "")
+                  .replace(/\n\s*\[REDACTED\]/g, "") // Remove newlines before [REDACTED]
+                  .replace(/\[REDACTED\]/g, "") // Remove any remaining [REDACTED]
+                  .replace(/\\n/g, "\n") // Unescape literal \n to actual newlines
+                  .replace(/\n\s*\n/g, "\n") // Collapse multiple newlines to single
+                  .trim();
+                if (!cleanedText) {
+                  return null;
+                }
+
+                const isThinking = reasoningPart.state !== "done";
+                return (
+                  <ReasoningContent
+                    key={`part-${index}`}
+                    content={cleanedText}
+                    isThinking={isThinking}
+                  />
+                );
+              }
+
               if (part.type === "text") {
                 return (
                   <MemoizedMarkdown

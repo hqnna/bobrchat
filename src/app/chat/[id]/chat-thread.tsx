@@ -60,6 +60,7 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
           messages: allMessages,
           threadId: id,
           searchEnabled: state.searchEnabled,
+          reasoningLevel: state.reasoningLevel,
           ...(state.openrouterKey && { openrouterClientKey: state.openrouterKey }),
           ...(state.parallelKey && { parallelClientKey: state.parallelKey }),
           ...(state.selectedModelId && { modelId: state.selectedModelId }),

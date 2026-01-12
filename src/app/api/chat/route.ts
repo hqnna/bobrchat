@@ -50,7 +50,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, modelId, modelSupportsFiles, supportsNativePdf }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; modelId?: string; modelSupportsFiles?: boolean; supportsNativePdf?: boolean }
+  const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, reasoningLevel, modelId, modelSupportsFiles, supportsNativePdf }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; reasoningLevel?: string; modelId?: string; modelSupportsFiles?: boolean; supportsNativePdf?: boolean }
     = await req.json();
 
   if (threadId) {
@@ -106,6 +106,7 @@ export async function POST(req: Request) {
       useOcrForPdfs: settings.useOcrForPdfs,
       supportsNativePdf: supportsNativePdf ?? false,
     },
+    reasoningLevel,
   );
 
   // Fire and forget: Auto-rename thread if enabled and this is the first message
