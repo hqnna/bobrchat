@@ -53,8 +53,8 @@ export const ChatMessages = memo(({
         const isLastMessage = messageIndex === messages.length - 1;
 
         const stoppedInfo = stoppedAssistantMessageInfoById[message.id];
-        const persistedStopped = (message as any).stoppedByUser === true;
-        const stoppedModelId = (message as any).stoppedModelId as string | null | undefined;
+        const persistedStopped = message.stoppedByUser === true;
+        const stoppedModelId = message.stoppedModelId as string | null | undefined;
         const isStopped = persistedStopped || !!stoppedInfo;
 
         return (
@@ -65,7 +65,7 @@ export const ChatMessages = memo(({
                   <MemoizedMarkdown
                     key={`part-${index}`}
                     id={`${message.id}-${index}`}
-                    content={(part as any).text}
+                    content={part.text}
                   />
                 );
               }

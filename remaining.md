@@ -4,7 +4,6 @@
 
 - User Message Editing
 - Model Message Regeneration
-- mistral-ocr option in settings
 - Attachment overhaul
   - Storage limit for users (100mb)
   - Visual indicator of storage

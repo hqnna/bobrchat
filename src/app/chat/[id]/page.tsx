@@ -1,3 +1,4 @@
+import type { UIMessage } from "ai";
 import type { Metadata } from "next";
 
 import { headers } from "next/headers";
@@ -47,7 +48,7 @@ export default async function ChatServer({ params, searchParams }: ChatServerPro
     redirect("/");
   }
 
-  let initialPendingMessage: any | null = null;
+  let initialPendingMessage: UIMessage | null = null;
   const rawInitial = Array.isArray(sp.initial) ? sp.initial[0] : sp.initial;
 
   if (rawInitial) {
