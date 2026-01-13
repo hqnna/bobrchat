@@ -35,6 +35,12 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function formatCost(cost: number): string {
+  if (cost === 0)
+    return "$0.00";
+  return `$${cost.toFixed(6)}`;
+}
+
 function ThreadItemComponent({
   id,
   title,
@@ -213,18 +219,27 @@ function ThreadItemComponent({
             : stats
               ? (
                   <>
-                    {stats.messageCount}
-                    {" "}
-                    messages
-                    {stats.attachmentCount > 0 && (
-                      <>
-                        {" · "}
-                        {stats.attachmentCount}
+                    <div>
+                      {stats.messageCount}
+                      {" "}
+                      messages
+                      {stats.attachmentCount > 0 && (
+                        <>
+                          {" · "}
+                          {stats.attachmentCount}
+                          {" "}
+                          files (
+                          {formatBytes(stats.attachmentSize)}
+                          )
+                        </>
+                      )}
+                    </div>
+                    {stats.totalCost > 0 && (
+                      <div>
+                        {formatCost(stats.totalCost)}
                         {" "}
-                        files (
-                        {formatBytes(stats.attachmentSize)}
-                        )
-                      </>
+                        spent
+                      </div>
                     )}
                   </>
                 )

@@ -3,7 +3,6 @@
 import { useChat } from "@ai-sdk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DefaultChatTransport } from "ai";
-import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useRef, useTransition } from "react";
 import { toast } from "sonner";
 

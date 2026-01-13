@@ -21,10 +21,13 @@ export async function getUserStorageUsage(userId: string): Promise<number> {
 export async function getThreadStats(params: {
   userId: string;
   threadId: string;
-}): Promise<{ messageCount: number; attachmentCount: number; attachmentSize: number }> {
+}): Promise<{ messageCount: number; attachmentCount: number; attachmentSize: number; totalCost: number }> {
   const [messageResult, attachmentResult] = await Promise.all([
     db
-      .select({ count: sql<number>`count(*)::int` })
+      .select({
+        count: sql<number>`count(*)::int`,
+        totalCost: sql<number>`coalesce(sum((${messages.content}->'metadata'->'costUSD'->>'total')::numeric), 0)::float`,
+      })
       .from(messages)
       .where(eq(messages.threadId, params.threadId)),
     db
@@ -41,6 +44,7 @@ export async function getThreadStats(params: {
     messageCount: messageResult[0]?.count ?? 0,
     attachmentCount: attachmentResult[0]?.count ?? 0,
     attachmentSize: Number(attachmentResult[0]?.size ?? 0),
+    totalCost: messageResult[0]?.totalCost ?? 0,
   };
 }
 

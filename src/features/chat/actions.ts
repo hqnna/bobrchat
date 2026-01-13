@@ -228,7 +228,7 @@ export async function regenerateThreadName(threadId: string, clientKey?: string)
 }
 
 /**
- * Fetches stats for a thread (message count, attachment count/size).
+ * Fetches stats for a thread (message count, attachment count/size, total cost).
  *
  * @param threadId ID of the thread
  * @returns Thread stats
@@ -237,6 +237,7 @@ export async function fetchThreadStats(threadId: string): Promise<{
   messageCount: number;
   attachmentCount: number;
   attachmentSize: number;
+  totalCost: number;
 }> {
   const session = await auth.api.getSession({
     headers: await headers(),
