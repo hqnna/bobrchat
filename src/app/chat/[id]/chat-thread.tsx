@@ -100,21 +100,37 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     };
   }, [id, setStreamingThreadId, status]);
 
-  // Handle initial pending message (from URL search params when creating new thread)
+  // Handle initial pending message (from sessionStorage when creating new thread)
   const hasSentInitialRef = useRef(false);
-  const router = useRouter();
 
   useEffect(() => {
-    if (!initialPendingMessage || hasSentInitialRef.current)
+    if (hasSentInitialRef.current)
+      return;
+
+    // First check if we have it from sessionStorage (new thread flow)
+    let messageToSend = initialPendingMessage;
+    if (!messageToSend) {
+      const stored = sessionStorage.getItem(`initial_${id}`);
+      if (stored) {
+        try {
+          messageToSend = JSON.parse(stored);
+        }
+        catch (e) {
+          console.error(`[chat-thread] Failed to parse stored initial message:`, e);
+        }
+      }
+    }
+
+    if (!messageToSend)
       return;
 
     hasSentInitialRef.current = true;
-    sendMessage(initialPendingMessage);
+    sendMessage(messageToSend);
     clearInput();
-    // Remove the `initial` search param so navigating doesn't re-trigger sending.
-    // Use replace so we don't add a history entry
-    router.replace(window.location.pathname);
-  }, [initialPendingMessage, sendMessage, clearInput, router]);
+
+    // Clean up sessionStorage
+    sessionStorage.removeItem(`initial_${id}`);
+  }, [id, initialPendingMessage, sendMessage, clearInput]);
 
   const handleStop = useCallback(() => {
     const lastAssistantMessage = [...messages].reverse().find(m => m.role === "assistant");

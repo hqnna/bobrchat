@@ -12,16 +12,14 @@ import ChatThread from "./chat-thread";
 
 type ChatServerProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 const getThreadCached = cache(async (id: string) => {
   return getThreadById(id);
 });
 
-export default async function ChatServer({ params, searchParams }: ChatServerProps) {
+export default async function ChatServer({ params }: ChatServerProps) {
   const { id } = await params;
-  const sp = (await searchParams) ?? {};
 
   // Validate UUID format
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -48,18 +46,10 @@ export default async function ChatServer({ params, searchParams }: ChatServerPro
     redirect("/");
   }
 
-  let initialPendingMessage: UIMessage | null = null;
-  const rawInitial = Array.isArray(sp.initial) ? sp.initial[0] : sp.initial;
-
-  if (rawInitial) {
-    try {
-      initialPendingMessage = JSON.parse(decodeURIComponent(rawInitial));
-    }
-    catch {
-      // ignore malformed data; just don't auto-send
-      initialPendingMessage = null;
-    }
-  }
+  // Note: Initial message is now retrieved on the client side from sessionStorage
+  // to avoid URL length limits. This is only passed to the component as null here.
+  // The client component (chat-thread.tsx) will retrieve it from sessionStorage.
+  const initialPendingMessage: UIMessage | null = null;
 
   return <ChatThread params={Promise.resolve({ id })} initialMessages={initialMessages} initialPendingMessage={initialPendingMessage} />;
 }
