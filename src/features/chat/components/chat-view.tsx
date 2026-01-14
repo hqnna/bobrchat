@@ -12,6 +12,7 @@ import { useChatScroll } from "~/features/chat/hooks/use-chat-scroll";
 import { cn } from "~/lib/utils";
 
 import type { PendingFile } from "./messages/file-preview";
+import type { EditedMessagePayload } from "./messages/inline-message-editor";
 
 import { ChatInput } from "./chat-input";
 import { ChatMessages } from "./chat-messages";
@@ -33,6 +34,8 @@ export function ChatView({
   showLandingPage,
   onRegenerate,
   isRegenerating,
+  onEditMessage,
+  isEditSubmitting,
 }: {
   messages: ChatUIMessage[];
   input: string;
@@ -49,6 +52,8 @@ export function ChatView({
   showLandingPage?: boolean;
   onRegenerate?: (messageId: string) => void;
   isRegenerating?: boolean;
+  onEditMessage?: (messageId: string, payload: EditedMessagePayload) => Promise<void>;
+  isEditSubmitting?: boolean;
 }) {
   const { scrollRef, messagesEndRef, isInitialScrollComplete } = useChatScroll(messages, { threadId });
 
@@ -113,6 +118,8 @@ export function ChatView({
             searchEnabled={searchEnabled}
             onRegenerate={onRegenerate}
             isRegenerating={isRegenerating}
+            onEditMessage={onEditMessage}
+            isEditSubmitting={isEditSubmitting}
           />
         </div>
         <div ref={messagesEndRef} />

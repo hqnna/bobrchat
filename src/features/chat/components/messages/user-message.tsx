@@ -1,5 +1,4 @@
 import { MessageAttachments } from "~/features/chat/components/messages/file-preview";
-import { UserMessageMetrics } from "~/features/chat/components/ui/user-message-metrics";
 import { cn } from "~/lib/utils";
 
 type Attachment = {
@@ -16,7 +15,7 @@ type UserMessageProps = {
 
 export function UserMessage({ content, attachments, className }: UserMessageProps) {
   return (
-    <div className={cn("group flex flex-col items-end gap-2", className)}>
+    <div className={cn("group flex w-full flex-col items-end gap-2", className)}>
       {content && (
         <div
           className={cn(`
@@ -31,7 +30,6 @@ export function UserMessage({ content, attachments, className }: UserMessageProp
           )}
         </div>
       )}
-      <UserMessageMetrics content={content} />
     </div>
   );
 }

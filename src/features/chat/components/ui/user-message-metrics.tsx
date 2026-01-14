@@ -9,9 +9,10 @@ import { cn } from "~/lib/utils";
 
 type UserMessageMetricsProps = {
   content: string;
+  onEdit?: () => void;
 };
 
-export function UserMessageMetrics({ content }: UserMessageMetricsProps) {
+export function UserMessageMetrics({ content, onEdit }: UserMessageMetricsProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -43,7 +44,8 @@ export function UserMessageMetrics({ content }: UserMessageMetricsProps) {
       <Button
         variant="ghost"
         size="sm"
-        disabled
+        disabled={!onEdit}
+        onClick={onEdit}
         title="Edit message"
         className="h-6 w-6 p-0"
       >

@@ -24,7 +24,8 @@ export function useFilteredThreads(
   const isSearching = deferredQuery.length > 0;
 
   const flatThreads = useMemo(() => {
-    if (!groupedThreads) return [];
+    if (!groupedThreads)
+      return [];
     return [
       ...groupedThreads.today,
       ...groupedThreads.last7Days,
@@ -34,7 +35,8 @@ export function useFilteredThreads(
   }, [groupedThreads]);
 
   const fuse = useMemo(() => {
-    if (!flatThreads.length) return null;
+    if (!flatThreads.length)
+      return null;
 
     return new Fuse(flatThreads, {
       keys: ["title"],
@@ -45,7 +47,8 @@ export function useFilteredThreads(
   }, [flatThreads]);
 
   const flatResults = useMemo(() => {
-    if (!isSearching || !fuse) return undefined;
+    if (!isSearching || !fuse)
+      return undefined;
     return fuse.search(deferredQuery).map(result => result.item);
   }, [isSearching, fuse, deferredQuery]);
 

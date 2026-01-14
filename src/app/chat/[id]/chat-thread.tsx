@@ -7,8 +7,9 @@ import { use, useCallback, useEffect, useRef, useTransition } from "react";
 import { toast } from "sonner";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
+import type { EditedMessagePayload } from "~/features/chat/components/messages/inline-message-editor";
 
-import { truncateThreadMessages } from "~/features/chat/actions";
+import { deleteMessageAttachmentsByIds, truncateThreadMessages } from "~/features/chat/actions";
 import { ChatView } from "~/features/chat/components/chat-view";
 import { THREADS_KEY } from "~/features/chat/hooks/use-threads";
 import { useChatUIStore } from "~/features/chat/store";
@@ -45,8 +46,9 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
   }, [models]);
 
   const [isRegenerating, startRegenerateTransition] = useTransition();
+  const [isEditSubmitting, startEditTransition] = useTransition();
 
-  const { messages, sendMessage, status, stop, regenerate } = useChat<ChatUIMessage>({
+  const { messages, sendMessage: baseSendMessage, status, stop, regenerate, setMessages } = useChat<ChatUIMessage>({
     id,
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -99,6 +101,41 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     };
   }, [id, setStreamingThreadId, status]);
 
+  // Wrapper around sendMessage that patches the user message with toggle values
+  // so editing works correctly before page refresh
+  const sendMessage: typeof baseSendMessage = useCallback(async (message, options) => {
+    const state = useChatUIStore.getState();
+    const promise = baseSendMessage(message, options);
+
+    // Patch the newly added user message with toggle values
+    // Use setTimeout to ensure React has flushed the state update from baseSendMessage
+    setTimeout(() => {
+      setMessages((prev) => {
+        // Find the last user message (not just last message, since streaming may have started)
+        const lastUserIdx = prev.findLastIndex(m => m.role === "user");
+        if (lastUserIdx === -1)
+          return prev;
+
+        const msg = prev[lastUserIdx];
+        if ("searchEnabled" in msg)
+          return prev; // Already patched
+
+        return prev.map((m, idx) => {
+          if (idx === lastUserIdx) {
+            return {
+              ...m,
+              searchEnabled: state.searchEnabled,
+              reasoningLevel: state.reasoningLevel,
+            };
+          }
+          return m;
+        });
+      });
+    }, 0);
+
+    return promise;
+  }, [baseSendMessage, setMessages]);
+
   // Handle initial pending message (from sessionStorage when creating new thread)
   const hasSentInitialRef = useRef(false);
 
@@ -135,7 +172,7 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     // Find the assistant message that's currently being generated
     // This is the first un-stopped assistant message after the most recent user message
     const state = useChatUIStore.getState();
-    
+
     // Find the most recent user message
     let lastUserMessageIndex = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -144,7 +181,7 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
         break;
       }
     }
-    
+
     // Find the first un-stopped assistant message after the last user message
     let currentAssistantMessage = null;
     for (let i = lastUserMessageIndex + 1; i < messages.length; i++) {
@@ -204,6 +241,64 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     });
   }, [id, messages, regenerate]);
 
+  const handleEditMessage = useCallback(async (messageId: string, payload: EditedMessagePayload) => {
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1)
+      return;
+
+    if (messages[messageIndex].role !== "user")
+      return;
+
+    startEditTransition(async () => {
+      try {
+        // Delete this message and all subsequent messages from the database
+        await truncateThreadMessages(id, messageIndex);
+
+        // Delete removed attachments
+        if (payload.removedAttachmentIds.length > 0) {
+          await deleteMessageAttachmentsByIds(payload.removedAttachmentIds);
+        }
+
+        // Update local client state to match truncation
+        setMessages(prev => prev.slice(0, messageIndex));
+
+        // Build file parts for the new message
+        const files = [
+          ...payload.keptAttachments.map(attachment => ({
+            type: "file" as const,
+            id: attachment.id,
+            url: attachment.url,
+            filename: attachment.filename ?? "file",
+            mediaType: attachment.mediaType ?? "application/octet-stream",
+            storagePath: attachment.storagePath,
+          })),
+          ...payload.newFiles.map(file => ({
+            type: "file" as const,
+            id: file.id,
+            url: file.url,
+            filename: file.filename ?? "file",
+            mediaType: file.mediaType ?? "application/octet-stream",
+            storagePath: file.storagePath,
+          })),
+        ];
+
+        // Update global UI store to match the edited message's toggles
+        setSearchEnabled(payload.searchEnabled);
+        setReasoningLevel(payload.reasoningLevel);
+
+        // Send the edited message (toggle values are patched by sendMessage wrapper)
+        sendMessage({
+          text: payload.content,
+          files: files.length > 0 ? files : undefined,
+        });
+      }
+      catch (error) {
+        console.error("Failed to edit message:", error);
+        toast.error("Failed to edit message");
+      }
+    });
+  }, [id, messages, sendMessage, setMessages, setSearchEnabled, setReasoningLevel]);
+
   return (
     <ChatView
       messages={messages}
@@ -218,6 +313,8 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
       onReasoningChangeAction={setReasoningLevel}
       onRegenerate={handleRegenerate}
       isRegenerating={isRegenerating}
+      onEditMessage={handleEditMessage}
+      isEditSubmitting={isEditSubmitting}
     />
   );
 }

@@ -1,4 +1,4 @@
-import { bigint, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { users } from "./auth";
 
@@ -30,6 +30,8 @@ export const messages = pgTable(
       .references(() => threads.id, { onDelete: "cascade" }),
     role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
     content: jsonb("content").notNull(),
+    reasoningLevel: text("reasoning_level"),
+    searchEnabled: boolean("search_enabled"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   table => [index("messages_threadId_idx").on(table.threadId)],

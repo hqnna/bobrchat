@@ -36,6 +36,8 @@ export type MessageMetadata = {
 export type ChatUIMessage = UIMessage<MessageMetadata> & {
   stoppedByUser?: boolean;
   stoppedModelId?: string | null;
+  searchEnabled?: boolean | null;
+  reasoningLevel?: string | null;
 };
 
 export async function POST(req: Request) {
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
     const lastMessage = messages[messages.length - 1];
 
     if (lastMessage?.role === "user" && !isRegeneration) {
-      await saveMessage(threadId, session.user.id, lastMessage);
+      await saveMessage(threadId, session.user.id, lastMessage, { searchEnabled, reasoningLevel });
     }
   }
 

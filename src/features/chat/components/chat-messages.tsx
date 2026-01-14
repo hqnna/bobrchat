@@ -1,14 +1,16 @@
 /* eslint-disable react/no-array-index-key */
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { useChatUIStore } from "~/features/chat/store";
 
+import type { EditedMessagePayload } from "./messages/inline-message-editor";
+
+import { EditableUserMessage } from "./messages/editable-user-message";
 import { MemoizedMarkdown } from "./messages/markdown";
-import { UserMessage } from "./messages/user-message";
 import { LoadingSpinner } from "./ui/loading-spinner";
 import { MessageMetrics } from "./ui/message-metrics";
 import { ReasoningContent } from "./ui/reasoning-content";
@@ -20,14 +22,38 @@ export const ChatMessages = memo(({
   searchEnabled,
   onRegenerate,
   isRegenerating,
+  onEditMessage,
+  isEditSubmitting,
 }: {
   messages: ChatUIMessage[];
   isLoading?: boolean;
   searchEnabled?: boolean;
   onRegenerate?: (messageId: string) => void;
   isRegenerating?: boolean;
+  onEditMessage?: (messageId: string, payload: EditedMessagePayload) => Promise<void>;
+  isEditSubmitting?: boolean;
 }) => {
   const stoppedAssistantMessageInfoById = useChatUIStore(state => state.stoppedAssistantMessageInfoById);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+
+  const canEditMessages = !isLoading && !isRegenerating && !isEditSubmitting;
+
+  const handleStartEdit = (messageId: string) => {
+    if (canEditMessages) {
+      setEditingMessageId(messageId);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+  };
+
+  const handleSubmitEdit = async (messageId: string, payload: EditedMessagePayload) => {
+    if (onEditMessage) {
+      await onEditMessage(messageId, payload);
+      setEditingMessageId(null);
+    }
+  };
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-4 p-4 py-8">
@@ -38,19 +64,16 @@ export const ChatMessages = memo(({
           .join("");
 
         if (message.role === "user") {
-          const fileAttachments = message.parts
-            .filter(part => part.type === "file")
-            .map(part => ({
-              url: part.url,
-              filename: part.filename,
-              mediaType: part.mediaType,
-            }));
-
           return (
-            <UserMessage
+            <EditableUserMessage
               key={message.id}
-              content={textContent}
-              attachments={fileAttachments.length > 0 ? fileAttachments : undefined}
+              message={message}
+              isEditing={editingMessageId === message.id}
+              onStartEdit={() => handleStartEdit(message.id)}
+              onCancelEdit={handleCancelEdit}
+              onSubmitEdit={payload => handleSubmitEdit(message.id, payload)}
+              canEdit={canEditMessages && !!onEditMessage}
+              isSubmitting={isEditSubmitting}
             />
           );
         }

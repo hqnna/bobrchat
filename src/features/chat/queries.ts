@@ -110,15 +110,25 @@ function extractAttachmentRefs(message: ChatUIMessage): { ids: string[]; storage
  */
 export async function getMessagesByThreadId(threadId: string): Promise<ChatUIMessage[]> {
   const rows = await db
-    .select({ id: messages.id, content: messages.content })
+    .select({
+      id: messages.id,
+      content: messages.content,
+      searchEnabled: messages.searchEnabled,
+      reasoningLevel: messages.reasoningLevel,
+    })
     .from(messages)
     .where(eq(messages.threadId, threadId))
     .orderBy(messages.createdAt);
 
   return rows.map((row) => {
     const message = row.content as ChatUIMessage;
-    // Ensure the message has the correct ID from the database
-    return { ...message, id: row.id };
+    // Ensure the message has the correct ID and toggle settings from the database
+    return {
+      ...message,
+      id: row.id,
+      searchEnabled: row.searchEnabled,
+      reasoningLevel: row.reasoningLevel,
+    };
   });
 }
 
@@ -144,12 +154,16 @@ export async function isThreadOwnedByUser(threadId: string, userId: string): Pro
  * @param threadId ID of the thread
  * @param userId ID of the user
  * @param message Message to save
+ * @param options Optional settings
+ * @param options.searchEnabled Whether search was enabled for this message
+ * @param options.reasoningLevel The reasoning level used for this message
  * @return {Promise<void>}
  */
 export async function saveMessage(
   threadId: string,
   userId: string,
   message: ChatUIMessage,
+  options?: { searchEnabled?: boolean; reasoningLevel?: string },
 ): Promise<void> {
   const dateNow = new Date();
 
@@ -173,6 +187,8 @@ export async function saveMessage(
       threadId,
       role,
       content: messageWithId,
+      searchEnabled: options?.searchEnabled,
+      reasoningLevel: options?.reasoningLevel,
     });
 
     if (messageId) {

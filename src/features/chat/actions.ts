@@ -275,3 +275,29 @@ export async function truncateThreadMessages(threadId: string, keepCount: number
 
   return deleteMessagesAfterCount(threadId, keepCount);
 }
+
+/**
+ * Deletes attachments by their IDs.
+ * Used when editing a message and removing some attachments.
+ *
+ * @param attachmentIds Array of attachment IDs to delete
+ * @returns Promise<void>
+ */
+export async function deleteMessageAttachmentsByIds(attachmentIds: string[]): Promise<void> {
+  if (attachmentIds.length === 0)
+    return;
+
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+
+  const userId = session.user.id;
+
+  // Delete from database; any returned rows from deleteUserAttachmentsByIds are ignored here.
+  // The API endpoint already handles R2 deletion, so we just need to delete from DB.
+  await deleteUserAttachmentsByIds({ userId, ids: attachmentIds });
+}
