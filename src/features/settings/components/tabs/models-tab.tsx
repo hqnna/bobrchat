@@ -57,6 +57,8 @@ import {
 import { useUpdateFavoriteModels, useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { cn } from "~/lib/utils";
 
+import { useApiKeyStatus } from "../../hooks/use-api-status";
+
 const MODELS_PER_PAGE = 30;
 
 type CapabilityFilter = "image" | "pdf" | "search" | "reasoning";
@@ -64,6 +66,7 @@ type SortOrder = "provider-asc" | "provider-desc" | "model-asc" | "model-desc" |
 
 export function ModelsTab() {
   const { data: settings } = useUserSettings({ enabled: true });
+  const { hasKey: hasOpenRouterKey, isLoading: isKeyLoading } = useApiKeyStatus("openrouter");
   const { data: models = [], isLoading, isFetching, refetch } = useModels({ enabled: true });
   const updateFavoriteModels = useUpdateFavoriteModels();
   const queryClient = useQueryClient();
@@ -483,10 +486,23 @@ export function ModelsTab() {
                   <div className="bg-muted mb-4 rounded-full p-3">
                     <SparklesIcon className="text-muted-foreground size-6" />
                   </div>
-                  <h3 className="mb-1 font-medium">No models loaded</h3>
-                  <p className="text-muted-foreground mb-6 text-sm">
-                    Loading available models from OpenRouter...
-                  </p>
+                  {!isKeyLoading && !hasOpenRouterKey
+                    ? (
+                        <>
+                          <h3 className="mb-1 font-medium">No API key configured</h3>
+                          <p className="text-muted-foreground mb-6 text-sm">
+                            Add your OpenRouter API key in the Integrations tab to browse available models.
+                          </p>
+                        </>
+                      )
+                    : (
+                        <>
+                          <h3 className="mb-1 font-medium">No models loaded</h3>
+                          <p className="text-muted-foreground mb-6 text-sm">
+                            Loading available models from OpenRouter...
+                          </p>
+                        </>
+                      )}
                 </div>
               )
             : searchResults.length === 0

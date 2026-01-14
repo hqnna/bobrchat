@@ -2,15 +2,10 @@
 
 ## Core Features
 
-- User Message Editing
-- Attachment overhaul
-  - Context window limit for files (32k)
-  - Orphaned attachment cleanup (cron job)
+- Orphaned attachment cleanup (cron job)
 
 ## Bugs
 
-- Auto-scroll can't be overridden
-- Models tab doesn't load with no API key set (need better UI)
 - Better error handling for invalid API key
 
 - ## Nice to Haves
