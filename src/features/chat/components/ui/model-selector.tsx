@@ -28,6 +28,7 @@ type ModelSelectorProps = {
   selectedModelId?: string;
   onSelectModelAction: (modelId: string) => void;
   className?: string;
+  sideOffset?: number;
   isLoading?: boolean;
 };
 
@@ -65,6 +66,7 @@ export function ModelSelector({
   selectedModelId,
   onSelectModelAction,
   className,
+  sideOffset = 81,
   isLoading = false,
 }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -105,7 +107,7 @@ export function ModelSelector({
         side="top"
         align="start"
         alignOffset={-9}
-        sideOffset={61}
+        sideOffset={sideOffset}
         className="w-lg rounded-none p-2 shadow-none"
       >
         <div className="space-y-1">

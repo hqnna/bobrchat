@@ -64,10 +64,16 @@ export const ChatMessages = memo(({
           .join("");
 
         if (message.role === "user") {
+          const nextMessage = messages[messageIndex + 1];
+          const previousModelId = nextMessage?.role === "assistant"
+            ? (nextMessage.metadata?.model || nextMessage.stoppedModelId || stoppedAssistantMessageInfoById[nextMessage.id]?.modelId || null)
+            : null;
+
           return (
             <EditableUserMessage
               key={message.id}
               message={message}
+              previousModelId={previousModelId}
               isEditing={editingMessageId === message.id}
               onStartEdit={() => handleStartEdit(message.id)}
               onCancelEdit={handleCancelEdit}

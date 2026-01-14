@@ -32,6 +32,7 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     setSearchEnabled,
     reasoningLevel,
     setReasoningLevel,
+    setSelectedModelId,
     setStreamingThreadId,
     markAssistantMessageStopped,
   } = useChatUIStore();
@@ -285,6 +286,9 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
         // Update global UI store to match the edited message's toggles
         setSearchEnabled(payload.searchEnabled);
         setReasoningLevel(payload.reasoningLevel);
+        if (payload.modelId) {
+          setSelectedModelId(payload.modelId);
+        }
 
         // Send the edited message (toggle values are patched by sendMessage wrapper)
         sendMessage({
@@ -297,7 +301,7 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
         toast.error("Failed to edit message");
       }
     });
-  }, [id, messages, sendMessage, setMessages, setSearchEnabled, setReasoningLevel]);
+  }, [id, messages, sendMessage, setMessages, setSearchEnabled, setReasoningLevel, setSelectedModelId]);
 
   return (
     <ChatView

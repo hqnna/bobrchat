@@ -14,6 +14,7 @@ import { UserMessage } from "./user-message";
 
 type EditableUserMessageProps = {
   message: ChatUIMessage;
+  previousModelId: string | null;
   isEditing: boolean;
   onStartEdit: () => void;
   onCancelEdit: () => void;
@@ -66,6 +67,7 @@ function extractTextAndAttachments(message: ChatUIMessage): {
 
 export function EditableUserMessage({
   message,
+  previousModelId,
   isEditing,
   onStartEdit,
   onCancelEdit,
@@ -80,10 +82,15 @@ export function EditableUserMessage({
 
   return (
     <div className="group flex w-full flex-col items-end gap-2">
-      <div className={`
+      <div className={cn(`
         relative w-full max-w-[80%]
         md:max-w-[70%]
-      `}
+      `, isEditing
+        ? `
+          max-w-[90%]
+          md:max-w-[80%]
+        `
+        : "")}
       >
         <div
           className={cn(
@@ -115,6 +122,7 @@ export function EditableUserMessage({
               initialAttachments={attachments}
               initialSearchEnabled={message.searchEnabled ?? false}
               initialReasoningLevel={message.reasoningLevel ?? "none"}
+              initialModelId={previousModelId}
               onCancel={onCancelEdit}
               onSubmit={onSubmitEdit}
               isSubmitting={isSubmitting}

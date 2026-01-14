@@ -10,8 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Textarea } from "~/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip";
 import { FilePreview } from "~/features/chat/components/messages/file-preview";
+import { ModelSelector } from "~/features/chat/components/ui/model-selector";
 import { useFileAttachments } from "~/features/chat/hooks/use-file-attachments";
-import { useChatUIStore } from "~/features/chat/store";
 import { canUploadFiles, getAcceptedFileTypes, getModelCapabilities, useFavoriteModels } from "~/features/models";
 import { useApiKeyStatus } from "~/features/settings/hooks/use-api-status";
 import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
@@ -29,6 +29,7 @@ export type EditedMessagePayload = {
   content: string;
   searchEnabled: boolean;
   reasoningLevel: string;
+  modelId: string | null;
   keptAttachments: ExistingAttachment[];
   removedAttachmentIds: string[];
   newFiles: PendingFile[];
@@ -39,6 +40,7 @@ type InlineMessageEditorProps = {
   initialAttachments: ExistingAttachment[];
   initialSearchEnabled: boolean;
   initialReasoningLevel: string;
+  initialModelId: string | null;
   onCancel: () => void;
   onSubmit: (payload: EditedMessagePayload) => Promise<void>;
   isSubmitting?: boolean;
@@ -49,6 +51,7 @@ export function InlineMessageEditor({
   initialAttachments,
   initialSearchEnabled,
   initialReasoningLevel,
+  initialModelId,
   onCancel,
   onSubmit,
   isSubmitting = false,
@@ -67,7 +70,9 @@ export function InlineMessageEditor({
   const { hasKey: hasParallelApiKey, isLoading: isParallelApiLoading } = useApiKeyStatus("parallel");
 
   const favoriteModels = useFavoriteModels();
-  const { selectedModelId } = useChatUIStore();
+  const [selectedModelId, setSelectedModelId] = React.useState<string | null>(
+    initialModelId || favoriteModels[0]?.id || null,
+  );
   const selectedModel = favoriteModels.find(m => m.id === selectedModelId);
   const capabilities = getModelCapabilities(selectedModel);
   const canUpload = canUploadFiles(capabilities);
@@ -115,6 +120,7 @@ export function InlineMessageEditor({
       content: content.trim(),
       searchEnabled,
       reasoningLevel,
+      modelId: selectedModelId,
       keptAttachments: existingAttachments,
       removedAttachmentIds,
       newFiles: pendingFiles,
@@ -212,6 +218,13 @@ export function InlineMessageEditor({
       `}
       >
         <div className="flex items-center gap-1">
+          <ModelSelector
+            models={favoriteModels}
+            selectedModelId={selectedModelId || undefined}
+            onSelectModelAction={setSelectedModelId}
+            sideOffset={8}
+          />
+
           {capabilities.supportsReasoning && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -224,7 +237,8 @@ export function InlineMessageEditor({
                       disabled={hasParallelApiKey === false}
                       className={cn(`
                         hover:text-foreground
-                        gap-1.5 text-xs transition-colors
+                        group/toggle gap-0 overflow-hidden text-xs
+                        transition-all
                       `, reasoningLevel !== "none"
                         ? `
                           text-primary
@@ -232,8 +246,16 @@ export function InlineMessageEditor({
                         `
                         : `text-muted-foreground`)}
                     >
-                      <BrainIcon size={14} />
-                      {reasoningLevel !== "none" ? reasoningLevel : "Reasoning"}
+                      <BrainIcon size={14} className="shrink-0" />
+                      <span className={`
+                        max-w-0 overflow-hidden whitespace-nowrap opacity-0
+                        transition-all duration-200
+                        group-hover/toggle:ml-1.5 group-hover/toggle:max-w-24
+                        group-hover/toggle:opacity-100
+                      `}
+                      >
+                        {reasoningLevel !== "none" ? reasoningLevel : "Reasoning"}
+                      </span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
@@ -266,7 +288,7 @@ export function InlineMessageEditor({
                   disabled={hasParallelApiKey === false}
                   className={cn(`
                     hover:text-foreground
-                    gap-1.5 text-xs transition-colors
+                    group/toggle gap-0 overflow-hidden text-xs transition-all
                   `, searchEnabled
                     ? `
                       text-primary
@@ -274,8 +296,16 @@ export function InlineMessageEditor({
                     `
                     : `text-muted-foreground`)}
                 >
-                  <SearchIcon size={14} />
-                  Search
+                  <SearchIcon size={14} className="shrink-0" />
+                  <span className={`
+                    max-w-0 overflow-hidden whitespace-nowrap opacity-0
+                    transition-all duration-200
+                    group-hover/toggle:ml-1.5 group-hover/toggle:max-w-16
+                    group-hover/toggle:opacity-100
+                  `}
+                  >
+                    Search
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -299,12 +329,21 @@ export function InlineMessageEditor({
                   size="sm"
                   onClick={handleAttachClick}
                   className={cn(`
-                    text-muted-foreground gap-1.5 text-xs
+                    text-muted-foreground group/toggle gap-0 overflow-hidden
+                    text-xs transition-all
                     hover:text-foreground
                   `, allAttachments.length > 0 && "text-primary")}
                 >
-                  <PaperclipIcon size={14} />
-                  Attach
+                  <PaperclipIcon size={14} className="shrink-0" />
+                  <span className={`
+                    max-w-0 overflow-hidden whitespace-nowrap opacity-0
+                    transition-all duration-200
+                    group-hover/toggle:ml-1.5 group-hover/toggle:max-w-16
+                    group-hover/toggle:opacity-100
+                  `}
+                  >
+                    Attach
+                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -324,7 +363,6 @@ export function InlineMessageEditor({
             className="text-muted-foreground gap-1.5 text-xs"
           >
             <XIcon size={14} />
-            Cancel
           </Button>
 
           <Button
@@ -334,7 +372,6 @@ export function InlineMessageEditor({
             className="gap-1.5"
           >
             <SendIcon size={14} />
-            Send
           </Button>
         </div>
       </div>
