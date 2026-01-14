@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
 
@@ -19,14 +19,14 @@ type ThreadListProps = {
   isFetchingNextPage?: boolean;
 };
 
-export function ThreadList({
+export const ThreadList = memo(({
   groupedThreads,
   flatResults,
   isSearching,
   hasNextPage,
   fetchNextPage,
   isFetchingNextPage,
-}: ThreadListProps) {
+}: ThreadListProps) => {
   const pathname = usePathname();
   const currentChatId = pathname.startsWith("/chat/")
     ? pathname.split("/chat/")[1]
@@ -170,4 +170,6 @@ export function ThreadList({
       )}
     </div>
   );
-}
+});
+
+ThreadList.displayName = "ThreadList";

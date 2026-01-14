@@ -2,11 +2,14 @@
 
 import type { UseChatHelpers } from "@ai-sdk/react";
 
-import { useCallback } from "react";
+import { XIcon } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 import type { LandingPageContentType } from "~/features/settings/types";
 
+import { Button } from "~/components/ui/button";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { useChatScroll } from "~/features/chat/hooks/use-chat-scroll";
 import { cn } from "~/lib/utils";
@@ -57,6 +60,13 @@ export function ChatView({
 }) {
   const { scrollRef, messagesEndRef, isInitialScrollComplete } = useChatScroll(messages, { threadId });
 
+  const [showBetaBanner, setShowBetaBanner] = useState(false);
+
+  useEffect(() => {
+    const hide = window.localStorage.getItem("bobrchat-hide-beta-banner") === "true";
+    setShowBetaBanner(!hide);
+  }, []);
+
   const handleSendMessage = useCallback((content: string, files?: PendingFile[]) => {
     const fileUIParts = files?.map(f => ({
       type: "file" as const,
@@ -81,6 +91,39 @@ export function ChatView({
 
   return (
     <div className="flex h-full max-h-screen flex-col">
+      <div className={cn(!showBetaBanner && "invisible h-0", `
+        bg-primary text-primary-foreground relative w-full p-2 text-center
+        text-sm font-medium
+      `)}
+      >
+        <span>
+          BobrChat is currently in beta. Please report any issues or feedback via
+          {" "}
+          <Link
+            href="https://github.com/matthew-hre/bobrchat-issues/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`
+              hover:text-primary-foreground/80
+              underline
+            `}
+          >
+            GitHub Issues
+          </Link>
+          . Thanks for testing!
+        </span>
+        <Button
+          className="absolute top-1.5 right-4 size-6"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            window.localStorage.setItem("bobrchat-hide-beta-banner", "true");
+            setShowBetaBanner(false);
+          }}
+        >
+          <XIcon size={16} />
+        </Button>
+      </div>
       <ScrollArea className="min-h-0 flex-1" ref={scrollRef}>
         {messages.length === 0 && (
           <div

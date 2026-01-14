@@ -1,6 +1,7 @@
 "use client";
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
 
@@ -45,17 +46,18 @@ export function useThreads(options: { enabled?: boolean } = {}) {
     enabled: options.enabled,
   });
 
-  const groupedThreads: GroupedThreads | undefined = query.data
-    ? (() => {
-        const allThreads = query.data.pages.flatMap(page =>
-          page.threads.map(t => ({
-            ...t,
-            lastMessageAt: t.lastMessageAt ? new Date(t.lastMessageAt) : null,
-          })),
-        );
-        return groupThreadsByDate(allThreads);
-      })()
-    : undefined;
+  const groupedThreads: GroupedThreads | undefined = useMemo(() => {
+    if (!query.data)
+      return undefined;
+
+    const allThreads = query.data.pages.flatMap(page =>
+      page.threads.map(t => ({
+        ...t,
+        lastMessageAt: t.lastMessageAt ? new Date(t.lastMessageAt) : null,
+      })),
+    );
+    return groupThreadsByDate(allThreads);
+  }, [query.data]);
 
   return {
     ...query,
