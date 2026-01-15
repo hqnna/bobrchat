@@ -1,5 +1,6 @@
 import type { TextStreamPart, ToolSet } from "ai";
 
+import * as Sentry from "@sentry/nextjs";
 import { convertToModelMessages, stepCountIs, streamText } from "ai";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
@@ -45,114 +46,127 @@ export async function streamChatResponse(
   pdfEngineConfig?: PdfEngineConfig,
   reasoningLevel?: string,
 ) {
-  if (!openRouterApiKey) {
-    throw new Error("No API key configured. Please set up your OpenRouter API key in settings.");
-  }
-
-  const startTime = Date.now();
-  let firstTokenTime: number | null = null;
-  const sources: Array<{ id: string; sourceType: string; url?: string; title?: string }> = [];
-
-  const provider = getModelProvider(openRouterApiKey);
-  const { inputCostPerMillion, outputCostPerMillion } = await getTokenCosts(modelId);
-  const systemPrompt = await generatePrompt(userId);
-
-  // Process messages to handle file extraction if needed
-  const processedMessages = await processMessageFiles(messages, modelSupportsFiles);
-
-  const convertedMessages = await convertToModelMessages(processedMessages);
-
-  const streamHandlers = createStreamHandlers(
-    () => {
-      if (firstTokenTime === null) {
-        firstTokenTime = Date.now();
+  return Sentry.startSpan(
+    { op: "ai.inference", name: `streamChatResponse ${modelId}` },
+    async (span) => {
+      if (!openRouterApiKey) {
+        throw new Error("No API key configured. Please set up your OpenRouter API key in settings.");
       }
-    },
-    (source) => {
-      sources.push(source);
+
+      span.setAttribute("ai.model", modelId);
+      span.setAttribute("ai.searchEnabled", searchEnabled ?? false);
+      span.setAttribute("ai.messageCount", messages.length);
+
+      const startTime = Date.now();
+      let firstTokenTime: number | null = null;
+      const sources: Array<{ id: string; sourceType: string; url?: string; title?: string }> = [];
+
+      const provider = getModelProvider(openRouterApiKey);
+      const { inputCostPerMillion, outputCostPerMillion } = await getTokenCosts(modelId);
+      const systemPrompt = await generatePrompt(userId);
+
+      const processedMessages = await processMessageFiles(messages, modelSupportsFiles);
+      const convertedMessages = await convertToModelMessages(processedMessages);
+
+      const streamHandlers = createStreamHandlers(
+        () => {
+          if (firstTokenTime === null) {
+            firstTokenTime = Date.now();
+          }
+        },
+        (source) => {
+          sources.push(source);
+        },
+      );
+
+      const tools = searchEnabled ? createSearchTools(parallelApiKey) : undefined;
+
+      const hasPdf = hasPdfAttachment(messages);
+      const useOcr = hasPdf && pdfEngineConfig?.useOcrForPdfs && !pdfEngineConfig?.supportsNativePdf;
+      const ocrPageCount = useOcr ? await getTotalPdfPageCount(messages) : 0;
+
+      const getPdfPluginConfig = () => {
+        if (!hasPdf) {
+          return undefined;
+        }
+
+        if (pdfEngineConfig?.supportsNativePdf) {
+          return undefined;
+        }
+
+        const engine = pdfEngineConfig?.useOcrForPdfs ? "mistral-ocr" : "pdf-text";
+        return {
+          plugins: [{
+            id: "file-parser" as const,
+            pdf: { engine: engine as "pdf-text" | "mistral-ocr" },
+          }],
+        };
+      };
+
+      const getReasoningConfig = () => {
+        if (!reasoningLevel || reasoningLevel === "none") {
+          return undefined;
+        }
+        return {
+          reasoning: {
+            effort: reasoningLevel as ReasoningLevel,
+          },
+        };
+      };
+
+      const result = streamText({
+        model: provider(modelId),
+        system: systemPrompt,
+        messages: convertedMessages,
+        tools,
+        stopWhen: stepCountIs(8),
+        providerOptions: {
+          openrouter: {
+            usage: { include: true },
+            ...getPdfPluginConfig(),
+            ...getReasoningConfig(),
+          },
+        },
+        onChunk({ chunk }) {
+          processStreamChunk(chunk, streamHandlers);
+        },
+      });
+
+      return {
+        stream: result,
+        createMetadata: (part: TextStreamPart<ToolSet>) => {
+          if (part.type === "text-start" && firstTokenTime === null) {
+            firstTokenTime = Date.now();
+            onFirstToken?.();
+          }
+
+          if (part.type === "finish") {
+            const usage = part.totalUsage;
+            const totalTime = Date.now() - startTime;
+
+            span.setAttribute("ai.inputTokens", usage.inputTokens ?? 0);
+            span.setAttribute("ai.outputTokens", usage.outputTokens ?? 0);
+            span.setAttribute("ai.totalTimeMs", totalTime);
+            if (firstTokenTime) {
+              span.setAttribute("ai.timeToFirstTokenMs", firstTokenTime - startTime);
+            }
+
+            return calculateResponseMetadata({
+              inputTokens: usage.inputTokens ?? 0,
+              outputTokens: usage.outputTokens ?? 0,
+              totalTime,
+              firstTokenTime,
+              startTime,
+              modelId,
+              inputCostPerMillion,
+              outputCostPerMillion,
+              searchEnabled,
+              sources,
+              ocrPageCount,
+            });
+          }
+        },
+      };
     },
   );
-
-  const tools = searchEnabled ? createSearchTools(parallelApiKey) : undefined;
-
-  const hasPdf = hasPdfAttachment(messages);
-  const useOcr = hasPdf && pdfEngineConfig?.useOcrForPdfs && !pdfEngineConfig?.supportsNativePdf;
-  const ocrPageCount = useOcr ? await getTotalPdfPageCount(messages) : 0;
-
-  const getPdfPluginConfig = () => {
-    if (!hasPdf) {
-      return undefined;
-    }
-
-    if (pdfEngineConfig?.supportsNativePdf) {
-      return undefined;
-    }
-
-    const engine = pdfEngineConfig?.useOcrForPdfs ? "mistral-ocr" : "pdf-text";
-    return {
-      plugins: [{
-        id: "file-parser" as const,
-        pdf: { engine: engine as "pdf-text" | "mistral-ocr" },
-      }],
-    };
-  };
-
-  const getReasoningConfig = () => {
-    if (!reasoningLevel || reasoningLevel === "none") {
-      return undefined;
-    }
-    return {
-      reasoning: {
-        effort: reasoningLevel as ReasoningLevel,
-      },
-    };
-  };
-
-  const result = streamText({
-    model: provider(modelId),
-    system: systemPrompt,
-    messages: convertedMessages,
-    tools,
-    stopWhen: stepCountIs(8),
-    providerOptions: {
-      openrouter: {
-        usage: { include: true },
-        ...getPdfPluginConfig(),
-        ...getReasoningConfig(),
-      },
-    },
-    onChunk({ chunk }) {
-      processStreamChunk(chunk, streamHandlers);
-    },
-  });
-
-  return {
-    stream: result,
-    createMetadata: (part: TextStreamPart<ToolSet>) => {
-      // Capture first token when text-start is received (not via onChunk callback)
-      if (part.type === "text-start" && firstTokenTime === null) {
-        firstTokenTime = Date.now();
-        onFirstToken?.();
-      }
-
-      if (part.type === "finish") {
-        const usage = part.totalUsage;
-        const totalTime = Date.now() - startTime;
-
-        return calculateResponseMetadata({
-          inputTokens: usage.inputTokens ?? 0,
-          outputTokens: usage.outputTokens ?? 0,
-          totalTime,
-          firstTokenTime,
-          startTime,
-          modelId,
-          inputCostPerMillion,
-          outputCostPerMillion,
-          searchEnabled,
-          sources,
-          ocrPageCount,
-        });
-      }
-    },
-  };
 }

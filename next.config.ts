@@ -1,3 +1,4 @@
+import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
 import { serverEnv } from "./src/lib/env";
@@ -27,7 +28,7 @@ const nextConfig: NextConfig = {
             "style-src 'self' 'unsafe-inline'",
             `img-src 'self' data: blob: ${serverEnv.R2_PUBLIC_URL || ""} https://avatars.githubusercontent.com`,
             "font-src 'self' data:",
-            "connect-src 'self' https://openrouter.ai https://*.parallel.ai",
+            "connect-src 'self' https://openrouter.ai https://*.parallel.ai https://*.sentry.io",
             "frame-ancestors 'none'",
           ].join("; "),
         },
@@ -36,4 +37,4 @@ const nextConfig: NextConfig = {
   ],
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig);
