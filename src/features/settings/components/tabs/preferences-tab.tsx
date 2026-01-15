@@ -1,11 +1,11 @@
 "use client";
 
-import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import type { LandingPageContentType, PreferencesUpdate } from "~/features/settings/types";
+import type { PreferencesUpdate } from "~/features/settings/types";
 
 import { Kbd } from "~/components/ui/kbd";
 import { Label } from "~/components/ui/label";
@@ -13,29 +13,27 @@ import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
 import { Slider } from "~/components/ui/slider";
 import { useUpdatePreferences, useUserSettings } from "~/features/settings/hooks/use-user-settings";
-import { cn } from "~/lib/utils";
 
+import { SelectionCardItem } from "../ui/selection-card-item";
 import { TextInputItem } from "../ui/text-input-item";
 import { ToggleItem } from "../ui/toggle-item";
 
-type Theme = "light" | "dark" | "system";
-
-const themeOptions: { value: Theme; label: string; icon: typeof SunIcon }[] = [
-  { value: "light", label: "Light", icon: SunIcon },
-  { value: "dark", label: "Dark", icon: MoonIcon },
-  { value: "system", label: "System", icon: MonitorIcon },
+const themeOptions = [
+  { value: "light" as const, label: "Light", icon: SunIcon },
+  { value: "dark" as const, label: "Dark", icon: MoonIcon },
+  { value: "system" as const, label: "System", icon: MonitorIcon },
 ];
 
-const landingPageOptions: { value: LandingPageContentType; label: string; description: string }[] = [
-  { value: "suggestions", label: "Prompts", description: "Show some suggested prompts" },
-  { value: "greeting", label: "Greeting", description: "Simple welcome message" },
-  { value: "blank", label: "Blank", description: "Render nothing: blank slate" },
+const landingPageOptions = [
+  { value: "suggestions" as const, label: "Prompts", description: "Show some suggested prompts" },
+  { value: "greeting" as const, label: "Greeting", description: "Simple welcome message" },
+  { value: "blank" as const, label: "Blank", description: "Render nothing: blank slate" },
 ];
 
-const sendMessageKeyboardShortcutOptions: { value: "enter" | "ctrlEnter" | "shiftEnter"; label: React.ReactNode }[] = [
-  { value: "enter", label: <Kbd>Enter</Kbd> },
-  { value: "ctrlEnter", label: <Kbd>Ctrl + Enter</Kbd> },
-  { value: "shiftEnter", label: <Kbd>Shift + Enter</Kbd> },
+const sendMessageKeyboardShortcutOptions = [
+  { value: "enter" as const, label: <Kbd>Enter</Kbd> },
+  { value: "ctrlEnter" as const, label: <Kbd>Ctrl + Enter</Kbd> },
+  { value: "shiftEnter" as const, label: <Kbd>Shift + Enter</Kbd> },
 ];
 
 export function PreferencesTab() {
@@ -101,48 +99,14 @@ export function PreferencesTab() {
             </div>
 
             {/* Theme Selection */}
-            <div className="space-y-3">
-              <Label>Theme</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {themeOptions.map((option) => {
-                  const Icon = option.icon;
-                  const isSelected = settings.theme === option.value;
-
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => save({ theme: option.value })}
-                      className={cn(
-                        `
-                          flex flex-col items-center gap-2 rounded-lg border p-3
-                          transition-colors
-                        `,
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : `
-                            border-input
-                            hover:bg-muted
-                          `,
-                      )}
-                    >
-                      <div className="relative">
-                        <Icon className="size-5" />
-                        {isSelected && (
-                          <CheckIcon
-                            className={cn(`
-                              bg-primary text-primary-foreground absolute
-                              -right-1 -bottom-1 size-3 rounded-full p-0.5
-                            `)}
-                          />
-                        )}
-                      </div>
-                      <span className="text-xs font-medium">{option.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <SelectionCardItem
+              label="Theme"
+              options={themeOptions}
+              value={settings.theme}
+              onChange={value => save({ theme: value })}
+              layout="grid"
+              columns={3}
+            />
 
             {/* Boring Mode Toggle */}
             <ToggleItem
@@ -184,38 +148,13 @@ export function PreferencesTab() {
             </div>
 
             {/* Landing Page Content */}
-            <div className="space-y-3">
-              <Label>New Chat Landing Page</Label>
-              <div className="flex gap-2">
-                {landingPageOptions.map((option) => {
-                  const isSelected = settings.landingPageContent === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => save({ landingPageContent: option.value })}
-                      className={cn(
-                        `
-                          flex flex-1 flex-col items-start gap-1 rounded-lg
-                          border p-3 text-left transition-colors
-                        `,
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : `
-                            border-input
-                            hover:bg-muted
-                          `,
-                      )}
-                    >
-                      <span className="text-sm font-medium">{option.label}</span>
-                      <span className="text-muted-foreground text-xs">
-                        {option.description}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <SelectionCardItem
+              label="New Chat Landing Page"
+              options={landingPageOptions}
+              value={settings.landingPageContent}
+              onChange={value => save({ landingPageContent: value })}
+              layout="flex"
+            />
 
             {/* Default Thread Name */}
             <TextInputItem
@@ -240,40 +179,14 @@ export function PreferencesTab() {
             />
 
             {/* Send Message Keyboard Shortcut */}
-            <div className="space-y-2">
-              <Label htmlFor="sendMessageKeyboardShortcut">Send Message Keyboard Shortcut</Label>
-              <p
-                className="text-muted-foreground -mt-1 text-xs"
-              >
-                Choose which keyboard shortcut to use for sending messages.
-              </p>
-              <div className="flex gap-2">
-                {sendMessageKeyboardShortcutOptions.map((option) => {
-                  const isSelected = settings.sendMessageKeyboardShortcut === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => save({ sendMessageKeyboardShortcut: option.value })}
-                      className={cn(
-                        `
-                          flex flex-1 flex-col items-start gap-1 rounded-lg
-                          border p-3 text-left transition-colors
-                        `,
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : `
-                            border-input
-                            hover:bg-muted
-                          `,
-                      )}
-                    >
-                      <span className="text-sm font-medium">{option.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <SelectionCardItem
+              label="Send Message Keyboard Shortcut"
+              description="Choose which keyboard shortcut to use for sending messages."
+              options={sendMessageKeyboardShortcutOptions}
+              value={settings.sendMessageKeyboardShortcut}
+              onChange={value => save({ sendMessageKeyboardShortcut: value })}
+              layout="flex"
+            />
 
             {/* Custom Instructions */}
             <TextInputItem

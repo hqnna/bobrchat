@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  CheckIcon,
   EyeIcon,
   EyeOffIcon,
   KeyIcon,
@@ -27,18 +26,19 @@ import { useRemoveApiKey, useSetApiKey, useUserSettings } from "~/features/setti
 import { cn } from "~/lib/utils";
 
 import { apiKeyUpdateSchema } from "../../types";
+import { SelectionCardItem } from "../ui/selection-card-item";
 
 type StorageType = "client" | "server";
 
-const storageOptions: { value: StorageType; label: string; description: string; icon: typeof ServerIcon }[] = [
+const storageOptions = [
   {
-    value: "client",
+    value: "client" as const,
     label: "Browser Only",
     description: "Stored locally in your browser",
     icon: SmartphoneIcon,
   },
   {
-    value: "server",
+    value: "server" as const,
     label: "Encrypted Server",
     description: "Stored encrypted on the server",
     icon: ServerIcon,
@@ -278,126 +278,48 @@ export function IntegrationsTab() {
             </div>
 
             {/* Storage Type Selection */}
-            <div className="space-y-3">
-              <Label>
-                Storage Method
-                {!hasOpenRouterKey && (
-                  <span className="text-destructive -ml-1">*</span>
-                )}
-              </Label>
-              {hasOpenRouterKey && openRouterSource
-                ? (
-                    <div
-                      className={cn(`
-                        border-primary bg-primary/5 flex flex-col gap-1
-                        rounded-lg border p-3
-                      `)}
-                    >
-                      {(() => {
-                        const option = storageOptions.find(
-                          o => o.value === openRouterSource,
-                        );
-                        if (!option)
-                          return null;
-                        const Icon = option.icon;
-                        return (
-                          <>
-                            <div className="flex items-center gap-2">
-                              <Icon className="size-4" />
-                              <span className="text-sm font-medium">
-                                {option.label}
-                              </span>
-                              <CheckIcon
-                                className={cn(`
-                                  bg-primary text-primary-foreground size-3
-                                  rounded-full p-0.5
-                                `)}
-                              />
-                            </div>
-                            <span className="text-muted-foreground text-xs">
-                              {option.description}
-                            </span>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )
-                : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {storageOptions.map((option) => {
-                        const Icon = option.icon;
-                        const isSelected = storageType === option.value;
-
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setStorageType(option.value)}
-                            className={cn(
-                              `
-                                flex flex-col items-start gap-1 rounded-lg
-                                border p-3 text-left transition-colors
-                              `,
-                              isSelected
-                                ? "border-primary bg-primary/5"
-                                : `
-                                  border-input cursor-pointer
-                                  hover:bg-muted
-                                `,
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Icon className="size-4" />
-                              <span className="text-sm font-medium">
-                                {option.label}
-                              </span>
-                              {isSelected && (
-                                <CheckIcon
-                                  className={cn(`
-                                    bg-primary text-primary-foreground size-3
-                                    rounded-full p-0.5
-                                  `)}
-                                />
-                              )}
-                            </div>
-                            <span className="text-muted-foreground text-xs">
-                              {option.description}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-              <p className="text-muted-foreground text-xs">
-                {hasOpenRouterKey
-                  ? "Storage method is locked. Delete your key to change it."
-                  : storageType === "server"
-                    ? "Your key will be encrypted and stored securely on our servers."
-                    : storageType === "client"
-                      ? "Your key stays in your browser and is never sent to our servers."
-                      : "Select a storage method to continue."}
-              </p>
-              <div className="flex space-x-2">
+            <SelectionCardItem
+              label="Storage Method"
+              options={storageOptions}
+              value={storageType || openRouterSource}
+              onChange={setStorageType}
+              layout="grid"
+              columns={2}
+              required={!hasOpenRouterKey}
+              lockedMessage={hasOpenRouterKey && openRouterSource ? "Storage method is locked. Delete your key to change it." : undefined}
+              helperText={(selected) => {
+                if (hasOpenRouterKey) {
+                  return "Storage method is locked. Delete your key to change it.";
+                }
+                if (selected === "server") {
+                  return "Your key will be encrypted and stored securely on our servers.";
+                }
+                if (selected === "client") {
+                  return "Your key stays in your browser and is never sent to our servers.";
+                }
+                return "Select a storage method to continue.";
+              }}
+            />
+            <div className="flex space-x-2">
+              <Button
+                onClick={handleSave}
+                disabled={!openRouterApiKey.trim() || (!storageType && !hasOpenRouterKey) || isSaving}
+              >
+                <SaveIcon className="size-4" />
+                {isSaving ? "Saving..." : hasOpenRouterKey ? "Update Key" : "Save Key"}
+              </Button>
+              {hasOpenRouterKey && (
                 <Button
-                  onClick={handleSave}
-                  disabled={!openRouterApiKey.trim() || (!storageType && !hasOpenRouterKey) || isSaving}
+                  variant="destructive"
+                  size="sm"
+                  className="h-9"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
                 >
-                  <SaveIcon className="size-4" />
-                  {isSaving ? "Saving..." : hasOpenRouterKey ? "Update Key" : "Save Key"}
+                  <TrashIcon className="size-4" />
+                  {isDeleting ? "Removing..." : "Remove"}
                 </Button>
-                {hasOpenRouterKey && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="h-9"
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                  >
-                    <TrashIcon className="size-4" />
-                    {isDeleting ? "Removing..." : "Remove"}
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
@@ -479,126 +401,48 @@ export function IntegrationsTab() {
             </div>
 
             {/* Storage Type Selection */}
-            <div className="space-y-3">
-              <Label>
-                Storage Method
-                {!hasParallelKey && (
-                  <span className="text-destructive -ml-1">*</span>
-                )}
-              </Label>
-              {hasParallelKey && parallelSource
-                ? (
-                    <div
-                      className={cn(`
-                        border-primary bg-primary/5 flex flex-col gap-1
-                        rounded-lg border p-3
-                      `)}
-                    >
-                      {(() => {
-                        const option = storageOptions.find(
-                          o => o.value === parallelSource,
-                        );
-                        if (!option)
-                          return null;
-                        const Icon = option.icon;
-                        return (
-                          <>
-                            <div className="flex items-center gap-2">
-                              <Icon className="size-4" />
-                              <span className="text-sm font-medium">
-                                {option.label}
-                              </span>
-                              <CheckIcon
-                                className={cn(`
-                                  bg-primary text-primary-foreground size-3
-                                  rounded-full p-0.5
-                                `)}
-                              />
-                            </div>
-                            <span className="text-muted-foreground text-xs">
-                              {option.description}
-                            </span>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )
-                : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {storageOptions.map((option) => {
-                        const Icon = option.icon;
-                        const isSelected = parallelStorageType === option.value;
-
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setParallelStorageType(option.value)}
-                            className={cn(
-                              `
-                                flex flex-col items-start gap-1 rounded-lg
-                                border p-3 text-left transition-colors
-                              `,
-                              isSelected
-                                ? "border-primary bg-primary/5"
-                                : `
-                                  border-input cursor-pointer
-                                  hover:bg-muted
-                                `,
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Icon className="size-4" />
-                              <span className="text-sm font-medium">
-                                {option.label}
-                              </span>
-                              {isSelected && (
-                                <CheckIcon
-                                  className={cn(`
-                                    bg-primary text-primary-foreground size-3
-                                    rounded-full p-0.5
-                                  `)}
-                                />
-                              )}
-                            </div>
-                            <span className="text-muted-foreground text-xs">
-                              {option.description}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-              <p className="text-muted-foreground text-xs">
-                {hasParallelKey
-                  ? "Storage method is locked. Delete your key to change it."
-                  : parallelStorageType === "server"
-                    ? "Your key will be encrypted and stored securely on our servers."
-                    : parallelStorageType === "client"
-                      ? "Your key stays in your browser and is never sent to our servers."
-                      : "Select a storage method to continue."}
-              </p>
-              <div className="flex space-x-2">
+            <SelectionCardItem
+              label="Storage Method"
+              options={storageOptions}
+              value={parallelStorageType || parallelSource}
+              onChange={setParallelStorageType}
+              layout="grid"
+              columns={2}
+              required={!hasParallelKey}
+              lockedMessage={hasParallelKey && parallelSource ? "Storage method is locked. Delete your key to change it." : undefined}
+              helperText={(selected) => {
+                if (hasParallelKey) {
+                  return "Storage method is locked. Delete your key to change it.";
+                }
+                if (selected === "server") {
+                  return "Your key will be encrypted and stored securely on our servers.";
+                }
+                if (selected === "client") {
+                  return "Your key stays in your browser and is never sent to our servers.";
+                }
+                return "Select a storage method to continue.";
+              }}
+            />
+            <div className="flex space-x-2">
+              <Button
+                onClick={handleParallelSave}
+                disabled={!parallelApiKey.trim() || (!parallelStorageType && !hasParallelKey) || isParallelSaving}
+              >
+                <SaveIcon className="size-4" />
+                {isParallelSaving ? "Saving..." : hasParallelKey ? "Update Key" : "Save Key"}
+              </Button>
+              {hasParallelKey && (
                 <Button
-                  onClick={handleParallelSave}
-                  disabled={!parallelApiKey.trim() || (!parallelStorageType && !hasParallelKey) || isParallelSaving}
+                  variant="destructive"
+                  size="sm"
+                  className="h-9"
+                  onClick={handleParallelDelete}
+                  disabled={isParallelDeleting}
                 >
-                  <SaveIcon className="size-4" />
-                  {isParallelSaving ? "Saving..." : hasParallelKey ? "Update Key" : "Save Key"}
+                  <TrashIcon className="size-4" />
+                  {isParallelDeleting ? "Removing..." : "Remove"}
                 </Button>
-                {hasParallelKey && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="h-9"
-                    onClick={handleParallelDelete}
-                    disabled={isParallelDeleting}
-                  >
-                    <TrashIcon className="size-4" />
-                    {isParallelDeleting ? "Removing..." : "Remove"}
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
