@@ -37,13 +37,15 @@ export function useUpdatePreferences() {
         old ? { ...old, ...updates } : old);
       return { previous };
     },
+    onSuccess: (updatedSettings) => {
+      // Use the server-returned settings to ensure cache is in sync
+      queryClient.setQueryData<UserSettingsData>(USER_SETTINGS_KEY, old =>
+        old ? { ...old, ...updatedSettings } : updatedSettings);
+    },
     onError: (_err, _updates, context) => {
       if (context?.previous) {
         queryClient.setQueryData(USER_SETTINGS_KEY, context.previous);
       }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: USER_SETTINGS_KEY });
     },
   });
 }

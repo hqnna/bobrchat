@@ -1,6 +1,5 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import {
   CheckIcon,
   EyeIcon,
@@ -11,9 +10,11 @@ import {
   SmartphoneIcon,
   TrashIcon,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+
+import type { ApiKeyProvider } from "~/lib/api-keys/types";
 
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -22,10 +23,9 @@ import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
 import { useChatUIStore } from "~/features/chat/store";
-import { useRemoveApiKey, useSetApiKey } from "~/features/settings/hooks/use-user-settings";
+import { useRemoveApiKey, useSetApiKey, useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { cn } from "~/lib/utils";
 
-import { useApiKeyStatus } from "../../hooks/use-api-status";
 import { apiKeyUpdateSchema } from "../../types";
 
 type StorageType = "client" | "server";
@@ -45,16 +45,31 @@ const storageOptions: { value: StorageType; label: string; description: string; 
   },
 ];
 
+function useApiKeyState(provider: ApiKeyProvider) {
+  const { data: settings, isLoading } = useUserSettings({ enabled: true });
+  const clientKey = useChatUIStore(s =>
+    provider === "openrouter" ? s.openrouterKey : s.parallelKey,
+  );
+
+  const hasClientKey = !!clientKey;
+  const hasServerKey = settings?.configuredApiKeys?.[provider] ?? false;
+
+  return {
+    hasKey: hasClientKey || hasServerKey,
+    source: hasClientKey ? "client" as const : hasServerKey ? "server" as const : null,
+    isLoading,
+  };
+}
+
 export function IntegrationsTab() {
+  const { data: settings, isLoading } = useUserSettings({ enabled: true });
   const setApiKeyMutation = useSetApiKey();
   const removeApiKeyMutation = useRemoveApiKey();
+
   const setOpenrouterKey = useChatUIStore(state => state.setOpenRouterKey);
   const setParallelKey = useChatUIStore(state => state.setParallelKey);
   const removeOpenrouterKey = useChatUIStore(state => state.removeOpenRouterKey);
   const removeParallelKey = useChatUIStore(state => state.removeParallelKey);
-
-  const openRouterInitializedRef = useRef(false);
-  const parallelInitializedRef = useRef(false);
 
   const [openRouterApiKey, setOpenRouterApiKey] = useState("");
   const [showOpenRouterApiKey, setShowOpenRouterApiKey] = useState(false);
@@ -64,10 +79,8 @@ export function IntegrationsTab() {
   const [showParallelApiKey, setShowParallelApiKey] = useState(false);
   const [parallelStorageType, setParallelStorageType] = useState<StorageType | null>(null);
 
-  const { hasKey: hasOpenRouterKey, source: openRouterSource, isLoading: isOpenRouterLoading } = useApiKeyStatus("openrouter");
-  const { hasKey: hasParallelKey, source: parallelSource, isLoading: isParallelLoading } = useApiKeyStatus("parallel");
-
-  const queryClient = useQueryClient();
+  const { hasKey: hasOpenRouterKey, source: openRouterSource, isLoading: isOpenRouterLoading } = useApiKeyState("openrouter");
+  const { hasKey: hasParallelKey, source: parallelSource, isLoading: isParallelLoading } = useApiKeyState("parallel");
 
   const handleSave = async () => {
     if (!openRouterApiKey.trim() || !storageType)
@@ -79,18 +92,17 @@ export function IntegrationsTab() {
         storeServerSide: storageType === "server",
       });
 
-      // if we're storing server-side, set on the server
       if (validated.storeServerSide) {
         await setApiKeyMutation.mutateAsync({
           provider: "openrouter",
           apiKey: validated.apiKey,
         });
-        queryClient.invalidateQueries({ queryKey: ["api-key-exists", "openrouter"] });
       }
       else {
         setOpenrouterKey(validated.apiKey);
       }
       setOpenRouterApiKey("");
+      setStorageType(null);
       toast.success(hasOpenRouterKey ? "API key updated" : "API key saved");
     }
     catch (error) {
@@ -107,10 +119,8 @@ export function IntegrationsTab() {
   const handleDelete = async () => {
     try {
       await removeApiKeyMutation.mutateAsync("openrouter");
-      queryClient.invalidateQueries({ queryKey: ["api-key-exists", "openrouter"] });
       removeOpenrouterKey();
-
-      openRouterInitializedRef.current = false;
+      setStorageType(null);
       toast.success("API key removed");
     }
     catch {
@@ -133,12 +143,12 @@ export function IntegrationsTab() {
           provider: "parallel",
           apiKey: validated.apiKey,
         });
-        queryClient.invalidateQueries({ queryKey: ["api-key-exists", "parallel"] });
       }
       else {
         setParallelKey(validated.apiKey);
       }
       setParallelApiKeyValue("");
+      setParallelStorageType(null);
       toast.success(hasParallelKey ? "API key updated" : "API key saved");
     }
     catch (error) {
@@ -155,10 +165,8 @@ export function IntegrationsTab() {
   const handleParallelDelete = async () => {
     try {
       await removeApiKeyMutation.mutateAsync("parallel");
-      queryClient.invalidateQueries({ queryKey: ["api-key-exists", "parallel"] });
       removeParallelKey();
-
-      parallelInitializedRef.current = false;
+      setParallelStorageType(null);
       toast.success("API key removed");
     }
     catch {
@@ -166,7 +174,7 @@ export function IntegrationsTab() {
     }
   };
 
-  if (isOpenRouterLoading || isParallelLoading) {
+  if (isLoading || isOpenRouterLoading || isParallelLoading || !settings) {
     return <IntegrationsTabSkeleton />;
   }
 

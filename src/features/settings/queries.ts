@@ -12,6 +12,17 @@ import { userSettings } from "~/lib/db/schema/settings";
  * @param userId ID of the user
  * @return {Promise<UserSettingsData>} User settings or default settings if not found
  */
+const DEFAULT_SETTINGS: UserSettingsData = {
+  theme: "dark",
+  boringMode: false,
+  defaultThreadName: "New Chat",
+  landingPageContent: "suggestions",
+  autoThreadNaming: false,
+  useOcrForPdfs: false,
+  sendMessageKeyboardShortcut: "enter",
+  inputHeightScale: 0,
+};
+
 export async function getUserSettings(userId: string): Promise<UserSettingsData> {
   const result = await db
     .select({ settings: userSettings.settings })
@@ -20,20 +31,11 @@ export async function getUserSettings(userId: string): Promise<UserSettingsData>
     .limit(1);
 
   if (!result.length) {
-    // Return default settings if user settings don't exist yet
-    return {
-      theme: "dark",
-      boringMode: false,
-      defaultThreadName: "New Chat",
-      landingPageContent: "suggestions",
-      autoThreadNaming: false,
-      useOcrForPdfs: false,
-      sendMessageKeyboardShortcut: "enter",
-      inputHeightScale: 0,
-    };
+    return { ...DEFAULT_SETTINGS };
   }
 
-  return result[0].settings as UserSettingsData;
+  // Merge with defaults to ensure new fields are populated for existing users
+  return { ...DEFAULT_SETTINGS, ...(result[0].settings as Partial<UserSettingsData>) };
 }
 
 /**

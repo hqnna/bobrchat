@@ -26,7 +26,20 @@ export const preferencesSchema = z.object({
   inputHeightScale: z.number().int().min(0).max(4).default(0),
 });
 
-export const preferencesUpdateSchema = preferencesSchema.partial();
+/**
+ * Update schema for partial updates - NO defaults to avoid overwriting existing values
+ */
+export const preferencesUpdateSchema = z.object({
+  theme: z.enum(["light", "dark", "system"]).optional(),
+  boringMode: z.boolean().optional(),
+  customInstructions: z.string().max(5000).optional(),
+  defaultThreadName: z.string().max(255).transform(v => v.trim() || "New Chat").optional(),
+  landingPageContent: z.enum(["suggestions", "greeting", "blank"]).optional(),
+  sendMessageKeyboardShortcut: z.enum(["enter", "ctrlEnter", "shiftEnter"]).optional(),
+  autoThreadNaming: z.boolean().optional(),
+  useOcrForPdfs: z.boolean().optional(),
+  inputHeightScale: z.number().int().min(0).max(4).optional(),
+});
 
 export type PreferencesInput = z.infer<typeof preferencesSchema>;
 export type PreferencesUpdate = Partial<PreferencesInput>;

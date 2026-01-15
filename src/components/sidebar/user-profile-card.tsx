@@ -1,22 +1,28 @@
-import { KeyIcon } from "lucide-react";
+"use client";
+
+import { KeyIcon, LoaderIcon } from "lucide-react";
 import Link from "next/link";
 
 import type { Session } from "~/features/auth/lib/auth";
 
+import { useApiKeyStatus } from "~/features/settings/hooks/use-api-status";
 import { cn } from "~/lib/utils";
 
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 type UserProfileCardProps = {
   session: Session;
-  hasOpenRouterKey?: boolean;
-  hasParallelKey?: boolean;
 };
 
-export function UserProfileCard({ session, hasOpenRouterKey, hasParallelKey }: UserProfileCardProps) {
+export function UserProfileCard({ session }: UserProfileCardProps) {
+  const { hasKey: hasOpenRouterKey, isLoading: isOpenRouterLoading } = useApiKeyStatus("openrouter");
+  const { hasKey: hasParallelKey, isLoading: isParallelLoading } = useApiKeyStatus("parallel");
+
   if (!session) {
     return null;
   }
+
+  const isLoading = isOpenRouterLoading || isParallelLoading;
 
   const getApiKeyStatus = () => {
     if (!hasOpenRouterKey && !hasParallelKey) {
@@ -54,8 +60,22 @@ export function UserProfileCard({ session, hasOpenRouterKey, hasParallelKey }: U
           {session.user.name}
         </span>
         <span className="text-muted-foreground flex items-center gap-1 text-xs">
-          <KeyIcon className="text-muted-foreground size-3" />
-          {getApiKeyStatus()}
+          {isLoading
+            ? (
+                <>
+                  <LoaderIcon className={`
+                    text-muted-foreground size-3 animate-spin
+                  `}
+                  />
+                  Checking API keys...
+                </>
+              )
+            : (
+                <>
+                  <KeyIcon className="text-muted-foreground size-3" />
+                  {getApiKeyStatus()}
+                </>
+              )}
         </span>
       </div>
     </Link>

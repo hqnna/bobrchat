@@ -29,7 +29,7 @@ import {
  * @return {Promise<void>}
  * @throws {Error} If not authenticated or validation fails
  */
-export async function updatePreferences(updates: PreferencesUpdate): Promise<void> {
+export async function updatePreferences(updates: PreferencesUpdate): Promise<UserSettingsData> {
   // Validate input with Zod
   const validated = preferencesUpdateSchema.parse(updates);
 
@@ -42,8 +42,8 @@ export async function updatePreferences(updates: PreferencesUpdate): Promise<voi
     throw new Error("Not authenticated");
   }
 
-  // Update settings in database
-  await updateUserSettingsPartial(session.user.id, validated);
+  // Update settings in database and return the updated settings
+  return updateUserSettingsPartial(session.user.id, validated);
 }
 
 /**
