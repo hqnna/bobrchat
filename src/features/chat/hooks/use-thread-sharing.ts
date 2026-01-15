@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { createOrUpdateThreadShare, getThreadShareStatus, stopSharingThread } from "~/features/chat/actions";
+import { THREADS_KEY } from "~/lib/queries/query-keys";
 
 export const THREAD_SHARE_KEY = (threadId: string) => ["thread-share", threadId] as const;
 
@@ -30,6 +31,7 @@ export function useCreateOrUpdateShare() {
       createOrUpdateThreadShare(threadId, showAttachments),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: THREAD_SHARE_KEY(variables.threadId) });
+      queryClient.invalidateQueries({ queryKey: THREADS_KEY });
     },
   });
 }
@@ -41,6 +43,7 @@ export function useStopSharing() {
     mutationFn: (threadId: string) => stopSharingThread(threadId),
     onSuccess: (_data, threadId) => {
       queryClient.invalidateQueries({ queryKey: THREAD_SHARE_KEY(threadId) });
+      queryClient.invalidateQueries({ queryKey: THREADS_KEY });
     },
   });
 }

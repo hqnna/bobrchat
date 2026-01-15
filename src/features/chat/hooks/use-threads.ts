@@ -18,6 +18,7 @@ type ThreadFromApi = {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  isShared: boolean;
 };
 
 type ThreadsResponse = {

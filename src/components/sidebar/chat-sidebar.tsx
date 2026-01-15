@@ -125,10 +125,11 @@ function UserProfileContent() {
 export function ChatSidebar() {
   const [searchQuery, setSearchQuery] = useState("");
   const pathname = usePathname();
+  const hydrated = useHydrated();
   const { data: session } = useSession();
   const isSharePage = pathname?.startsWith("/share");
 
-  if (isSharePage && !session) {
+  if (isSharePage && hydrated && !session) {
     return null;
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, MessageCircle, Share2, Trash2 } from "lucide-react";
+import { Loader2, MessageCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { memo, useRef, useState } from "react";
@@ -24,6 +24,7 @@ type ThreadItemProps = {
   id: string;
   title: string;
   isActive: boolean;
+  isShared?: boolean;
   onDeleteClick?: (threadId: string, threadTitle: string) => void;
   onShareClick?: (threadId: string, threadTitle: string) => void;
 };
@@ -46,6 +47,7 @@ function ThreadItemComponent({
   id,
   title,
   isActive,
+  isShared,
   onDeleteClick,
   onShareClick,
 }: ThreadItemProps) {
@@ -173,7 +175,7 @@ function ThreadItemComponent({
 
   return (
     <ContextMenu onOpenChange={setMenuOpen}>
-      <ThreadTooltip title={title}>
+      <ThreadTooltip title={title} isShared={isShared}>
         <ContextMenuTrigger>
 
           <div className="group/thread relative">
@@ -196,7 +198,9 @@ function ThreadItemComponent({
                   )
                 : (
                     <MessageCircle
-                      className="size-4 shrink-0"
+                      className={cn("size-4 shrink-0", isShared && `
+                        text-primary
+                      `)}
                       fill={isActive ? "currentColor" : "none"}
                     />
                   )}
@@ -261,10 +265,8 @@ function ThreadItemComponent({
         <ContextMenuItem onClick={handleRegenerateNameClick} disabled={regenerateThreadNameMutation.isPending}>
           Regenerate Name
         </ContextMenuItem>
-        <ContextMenuSeparator />
         <ContextMenuItem onClick={() => onShareClick?.(id, title)}>
-          <Share2 className="mr-2 size-4" />
-          Share
+          {isShared ? "Manage Share" : "Share"}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
@@ -279,7 +281,7 @@ function ThreadItemComponent({
   );
 };
 
-function ThreadTooltip({ title, children}: { title: string; children: React.ReactNode }) {
+function ThreadTooltip({ title, isShared, children }: { title: string; isShared?: boolean; children: React.ReactNode }) {
   return (
     <Tooltip delayDuration={1000}>
       <TooltipTrigger asChild>
@@ -294,6 +296,7 @@ function ThreadTooltip({ title, children}: { title: string; children: React.Reac
         className="text-sm"
       >
         {title}
+        {isShared && <span className="text-muted-foreground"> (shared)</span>}
       </TooltipContent>
     </Tooltip>
   );

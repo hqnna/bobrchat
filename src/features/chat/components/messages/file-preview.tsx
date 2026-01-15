@@ -172,7 +172,8 @@ export function MessageAttachments({
   const files = attachments.filter(a => !a.mediaType?.startsWith("image/"));
 
   const getFileTypeLabel = (mediaType?: string) => {
-    if (!mediaType) return "File";
+    if (!mediaType)
+      return "File";
     if (mediaType.startsWith("image/")) {
       return mediaType.split("/")[1]?.toUpperCase() || "Image";
     }
@@ -214,7 +215,8 @@ export function MessageAttachments({
                     )
                   : (
                       <span className={`
-                        bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs
+                        bg-muted text-muted-foreground rounded px-1.5 py-0.5
+                        text-xs
                       `}
                       >
                         {getFileTypeLabel(attachment.mediaType)}

@@ -1,9 +1,10 @@
-import { and, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, lt } from "drizzle-orm";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { db } from "~/lib/db";
 import { attachments, messages, threads } from "~/lib/db/schema/chat";
+import { threadShares } from "~/lib/db/schema/sharing";
 import { serverEnv } from "~/lib/env";
 
 function cleanReasoningPart(part: unknown): unknown | null {
@@ -308,8 +309,18 @@ export async function getThreadsByUserId(
   }
 
   const result = await db
-    .select()
+    .select({
+      id: threads.id,
+      title: threads.title,
+      lastMessageAt: threads.lastMessageAt,
+      userId: threads.userId,
+      createdAt: threads.createdAt,
+      updatedAt: threads.updatedAt,
+      isShared: isNotNull(threadShares.id),
+      isShareRevoked: isNotNull(threadShares.revokedAt),
+    })
     .from(threads)
+    .leftJoin(threadShares, eq(threads.id, threadShares.threadId))
     .where(and(...conditions))
     .orderBy(desc(threads.lastMessageAt))
     .limit(limit + 1);
@@ -320,7 +331,12 @@ export async function getThreadsByUserId(
     ? threadList[threadList.length - 1].lastMessageAt?.toISOString() ?? null
     : null;
 
-  return { threads: threadList, nextCursor };
+  const threadsWithShareStatus = threadList.map(t => ({
+    ...t,
+    isShared: t.isShared && !t.isShareRevoked,
+  }));
+
+  return { threads: threadsWithShareStatus, nextCursor };
 }
 
 /**

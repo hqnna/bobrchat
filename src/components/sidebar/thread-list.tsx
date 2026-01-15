@@ -80,7 +80,7 @@ export const ThreadList = memo(({
 
   const renderGroup = (
     title: string,
-    threads: Array<{ id: string; title: string }>,
+    threads: Array<{ id: string; title: string; isShared?: boolean }>,
   ) => {
     if (threads.length === 0)
       return null;
@@ -101,6 +101,7 @@ export const ThreadList = memo(({
               id={thread.id}
               title={thread.title}
               isActive={currentChatId === thread.id}
+              isShared={thread.isShared}
               onDeleteClick={handleDeleteClick}
               onShareClick={handleShareClick}
             />
