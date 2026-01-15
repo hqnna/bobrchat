@@ -4,11 +4,13 @@ import { nextCookies } from "better-auth/next-js";
 
 import { createDefaultUserSettings } from "~/features/settings/actions";
 import { db } from "~/lib/db";
+import * as schema from "~/lib/db/schema";
 import { serverEnv } from "~/lib/env";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
+    schema,
     usePlural: true,
   }),
   secret: serverEnv.BETTER_AUTH_SECRET,

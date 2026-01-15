@@ -1,7 +1,9 @@
 import { defineRelations } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -78,6 +80,17 @@ export const verifications = pgTable(
       .notNull(),
   },
   table => [index("verifications_identifier_idx").on(table.identifier)],
+);
+
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    id: text("id").primaryKey(),
+    key: text("key").notNull(),
+    count: integer("count").notNull(),
+    lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+  },
+  table => [index("rate_limits_key_idx").on(table.key)],
 );
 
 // Unified relations for v1.0.0
