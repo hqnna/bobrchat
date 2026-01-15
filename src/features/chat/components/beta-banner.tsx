@@ -25,11 +25,11 @@ export function BetaBanner() {
   return (
     <div
       className={cn(
-        !showBetaBanner && "invisible h-0",
         `
           bg-primary text-primary-foreground relative w-full p-2 text-center
           text-sm font-medium
         `,
+        !showBetaBanner && "invisible h-0 p-0",
       )}
     >
       <span>

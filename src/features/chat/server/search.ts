@@ -3,6 +3,28 @@ import type { ToolSet } from "ai";
 // @ts-expect-error - patching @parallel-web/ai-sdk-tools
 import { createParallelClient, extractTool, searchTool } from "@parallel-web/ai-sdk-tools";
 
+const SEARCH_ERROR_HINTS: Record<string, string> = {
+  "401": "Your Parallel API key is invalid. Please check your API key in settings.",
+  "403": "Your Parallel API key does not have permission for this operation.",
+  "429": "Search rate limit exceeded. Please try again later.",
+};
+
+function formatSearchError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Search failed";
+  }
+
+  const message = error.message;
+
+  for (const [code, hint] of Object.entries(SEARCH_ERROR_HINTS)) {
+    if (message.includes(code)) {
+      return hint;
+    }
+  }
+
+  return message;
+}
+
 /**
  * Creates search and extract tools for the AI model.
  *
@@ -31,8 +53,9 @@ export function createSearchTools(parallelApiKey?: string): ToolSet | undefined 
           return result;
         }
         catch (error) {
-          console.error("[websearch] search tool error:", error);
-          throw error;
+          const message = formatSearchError(error);
+          console.warn("[websearch] search failed:", message);
+          return { error: true, message };
         }
       },
     },
@@ -50,8 +73,9 @@ export function createSearchTools(parallelApiKey?: string): ToolSet | undefined 
           return result;
         }
         catch (error) {
-          console.error("[websearch] extract tool error:", error);
-          throw error;
+          const message = formatSearchError(error);
+          console.warn("[websearch] extract failed:", message);
+          return { error: true, message };
         }
       },
     },

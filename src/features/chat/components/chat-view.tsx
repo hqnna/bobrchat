@@ -12,8 +12,6 @@ import { useChatScroll } from "~/features/chat/hooks/use-chat-scroll";
 import { useChatUIStore } from "~/features/chat/store";
 import { cn } from "~/lib/utils";
 
-import type { PendingFile } from "./messages/file-preview";
-
 import { BetaBanner } from "./beta-banner";
 import { ChatInput } from "./chat-input";
 import { LandingPageContent } from "./landing/landing-page-content";
@@ -40,22 +38,6 @@ export function ChatView({
   const { setInput } = useChatUIStore();
   const { scrollRef, messagesEndRef, isInitialScrollComplete } = useChatScroll(messages, { threadId });
 
-  const handleSendMessage = useCallback((content: string, files?: PendingFile[]) => {
-    const fileUIParts = files?.map(f => ({
-      type: "file" as const,
-      id: f.id,
-      url: f.url,
-      storagePath: f.storagePath,
-      mediaType: f.mediaType,
-      filename: f.filename,
-    }));
-
-    sendMessage({
-      text: content,
-      files: fileUIParts,
-    });
-  }, [sendMessage]);
-
   const handleSuggestionClick = useCallback((suggestion: string) => {
     setInput(suggestion);
   }, [setInput]);
@@ -66,27 +48,14 @@ export function ChatView({
     <div className="flex h-full max-h-screen flex-col">
       <BetaBanner />
       <ScrollArea className="min-h-0 flex-1" ref={scrollRef}>
-        {messages.length === 0 && (
-          <div
-            className={cn(
-              `
-                flex justify-center p-4 pt-[33vh] transition-all duration-300
-                ease-in-out
-              `,
-              showLandingPageContent
-                ? "pointer-events-auto opacity-100"
-                : "pointer-events-none opacity-0",
-            )}
-          >
-            <div className="h-max w-full max-w-lg">
-              <LandingPageContent
-                type={landingPageContent!}
-                isVisible={!!showLandingPageContent}
-                onSuggestionClickAction={handleSuggestionClick}
-              />
-            </div>
-          </div>
-        )}
+        {messages.length === 0 // we do this here to hide the padding without messing with the animation
+          && (
+            <LandingPageContent
+              type={landingPageContent!}
+              isVisible={!!showLandingPageContent}
+              onSuggestionClickAction={handleSuggestionClick}
+            />
+          )}
 
         {/* Chat Messages */}
         <div className={cn(
@@ -102,7 +71,7 @@ export function ChatView({
       </ScrollArea>
       <div className="shrink-0">
         <ChatInput
-          onSendMessage={handleSendMessage}
+          sendMessage={sendMessage}
           isLoading={isLoading}
           onStop={onStop}
         />

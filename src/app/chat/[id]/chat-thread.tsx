@@ -13,6 +13,7 @@ import { deleteMessageAttachmentsByIds, truncateThreadMessages } from "~/feature
 import { ChatMessages } from "~/features/chat/components/chat-messages";
 import { ChatView } from "~/features/chat/components/chat-view";
 import { THREADS_KEY } from "~/features/chat/hooks/use-threads";
+import { parseAIError } from "~/features/chat/lib/parse-ai-error";
 import { useChatUIStore } from "~/features/chat/store";
 import { getModelCapabilities, useModels } from "~/features/models";
 
@@ -78,7 +79,8 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     }),
     messages: initialMessages,
     onError: (error) => {
-      toast.error((`API Error: ${error.message}`) || "Failed to send message");
+      const friendlyMessage = parseAIError(error);
+      toast.error(friendlyMessage);
     },
     onFinish: () => {
       // Refresh the threads list to reflect any automatic renaming

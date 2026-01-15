@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import { auth } from "~/features/auth/lib/auth";
 import { isThreadOwnedByUser, renameThreadById, saveMessage } from "~/features/chat/queries";
+import { formatProviderError } from "~/features/chat/server/error";
 import { generateThreadTitle } from "~/features/chat/server/naming";
 import { streamChatResponse } from "~/features/chat/server/service";
 import { getUserSettings } from "~/features/settings/queries";
@@ -149,6 +150,9 @@ export async function POST(req: Request) {
       }
     },
     sendSources: true,
+    onError: (error) => {
+      return formatProviderError(error);
+    },
   });
 
   return response;

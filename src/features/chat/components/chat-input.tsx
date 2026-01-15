@@ -1,10 +1,12 @@
 "use client";
 
+import type { UseChatHelpers } from "@ai-sdk/react";
+
 import { AlertCircle, BrainIcon, PaperclipIcon, SearchIcon, SendIcon, SquareIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
-import type { PendingFile } from "~/features/chat/components/messages/file-preview";
+import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { Button } from "~/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "~/components/ui/dropdown-menu";
@@ -23,7 +25,7 @@ import { ModelSelector } from "./ui/model-selector";
 
 type ChatInputProps = {
   className?: string;
-  onSendMessage: (content: string, files?: PendingFile[]) => void;
+  sendMessage: UseChatHelpers<ChatUIMessage>["sendMessage"];
   isLoading?: boolean;
   onStop?: () => void;
 };
@@ -51,7 +53,7 @@ function getAcceptedFileTypesDescription(capabilities: ReturnType<typeof getMode
 
 export function ChatInput({
   className,
-  onSendMessage,
+  sendMessage,
   isLoading = false,
   onStop,
 }: ChatInputProps) {
@@ -158,7 +160,19 @@ export function ChatInput({
       return;
     }
 
-    onSendMessage(value, pendingFiles.length > 0 ? pendingFiles : undefined);
+    const fileUIParts = pendingFiles.map(f => ({
+      type: "file" as const,
+      id: f.id,
+      url: f.url,
+      storagePath: f.storagePath,
+      mediaType: f.mediaType,
+      filename: f.filename,
+    }));
+
+    sendMessage({
+      text: value,
+      files: fileUIParts.length > 0 ? fileUIParts : undefined,
+    });
     onValueChange("");
     clearPendingFiles();
     textareaRef.current?.focus();

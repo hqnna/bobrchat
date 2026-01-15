@@ -137,12 +137,16 @@ export const ChatMessages = memo(({
               if (isSearchTool) {
                 let sources: any[] = [];
                 let isSearching = false;
+                let searchError: string | undefined;
 
                 const sp = part as any;
 
                 // Handle "tool-search" (likely from DB persistence or custom format)
                 if (sp.type === "tool-search") {
-                  if (sp.output?.results && Array.isArray(sp.output.results)) {
+                  if (sp.output?.error) {
+                    searchError = sp.output.message || "Search failed";
+                  }
+                  else if (sp.output?.results && Array.isArray(sp.output.results)) {
                     sources = sp.output.results.map((r: any) => ({
                       id: r.url || Math.random().toString(),
                       sourceType: "url",
@@ -157,13 +161,18 @@ export const ChatMessages = memo(({
                 else if (sp.type === "tool-invocation") {
                   if (sp.state === "result") {
                     const result = sp.result;
-                    const results = result?.results || (Array.isArray(result) ? result : []);
-                    sources = results.map((r: any) => ({
-                      id: r.url || Math.random().toString(),
-                      sourceType: "url",
-                      url: r.url,
-                      title: r.title,
-                    }));
+                    if (result?.error) {
+                      searchError = result.message || "Search failed";
+                    }
+                    else {
+                      const results = result?.results || (Array.isArray(result) ? result : []);
+                      sources = results.map((r: any) => ({
+                        id: r.url || Math.random().toString(),
+                        sourceType: "url",
+                        url: r.url,
+                        title: r.title,
+                      }));
+                    }
                   }
                   else {
                     isSearching = true;
@@ -175,6 +184,7 @@ export const ChatMessages = memo(({
                     key={`part-${index}`}
                     sources={sources}
                     isSearching={isSearching}
+                    error={searchError}
                   />
                 );
               }
