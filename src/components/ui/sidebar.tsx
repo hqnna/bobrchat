@@ -28,6 +28,10 @@ import { cn } from "~/lib/utils";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+const SIDEBAR_WIDTH_STORAGE_KEY = "sidebar_width";
+const SIDEBAR_WIDTH_DEFAULT = 16; // rem
+const SIDEBAR_WIDTH_MIN = 14; // rem (16 - 2)
+const SIDEBAR_WIDTH_MAX = 20; // rem (16 + 4)
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
@@ -42,6 +46,10 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  sidebarWidth: number;
+  setSidebarWidth: (width: number) => void;
+  isResizing: boolean;
+  setIsResizing: (resizing: boolean) => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
@@ -87,6 +95,19 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
+  const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_WIDTH_DEFAULT);
+  const [isClient, setIsClient] = React.useState(false);
+  const [isResizing, setIsResizing] = React.useState(false);
+
+  // Load sidebar width from localStorage on mount
+  React.useEffect(() => {
+    setIsClient(true);
+    const stored = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
+    if (stored) {
+      const width = Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, parseFloat(stored)));
+      setSidebarWidth(width);
+    }
+  }, []);
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -107,6 +128,13 @@ function SidebarProvider({
     },
     [setOpenProp, open],
   );
+
+  // Helper to set sidebar width with constraints
+  const handleSetSidebarWidth = React.useCallback((width: number) => {
+    const constrained = Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, width));
+    setSidebarWidth(constrained);
+    localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, constrained.toString());
+  }, []);
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
@@ -142,9 +170,15 @@ function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      sidebarWidth,
+      setSidebarWidth: handleSetSidebarWidth,
+      isResizing,
+      setIsResizing,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, sidebarWidth, handleSetSidebarWidth, isResizing],
   );
+
+  const sidebarWidthRem = isClient ? `${sidebarWidth}rem` : SIDEBAR_WIDTH;
 
   return (
     <SidebarContext value={contextValue}>
@@ -153,7 +187,7 @@ function SidebarProvider({
           data-slot="sidebar-wrapper"
           style={
             {
-              "--sidebar-width": SIDEBAR_WIDTH,
+              "--sidebar-width": sidebarWidthRem,
               "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
               ...style,
             } as React.CSSProperties
@@ -234,6 +268,8 @@ function Sidebar({
     );
   }
 
+  const { isResizing } = useSidebar();
+
   return (
     <div
       className={`
@@ -251,9 +287,9 @@ function Sidebar({
         data-slot="sidebar-gap"
         className={cn(
           `
-            relative w-(--sidebar-width) bg-transparent transition-[width]
-            duration-200 ease-linear
+            relative w-(--sidebar-width) bg-transparent
           `,
+          !isResizing && "transition-[width] duration-200 ease-linear",
           "group-data-[collapsible=offcanvas]:w-0",
           "group-data-[side=right]:rotate-180",
           variant === "floating" || variant === "inset"
@@ -267,10 +303,10 @@ function Sidebar({
         data-slot="sidebar-container"
         className={cn(
           `
-            fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width)
-            transition-[left,right,width] duration-200 ease-linear
+            fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) relative
             md:flex
           `,
+          !isResizing && "transition-[left,right,width] duration-200 ease-linear",
           side === "left"
             ? `
               left-0
@@ -308,6 +344,7 @@ function Sidebar({
         >
           {children}
         </div>
+        <SidebarResizeHandle className="z-50" />
       </div>
     </div>
   );
@@ -378,6 +415,62 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         className,
       )}
       {...props}
+    />
+  );
+}
+
+function SidebarResizeHandle({ className }: React.ComponentProps<"div">) {
+  const { setSidebarWidth, isMobile, isResizing, setIsResizing } = useSidebar();
+  const sidebarRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const getComputedRootFontSize = () => {
+      return parseFloat(getComputedStyle(document.documentElement).fontSize);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const rootFontSize = getComputedRootFontSize();
+      const newWidth = e.clientX / rootFontSize;
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing, setSidebarWidth, setIsResizing]);
+
+  if (isMobile) return null;
+
+  return (
+    <div
+      ref={sidebarRef}
+      data-sidebar="resize-handle"
+      onMouseDown={() => setIsResizing(true)}
+      className={cn(
+        `
+          absolute top-0 right-0 h-full w-2 cursor-col-resize select-none
+          bg-transparent opacity-0 transition-opacity hover:opacity-100
+          hover:bg-sidebar-accent pointer-events-auto
+        `,
+        isResizing && "opacity-100 bg-sidebar-accent",
+        className,
+      )}
+      role="separator"
+      aria-label="Resize sidebar"
     />
   );
 }
@@ -897,6 +990,7 @@ export {
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
+  SidebarResizeHandle,
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
