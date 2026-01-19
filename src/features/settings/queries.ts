@@ -34,6 +34,8 @@ export type ResolvedUserData = {
  *
  * @param userId ID of the user
  * @param clientKeys Optional client-provided keys (from localStorage)
+ * @param clientKeys.openrouter OpenRouter API key from client
+ * @param clientKeys.parallel Parallel API key from client
  * @returns Settings and resolved API keys
  */
 export async function getUserSettingsAndKeys(

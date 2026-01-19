@@ -1,5 +1,9 @@
 import type { TextStreamPart, ToolSet } from "ai";
 
+import type { SearchToolResult, ToolResultStreamPart } from "~/features/chat/types";
+
+import { isToolResultPart } from "~/features/chat/types";
+
 type Source = { id: string; sourceType: string; url?: string; title?: string };
 
 type StreamChunkHandler = {
@@ -33,11 +37,12 @@ function extractSourcesFromToolResult(result: unknown): Source[] {
 
   try {
     const data = typeof result === "string" ? JSON.parse(result) : result;
-    const items = Array.isArray(data) ? data : data.results || [];
+    const searchResult = data as SearchToolResult;
+    const items = searchResult.results ?? [];
 
     return items
-      .filter((item: any) => item?.url)
-      .map((item: any) => ({
+      .filter(item => item?.url)
+      .map(item => ({
         id: item.url,
         sourceType: "url" as const,
         url: item.url,
@@ -69,11 +74,10 @@ export function processStreamChunk(part: TextStreamPart<ToolSet>, handlers: Stre
       }),
     });
   }
-  else if (part.type === "tool-result") {
-    const toolPart = part as any;
-    const resultData = toolPart.output ?? toolPart.result;
+  else if (isToolResultPart(part)) {
+    const toolPart = part as ToolResultStreamPart;
     if (toolPart.toolName === "search") {
-      const sources = extractSourcesFromToolResult(resultData);
+      const sources = extractSourcesFromToolResult(toolPart.output);
       sources.forEach(handlers.onSource);
     }
   }

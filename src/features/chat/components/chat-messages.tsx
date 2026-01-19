@@ -4,8 +4,19 @@
 import { memo, useMemo, useState } from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
+import type { ReasoningUIPart, SearchToolUIPart } from "~/features/chat/types";
 
 import { useChatUIStore } from "~/features/chat/store";
+import {
+  isContentComplete,
+  isReasoningPart,
+  isSearchToolPart,
+  isTextPart,
+  isToolComplete,
+  isToolError,
+  isToolPart,
+  isToolSearching,
+} from "~/features/chat/types";
 
 import type { EditedMessagePayload } from "./messages/inline-message-editor";
 
@@ -58,14 +69,13 @@ export const ChatMessages = memo(({
 
       for (const part of parts) {
         stats.partsIterated++;
-        const p = part as any;
-        if ((part.type === "tool-invocation" || part.type === "tool-search") && p.toolCallId) {
-          toolIds.push(p.toolCallId);
+        if (isToolPart(part)) {
+          toolIds.push(part.toolCallId);
         }
-        else if (part.type === "reasoning") {
-          reasoningTexts.push(p.text || "");
+        else if (isReasoningPart(part)) {
+          reasoningTexts.push(part.text || "");
         }
-        else if (part.type === "text") {
+        else if (isTextPart(part)) {
           textParts.push(part.text);
         }
       }
@@ -189,12 +199,8 @@ export const ChatMessages = memo(({
         return (
           <div key={message.id} className="group markdown text-base">
             {message.parts.map((part, index) => {
-              if (part.type === "reasoning") {
-                const reasoningPart = part as {
-                  type: "reasoning";
-                  text: string;
-                  state?: string;
-                };
+              if (isReasoningPart(part)) {
+                const reasoningPart = part as ReasoningUIPart;
 
                 // Strip [REDACTED] (including leading newlines before it) and skip if empty
                 const cleanedText = (reasoningPart.text || "")
@@ -207,7 +213,7 @@ export const ChatMessages = memo(({
                   return null;
                 }
 
-                const isComplete = reasoningPart.state === "done";
+                const isComplete = isContentComplete(reasoningPart.state);
                 const isThinking = !isComplete;
                 // Only show active thinking if we're currently loading
                 // Otherwise, incomplete reasoning should show as stopped
@@ -226,7 +232,7 @@ export const ChatMessages = memo(({
                 );
               }
 
-              if (part.type === "text") {
+              if (isTextPart(part)) {
                 return (
                   <MemoizedMarkdown
                     key={`part-${index}`}
@@ -236,60 +242,34 @@ export const ChatMessages = memo(({
                 );
               }
 
-              const isSearchTool = part.type === "tool-search"
-                || (part.type === "tool-invocation" && (part as any).toolName === "search");
-
-              if (isSearchTool) {
-                let sources: any[] = [];
-                let isSearching = false;
+              // SDK v6: tool parts use `tool-${toolName}` pattern
+              // Our search tool is typed as `tool-search`
+              if (isSearchToolPart(part)) {
+                const searchPart = part as SearchToolUIPart;
+                let sources: Array<{ id: string; sourceType: string; url: string; title: string }> = [];
                 let searchError: string | undefined;
 
-                const sp = part as any;
-
-                // Handle "tool-search" (likely from DB persistence or custom format)
-                if (sp.type === "tool-search") {
-                  if (sp.output?.error) {
-                    searchError = sp.output.message || "Search failed";
-                  }
-                  else if (sp.output?.results && Array.isArray(sp.output.results)) {
-                    sources = sp.output.results.map((r: any) => ({
-                      id: r.url || Math.random().toString(),
-                      sourceType: "url",
-                      url: r.url,
-                      title: r.title,
-                    }));
-                  }
-                  // Only show as actively searching if we're currently loading
-                  // Otherwise, incomplete searches should show as stopped
-                  isSearching = !!isLoading && isLastMessage && !sp.output && sp.state !== "done" && sp.state !== "output-available";
+                // Handle error state
+                if (isToolError(searchPart.state)) {
+                  searchError = searchPart.errorText || "Search failed";
                 }
-                // Handle "tool-invocation" (standard AI SDK during stream)
-                else if (sp.type === "tool-invocation") {
-                  if (sp.state === "result") {
-                    const result = sp.result;
-                    if (result?.error) {
-                      searchError = result.message || "Search failed";
-                    }
-                    else {
-                      const results = result?.results || (Array.isArray(result) ? result : []);
-                      sources = results.map((r: any) => ({
-                        id: r.url || Math.random().toString(),
-                        sourceType: "url",
-                        url: r.url,
-                        title: r.title,
-                      }));
-                    }
-                  }
-                  else {
-                    // Only show as actively searching if we're currently loading
-                    isSearching = !!isLoading && isLastMessage;
-                  }
+                // Handle output error in result
+                else if (searchPart.output?.error) {
+                  searchError = searchPart.output.message || "Search failed";
+                }
+                // Handle successful results
+                else if (searchPart.output?.results && Array.isArray(searchPart.output.results)) {
+                  sources = searchPart.output.results.map(r => ({
+                    id: r.url || Math.random().toString(),
+                    sourceType: "url",
+                    url: r.url,
+                    title: r.title,
+                  }));
                 }
 
-                // Check if the search tool call actually completed
-                const searchComplete = sp.type === "tool-search"
-                  ? (sp.state === "done" || sp.state === "output-available" || !!sp.output)
-                  : (sp.state === "result");
+                // Determine searching state based on SDK v6 tool states
+                const searchComplete = isToolComplete(searchPart.state);
+                const isSearching = !searchComplete && isToolSearching(searchPart.state) && isLoading && isLastMessage;
 
                 // Only mark as stopped if the message was stopped AND search wasn't complete
                 const searchStopped = isStopped && !searchComplete;

@@ -6,8 +6,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
+import type { FileUIPart, ReasoningUIPart, SearchToolUIPart } from "~/features/chat/types";
 
 import { Button } from "~/components/ui/button";
+import {
+  isFilePart,
+  isReasoningPart,
+  isSearchToolPart,
+  isTextPart,
+  isToolError,
+} from "~/features/chat/types";
 import { cn } from "~/lib/utils";
 
 import { MessageAttachments } from "./messages/file-preview";
@@ -45,32 +53,28 @@ function SharedCopyButton({ content }: { content: string }) {
   );
 }
 
-type FilePart = {
-  type: "file";
-  url?: string;
-  filename?: string;
-  mediaType?: string;
-};
-
 function extractTextAndAttachments(message: ChatUIMessage): {
   textContent: string;
   attachments: Array<{ url: string; filename?: string; mediaType?: string }>;
 } {
-  const textParts = message.parts
-    .filter(part => part.type === "text")
-    .map(part => part.text);
+  const textParts: string[] = [];
+  const attachments: Array<{ url: string; filename?: string; mediaType?: string }> = [];
 
-  const attachments = message.parts
-    .filter(part => part.type === "file")
-    .map((part) => {
-      const filePart = part as FilePart;
-      return {
-        url: filePart.url || "",
-        filename: filePart.filename,
-        mediaType: filePart.mediaType,
-      };
-    })
-    .filter(a => a.url || a.filename);
+  for (const part of message.parts) {
+    if (isTextPart(part)) {
+      textParts.push(part.text);
+    }
+    else if (isFilePart(part)) {
+      const filePart = part as FileUIPart;
+      if (filePart.url || filePart.filename) {
+        attachments.push({
+          url: filePart.url || "",
+          filename: filePart.filename,
+          mediaType: filePart.mediaType,
+        });
+      }
+    }
+  }
 
   return {
     textContent: textParts.join(""),
@@ -140,7 +144,7 @@ export function SharedChatMessages({ messages, showAttachments }: SharedChatMess
         }
 
         const assistantTextContent = message.parts
-          .filter(part => part.type === "text")
+          .filter(part => isTextPart(part))
           .map(part => part.text)
           .join("");
         const modelName = message.metadata?.model;
@@ -148,12 +152,8 @@ export function SharedChatMessages({ messages, showAttachments }: SharedChatMess
         return (
           <div key={message.id} className="group markdown text-base">
             {message.parts.map((part, index) => {
-              if (part.type === "reasoning") {
-                const reasoningPart = part as {
-                  type: "reasoning";
-                  text: string;
-                  state?: string;
-                };
+              if (isReasoningPart(part)) {
+                const reasoningPart = part as ReasoningUIPart;
 
                 const cleanedText = (reasoningPart.text || "")
                   .replace(/\n\s*\[REDACTED\]/g, "")
@@ -174,7 +174,7 @@ export function SharedChatMessages({ messages, showAttachments }: SharedChatMess
                 );
               }
 
-              if (part.type === "text") {
+              if (isTextPart(part)) {
                 return (
                   <MemoizedMarkdown
                     key={`part-${index}`}
@@ -184,49 +184,28 @@ export function SharedChatMessages({ messages, showAttachments }: SharedChatMess
                 );
               }
 
-              const isSearchTool = part.type === "tool-search"
-                || (part.type === "tool-invocation" && (part as { toolName?: string }).toolName === "search");
-
-              if (isSearchTool) {
+              // SDK v6: tool parts use `tool-${toolName}` pattern
+              if (isSearchToolPart(part)) {
+                const searchPart = part as SearchToolUIPart;
                 let sources: Array<{ id: string; sourceType: string; url: string; title: string }> = [];
                 let searchError: string | undefined;
 
-                const sp = part as {
-                  type: string;
-                  output?: { error?: boolean; message?: string; results?: Array<{ url: string; title: string }> };
-                  state?: string;
-                  result?: { error?: boolean; message?: string; results?: Array<{ url: string; title: string }> } | Array<{ url: string; title: string }>;
-                };
-
-                if (sp.type === "tool-search") {
-                  if (sp.output?.error) {
-                    searchError = sp.output.message || "Search failed";
-                  }
-                  else if (sp.output?.results && Array.isArray(sp.output.results)) {
-                    sources = sp.output.results.map(r => ({
-                      id: r.url || Math.random().toString(),
-                      sourceType: "url",
-                      url: r.url,
-                      title: r.title,
-                    }));
-                  }
+                // Handle error state
+                if (isToolError(searchPart.state)) {
+                  searchError = searchPart.errorText || "Search failed";
                 }
-                else if (sp.type === "tool-invocation" && sp.state === "result") {
-                  const result = sp.result;
-                  if (result && typeof result === "object" && "error" in result && result.error) {
-                    searchError = (result as { message?: string }).message || "Search failed";
-                  }
-                  else {
-                    const results = (result && typeof result === "object" && "results" in result
-                      ? (result as { results: Array<{ url: string; title: string }> }).results
-                      : Array.isArray(result) ? result : []) as Array<{ url: string; title: string }>;
-                    sources = results.map(r => ({
-                      id: r.url || Math.random().toString(),
-                      sourceType: "url",
-                      url: r.url,
-                      title: r.title,
-                    }));
-                  }
+                // Handle output error in result
+                else if (searchPart.output?.error) {
+                  searchError = searchPart.output.message || "Search failed";
+                }
+                // Handle successful results
+                else if (searchPart.output?.results && Array.isArray(searchPart.output.results)) {
+                  sources = searchPart.output.results.map(r => ({
+                    id: r.url || Math.random().toString(),
+                    sourceType: "url",
+                    url: r.url,
+                    title: r.title,
+                  }));
                 }
 
                 return (
