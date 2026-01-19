@@ -1,14 +1,7 @@
-import { getUserSettings } from "~/features/settings/queries";
+import type { UserSettingsData } from "~/features/settings/types";
 
-export async function generatePrompt(userId: string): Promise<string> {
-  let customInstructions = "";
-  try {
-    const userSettings = await getUserSettings(userId);
-    customInstructions = userSettings.customInstructions || "";
-  }
-  catch (error) {
-    console.error("Failed to get user's custom instructions:", error);
-  }
+export function generatePrompt(settings: UserSettingsData): string {
+  const customInstructions = settings.customInstructions || "";
 
   const systemPrompt = `
     # System Instructions

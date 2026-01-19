@@ -1,6 +1,6 @@
 "use client";
 
-import { BrainIcon, Loader2 } from "lucide-react";
+import { BrainIcon, Loader2, StopCircle } from "lucide-react";
 import { useMemo } from "react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/components/ui/accordion";
@@ -81,7 +81,7 @@ function ReasoningTimeline({ sections }: { sections: ReasoningSection[] }) {
   );
 }
 
-export function ReasoningContent({ content, isThinking }: { content: string; isThinking?: boolean }) {
+export function ReasoningContent({ content, isThinking, stopped, id }: { content: string; isThinking?: boolean; stopped?: boolean; id?: string }) {
   const sections = useMemo(() => parseReasoningContent(content || ""), [content]);
 
   if (!content && !isThinking)
@@ -89,23 +89,29 @@ export function ReasoningContent({ content, isThinking }: { content: string; isT
 
   const hasStructuredContent = sections.some(s => s.heading !== null);
 
+  const getIcon = () => {
+    if (stopped) return <StopCircle className="text-muted-foreground h-4 w-4" />;
+    if (isThinking) return <Loader2 className="h-4 w-4 animate-spin" />;
+    return <BrainIcon className="h-4 w-4" />;
+  };
+
+  const getLabel = () => {
+    if (stopped) return "Thinking stopped";
+    if (isThinking) return "Thinking...";
+    return "Reasoning";
+  };
+
   return (
     <div className="mt-2 flex w-full flex-1 text-xs">
-      <Accordion type="single" collapsible className="w-full flex-1">
-        <AccordionItem value="reasoning" className="border-b-0">
+      <Accordion type="single" collapsible className="w-full flex-1" id={id}>
+        <AccordionItem value={id ?? "reasoning"} className="border-b-0">
           <AccordionTrigger className={`
             flex flex-row items-center justify-start gap-2 pt-0 pb-1
           `}
           >
-            {isThinking
-              ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )
-              : (
-                  <BrainIcon className="h-4 w-4" />
-                )}
+            {getIcon()}
             <span className="font-medium">
-              {isThinking ? "Thinking..." : "Reasoning"}
+              {getLabel()}
             </span>
           </AccordionTrigger>
           <AccordionContent>

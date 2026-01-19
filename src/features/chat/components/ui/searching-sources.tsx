@@ -1,32 +1,34 @@
 "use client";
 
-import { AlertCircle, ExternalLink, Globe, Loader2 } from "lucide-react";
+import { AlertCircle, ExternalLink, Globe, Loader2, StopCircle } from "lucide-react";
 import Link from "next/link";
 
 import type { SourceInfo } from "~/app/api/chat/route";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "~/components/ui/accordion";
 
-export function SearchingSources({ sources, isSearching, error }: { sources: SourceInfo[]; isSearching?: boolean; error?: string }) {
-  if (!sources.length && !isSearching && !error)
+export function SearchingSources({ sources, isSearching, error, stopped, id }: { sources: SourceInfo[]; isSearching?: boolean; error?: string; stopped?: boolean; id?: string }) {
+  if (!sources.length && !isSearching && !error && !stopped)
     return null;
 
   const getIcon = () => {
     if (error) return <AlertCircle className="text-destructive h-4 w-4" />;
+    if (stopped) return <StopCircle className="text-muted-foreground h-4 w-4" />;
     if (isSearching) return <Loader2 className="h-4 w-4 animate-spin" />;
     return <Globe className="h-4 w-4" />;
   };
 
   const getLabel = () => {
     if (error) return "Search failed";
+    if (stopped) return "Search stopped";
     if (isSearching) return "Searching the web...";
     return "Sources used";
   };
 
   return (
     <div className="mt-2 flex w-full flex-1 text-xs">
-      <Accordion type="single" collapsible className="w-full flex-1">
-        <AccordionItem value="sources">
+      <Accordion type="single" collapsible className="w-full flex-1" id={id}>
+        <AccordionItem value={id ?? "sources"}>
           <AccordionTrigger className={`
             flex flex-row items-center justify-start gap-2 pt-0 pb-1
           `}

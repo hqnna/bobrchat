@@ -8,8 +8,7 @@ import { ensureThreadExists, renameThreadById, saveMessage } from "~/features/ch
 import { formatProviderError } from "~/features/chat/server/error";
 import { generateThreadTitle } from "~/features/chat/server/naming";
 import { streamChatResponse } from "~/features/chat/server/service";
-import { getUserSettings } from "~/features/settings/queries";
-import { resolveKey } from "~/lib/api-keys/server";
+import { getUserSettingsAndKeys } from "~/features/settings/queries";
 
 export type SourceInfo = {
   id: string;
@@ -78,12 +77,15 @@ export async function POST(req: Request) {
       span.setAttribute("chat.isRegeneration", isRegeneration ?? false);
 
       const resolveStart = performance.now();
-      const [threadStatus, openrouterKey, parallelKey, settings] = await Promise.all([
+      const [threadStatus, { settings, resolvedKeys }] = await Promise.all([
         threadId ? ensureThreadExists(threadId, session.user.id) : Promise.resolve(null),
-        resolveKey(session.user.id, "openrouter", openrouterClientKey),
-        searchEnabled ? resolveKey(session.user.id, "parallel", parallelClientKey) : Promise.resolve(undefined),
-        getUserSettings(session.user.id),
+        getUserSettingsAndKeys(session.user.id, {
+          openrouter: openrouterClientKey,
+          parallel: parallelClientKey,
+        }),
       ]);
+      const openrouterKey = resolvedKeys.openrouter;
+      const parallelKey = searchEnabled ? resolvedKeys.parallel : undefined;
       console.log(`[chat/${flow}] resolve (thread+keys+settings): ${(performance.now() - resolveStart).toFixed(1)}ms`);
 
       if (threadStatus && !threadStatus.owned) {
@@ -126,8 +128,8 @@ export async function POST(req: Request) {
       const { stream, createMetadata } = await streamChatResponse(
         messages,
         baseModelId,
-        session.user.id,
         openrouterKey,
+        settings,
         searchEnabled,
         parallelKey,
         undefined,

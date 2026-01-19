@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { convertToModelMessages, stepCountIs, streamText } from "ai";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
+import type { UserSettingsData } from "~/features/settings/types";
 
 import { getTokenCosts } from "./cost";
 import { calculateResponseMetadata } from "./metrics";
@@ -23,8 +24,8 @@ export type PdfEngineConfig = {
  *
  * @param messages The chat messages to send to the model.
  * @param modelId The ID of the model to use.
- * @param userId The ID of the user making the request (to get their API key).
- * @param openRouterApiKey Optional API key provided by the client (for browser-only storage).
+ * @param openRouterApiKey The resolved OpenRouter API key.
+ * @param userSettings The user's settings (pre-fetched to avoid duplicate DB queries).
  * @param searchEnabled Whether web search is enabled for this request.
  * @param parallelApiKey The Parallel Web API key for web search functionality.
  * @param onFirstToken Optional callback to capture first token timing from the messageMetadata handler.
@@ -37,8 +38,8 @@ export type ReasoningLevel = "xhigh" | "high" | "medium" | "low" | "minimal" | "
 export async function streamChatResponse(
   messages: ChatUIMessage[],
   modelId: string,
-  userId: string,
   openRouterApiKey: string,
+  userSettings: UserSettingsData,
   searchEnabled?: boolean,
   parallelApiKey?: string,
   onFirstToken?: () => void,
@@ -67,9 +68,9 @@ export async function streamChatResponse(
       const useOcr = hasPdf && pdfEngineConfig?.useOcrForPdfs && !pdfEngineConfig?.supportsNativePdf;
       const ocrPageCountPromise = useOcr ? getTotalPdfPageCount(messages) : Promise.resolve(0);
 
-      const [{ inputCostPerMillion, outputCostPerMillion }, systemPrompt, processedMessages] = await Promise.all([
+      const systemPrompt = generatePrompt(userSettings);
+      const [{ inputCostPerMillion, outputCostPerMillion }, processedMessages] = await Promise.all([
         getTokenCosts(modelId),
-        generatePrompt(userId),
         processMessageFiles(messages, modelSupportsFiles),
       ]);
       const convertedMessages = await convertToModelMessages(processedMessages);

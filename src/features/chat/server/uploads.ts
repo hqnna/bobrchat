@@ -24,40 +24,39 @@ export async function processMessageFiles(
       return msg;
     }
 
-    const newParts = [];
-    let textContent = "";
-
-    for (const part of msg.parts) {
-      if (part.type === "file") {
+    const textFileParts = msg.parts
+      .map((part, index) => ({ part, index }))
+      .filter(({ part }) => {
+        if (part.type !== "file") return false;
         const filePart = part as { mediaType?: string; storagePath?: string };
         const isText = filePart.mediaType?.startsWith("text/")
           || filePart.mediaType === "application/json"
           || filePart.mediaType?.includes("csv");
+        return isText && filePart.storagePath;
+      });
 
-        if (isText && filePart.storagePath) {
-          try {
-            const content = await getFileContent(filePart.storagePath);
-            textContent += `\n\n[File Content: ${filePart.storagePath}]\n${content}\n`;
-          }
-          catch (error) {
-            console.error(`Failed to fetch file content for ${filePart.storagePath}:`, error);
-            textContent += `\n\n[Failed to read file content: ${filePart.storagePath}]\n`;
-          }
+    const fileContents = await Promise.all(
+      textFileParts.map(async ({ part, index }) => {
+        const filePart = part as { mediaType?: string; storagePath?: string };
+        try {
+          const content = await getFileContent(filePart.storagePath!);
+          return { index, content: `\n\n[File Content: ${filePart.storagePath}]\n${content}\n` };
         }
-        else {
-          // Keep non-text files as is
-          newParts.push(part);
+        catch (error) {
+          console.error(`Failed to fetch file content for ${filePart.storagePath}:`, error);
+          return { index, content: `\n\n[Failed to read file content: ${filePart.storagePath}]\n` };
         }
-      }
-      else if (part.type === "text") {
-        newParts.push(part);
-      }
-      else {
-        newParts.push(part);
-      }
-    }
+      }),
+    );
 
-    // Append extracted text to the last text part, or create a new one
+    const textFileIndices = new Set(textFileParts.map(({ index }) => index));
+    const newParts = msg.parts.filter((_, index) => !textFileIndices.has(index));
+
+    const textContent = fileContents
+      .sort((a, b) => a.index - b.index)
+      .map(({ content }) => content)
+      .join("");
+
     if (textContent) {
       const lastPart = newParts[newParts.length - 1];
       if (lastPart && lastPart.type === "text") {
