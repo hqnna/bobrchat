@@ -20,19 +20,21 @@ export default function HomePage(): React.ReactNode {
 
   // TODO: Properly type this
   const handleSendMessage = async (messageParts: any) => {
-    try {
-      const threadId = await createThread.mutateAsync(settings?.defaultThreadName);
+    const threadId = crypto.randomUUID();
 
-      // Store initial message in sessionStorage to avoid URL length limits
-      // Messages longer than ~2000 chars were getting truncated when URL-encoded
-      sessionStorage.setItem(`initial_${threadId}`, JSON.stringify(messageParts));
+    sessionStorage.setItem(`initial_${threadId}`, JSON.stringify(messageParts));
 
-      router.push(`/chat/${threadId}`);
-    }
-    catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to create thread. Please try again.";
-      toast.error(message);
-    }
+    router.push(`/chat/${threadId}`);
+
+    createThread.mutate(
+      { threadId, title: settings?.defaultThreadName },
+      {
+        onError: (error) => {
+          const message = error instanceof Error ? error.message : "Failed to create thread";
+          toast.error(message);
+        },
+      },
+    );
   };
 
   return (

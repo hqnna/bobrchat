@@ -7,7 +7,7 @@ import type { ChatUIMessage } from "~/app/api/chat/route";
 import { deleteFile } from "~/features/attachments/lib/storage";
 import { deleteUserAttachmentsByIds, getThreadStats, listThreadAttachments, resolveUserAttachmentsByStoragePaths } from "~/features/attachments/queries";
 import { auth } from "~/features/auth/lib/auth";
-import { createThread, deleteMessagesAfterCount, deleteThreadById, getMessagesByThreadId, isThreadOwnedByUser, renameThreadById, saveMessage } from "~/features/chat/queries";
+import { createThread, deleteMessagesAfterCount, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage } from "~/features/chat/queries";
 import { generateThreadTitle } from "~/features/chat/server/naming";
 import { getShareByThreadId, revokeThreadShare, upsertThreadShare } from "~/features/chat/sharing-queries";
 import { resolveKey } from "~/lib/api-keys/server";
@@ -45,14 +45,18 @@ function extractStoragePathsFromThreadMessages(messages: ChatUIMessage[]): strin
 }
 
 /**
- * Creates a new chat thread for the authenticated user.
- * Requires user to have an API key configured.
+ * Creates a new chat thread for the authenticated user (idempotent).
+ * Accepts an optional client-generated threadId for optimistic updates.
  *
- * @param defaultName Optional default thread name (pass from client to avoid DB query)
+ * @param options.threadId Optional client-generated thread ID
+ * @param options.title Optional thread title
  * @returns {Promise<string>} The ID of the newly created thread.
- * @throws {Error} If user is not authenticated or doesn't have an API key configured.
+ * @throws {Error} If user is not authenticated.
  */
-export async function createNewThread(defaultName?: string): Promise<string> {
+export async function createNewThread(options?: {
+  threadId?: string;
+  title?: string;
+}): Promise<string> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -60,11 +64,10 @@ export async function createNewThread(defaultName?: string): Promise<string> {
   if (!session?.user)
     throw new Error("Not authenticated");
 
-  const threadName = defaultName || "New Chat";
-
-  // We used to check if the key existed here, but now we just let the chat service
-  // handle missing keys when the user sends a message.
-  const threadId = await createThread(session.user.id, threadName);
+  const threadId = await createThread(session.user.id, {
+    threadId: options?.threadId,
+    title: options?.title || "New Chat",
+  });
 
   return threadId;
 }
@@ -254,6 +257,7 @@ export async function fetchThreadStats(threadId: string): Promise<{
 /**
  * Deletes messages from a thread, keeping only the first N messages.
  * Used for regenerating responses - keeps messages up to a certain point and deletes the rest.
+ * Ownership is enforced at the DB layer by deleteMessagesAfterCount.
  *
  * @param threadId ID of the thread
  * @param keepCount Number of messages to keep (from the beginning)
@@ -268,13 +272,7 @@ export async function truncateThreadMessages(threadId: string, keepCount: number
     throw new Error("Not authenticated");
   }
 
-  // Verify ownership
-  const isOwner = await isThreadOwnedByUser(threadId, session.user.id);
-  if (!isOwner) {
-    throw new Error("Thread not found or unauthorized");
-  }
-
-  return deleteMessagesAfterCount(threadId, keepCount);
+  return deleteMessagesAfterCount(threadId, session.user.id, keepCount);
 }
 
 /**

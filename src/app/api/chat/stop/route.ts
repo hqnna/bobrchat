@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { auth } from "~/features/auth/lib/auth";
-import { isThreadOwnedByUser, saveMessage } from "~/features/chat/queries";
+import { saveMessage } from "~/features/chat/queries";
 
 export async function POST(req: Request) {
   const session = await auth.api.getSession({
@@ -26,14 +26,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const isOwned = await isThreadOwnedByUser(threadId, session.user.id);
-  if (!isOwned) {
-    return new Response(JSON.stringify({ error: "Thread not found or unauthorized" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
+  // Ownership is enforced at the DB layer by saveMessage (userId in WHERE clause)
   await saveMessage(threadId, session.user.id, message);
 
   return new Response(JSON.stringify({ ok: true }), {

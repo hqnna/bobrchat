@@ -1,5 +1,7 @@
 "use client";
 
+import type { InfiniteData } from "@tanstack/react-query";
+
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 
@@ -24,6 +26,11 @@ type ThreadFromApi = {
 type ThreadsResponse = {
   threads: ThreadFromApi[];
   nextCursor: string | null;
+};
+
+type CreateThreadInput = {
+  threadId: string;
+  title?: string;
 };
 
 async function fetchThreads({ pageParam }: { pageParam: string | undefined }): Promise<ThreadsResponse> {
@@ -70,8 +77,49 @@ export function useCreateThread() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (defaultName?: string) => createNewThread(defaultName),
-    onSuccess: () => {
+    mutationFn: (input: CreateThreadInput) =>
+      createNewThread({ threadId: input.threadId, title: input.title }),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: THREADS_KEY });
+
+      const previous = queryClient.getQueryData<InfiniteData<ThreadsResponse>>(THREADS_KEY);
+
+      const now = new Date().toISOString();
+      const optimisticThread: ThreadFromApi = {
+        id: input.threadId,
+        title: input.title || "New Chat",
+        lastMessageAt: now,
+        userId: "",
+        createdAt: now,
+        updatedAt: now,
+        isShared: false,
+      };
+
+      queryClient.setQueryData<InfiniteData<ThreadsResponse>>(THREADS_KEY, (old) => {
+        if (!old) {
+          return {
+            pages: [{ threads: [optimisticThread], nextCursor: null }],
+            pageParams: [undefined],
+          };
+        }
+
+        const [first, ...rest] = old.pages;
+        const withoutDup = first.threads.filter(t => t.id !== input.threadId);
+
+        return {
+          ...old,
+          pages: [{ ...first, threads: [optimisticThread, ...withoutDup] }, ...rest],
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(THREADS_KEY, context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: THREADS_KEY });
     },
   });

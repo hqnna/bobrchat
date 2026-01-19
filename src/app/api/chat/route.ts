@@ -4,7 +4,7 @@ import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 
 import { auth } from "~/features/auth/lib/auth";
-import { isThreadOwnedByUser, renameThreadById, saveMessage } from "~/features/chat/queries";
+import { ensureThreadExists, renameThreadById, saveMessage } from "~/features/chat/queries";
 import { formatProviderError } from "~/features/chat/server/error";
 import { generateThreadTitle } from "~/features/chat/server/naming";
 import { streamChatResponse } from "~/features/chat/server/service";
@@ -78,15 +78,15 @@ export async function POST(req: Request) {
       span.setAttribute("chat.isRegeneration", isRegeneration ?? false);
 
       const resolveStart = performance.now();
-      const [isOwned, openrouterKey, parallelKey, settings] = await Promise.all([
-        threadId ? isThreadOwnedByUser(threadId, session.user.id) : Promise.resolve(true),
+      const [threadStatus, openrouterKey, parallelKey, settings] = await Promise.all([
+        threadId ? ensureThreadExists(threadId, session.user.id) : Promise.resolve(null),
         resolveKey(session.user.id, "openrouter", openrouterClientKey),
         searchEnabled ? resolveKey(session.user.id, "parallel", parallelClientKey) : Promise.resolve(undefined),
         getUserSettings(session.user.id),
       ]);
-      console.log(`[chat/${flow}] resolve (ownership+keys+settings): ${(performance.now() - resolveStart).toFixed(1)}ms`);
+      console.log(`[chat/${flow}] resolve (thread+keys+settings): ${(performance.now() - resolveStart).toFixed(1)}ms`);
 
-      if (threadId && !isOwned) {
+      if (threadStatus && !threadStatus.owned) {
         return new Response(JSON.stringify({ error: "Thread not found or unauthorized" }), {
           status: 403,
           headers: { "Content-Type": "application/json" },

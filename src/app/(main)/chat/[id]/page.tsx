@@ -41,8 +41,10 @@ export default async function ChatServer({ params }: ChatServerProps) {
     getMessagesByThreadId(id),
   ]);
 
-  // Verify thread exists and user owns it
-  if (!thread || thread.userId !== session.user.id) {
+  // If thread exists, verify ownership
+  // If thread doesn't exist, allow access - it will be created on-demand by the chat API
+  // (This supports optimistic navigation where client navigates before server creates thread)
+  if (thread && thread.userId !== session.user.id) {
     redirect("/");
   }
 

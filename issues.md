@@ -4,24 +4,6 @@ Based on my exploration with the React best practices skill and the oracle's dee
 
 ## 🟠 HIGH — Visible UI Smoothness Issues
 
-### 4. Transport Object Recreated Every Render
-
-**Files:** [chat-thread.tsx#L50-80](file:///home/matthew_hre/repos/bobrchat/src/app/%28main%29/chat/[id]/chat-thread.tsx#L50-L80)
-
-```tsx
-transport: new DefaultChatTransport({ ... })
-```
-
-Created inline—new object every render. Can cause subtle resets, wasted work, extra rerenders.
-
-**Recommendation:** Wrap in `useMemo` keyed by `id`:
-
-```tsx
-const transport = useMemo(() => new DefaultChatTransport({ ... }), [id]);
-```
-
----
-
 ### 5. Thread List Invalidation on Every Message Finish
 
 **Files:** [chat-thread.tsx#L85-89](file:///home/matthew_hre/repos/bobrchat/src/app/%28main%29/chat/[id]/chat-thread.tsx#L85-L89)
@@ -35,20 +17,6 @@ onFinish: () => {
 Triggers sidebar refetch + `groupThreadsByDate()` recalculation after _every_ response—excessive.
 
 **Recommendation:** Only invalidate for first message / auto-rename scenarios. Or use optimistic cache updates.
-
----
-
-### 6. Thread Creation Has No Optimistic Update
-
-**Files:** [use-threads.ts#L69-78](file:///home/matthew_hre/repos/bobrchat/src/features/chat/hooks/use-threads.ts#L69-L78), [page.tsx#L22-31](file:///home/matthew_hre/repos/bobrchat/src/app/%28main%29/page.tsx#L22-L31)
-
-User sends first message → `await createThread.mutateAsync()` → wait for server → navigate → wait for page load → retrieve from sessionStorage → finally send message.
-
-**Recommendation:**
-
-- Optimistic thread insertion into React Query cache
-- Navigate immediately with pending state
-- Consider starting stream optimistically with client-generated ID
 
 ---
 

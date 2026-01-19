@@ -104,37 +104,31 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     };
   }, [id, setStreamingThreadId, status]);
 
-  // Wrapper around sendMessage that patches the user message with toggle values
-  // so editing works correctly before page refresh
+  // Wrapper around sendMessage that patches toggle values onto the user message
+  // so the edit UI can read them before page refresh (DB has these values after reload)
   const sendMessage: typeof baseSendMessage = useCallback(async (message, options) => {
     const state = useChatUIStore.getState();
+    const { searchEnabled, reasoningLevel } = state;
+
     const promise = baseSendMessage(message, options);
 
-    // Patch the newly added user message with toggle values
-    // Use setTimeout to ensure React has flushed the state update from baseSendMessage
-    setTimeout(() => {
+    // The AI SDK adds the message to state synchronously, but doesn't preserve
+    // extra fields. Patch the message after React's batch update completes.
+    queueMicrotask(() => {
       setMessages((prev) => {
-        // Find the last user message (not just last message, since streaming may have started)
         const lastUserIdx = prev.findLastIndex(m => m.role === "user");
-        if (lastUserIdx === -1)
-          return prev;
+        if (lastUserIdx === -1) return prev;
 
         const msg = prev[lastUserIdx];
-        if ("searchEnabled" in msg)
-          return prev; // Already patched
+        if ("searchEnabled" in msg) return prev;
 
-        return prev.map((m, idx) => {
-          if (idx === lastUserIdx) {
-            return {
-              ...m,
-              searchEnabled: state.searchEnabled,
-              reasoningLevel: state.reasoningLevel,
-            };
-          }
-          return m;
-        });
+        return prev.map((m, idx) =>
+          idx === lastUserIdx
+            ? { ...m, searchEnabled, reasoningLevel }
+            : m,
+        );
       });
-    }, 0);
+    });
 
     return promise;
   }, [baseSendMessage, setMessages]);

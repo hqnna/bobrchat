@@ -134,22 +134,6 @@ export async function getMessagesByThreadId(threadId: string): Promise<ChatUIMes
 }
 
 /**
- * Check if a thread exists and is owned by the given user
- *
- * @param threadId ID of the thread
- * @param userId ID of the user
- * @return {Promise<boolean>} True if thread exists and is owned by user
- */
-export async function isThreadOwnedByUser(threadId: string, userId: string): Promise<boolean> {
-  const result = await db
-    .select({ id: threads.id })
-    .from(threads)
-    .where(and(eq(threads.id, threadId), eq(threads.userId, userId)))
-    .limit(1);
-  return result.length > 0;
-}
-
-/**
  * Save a single message to a thread
  *
  * @param threadId ID of the thread
@@ -252,24 +236,70 @@ export async function saveMessages(
 }
 
 /**
- * Create a new thread for a user
+ * Create a new thread for a user (idempotent)
  *
  * @param userId ID of the user
- * @param title Optional thread title (uses user's default setting if not provided)
- * @return {Promise<string>} The ID of the newly created thread
+ * @param options Options for thread creation
+ * @return {Promise<string>} The ID of the thread (created or existing)
  */
-export async function createThread(userId: string, title?: string): Promise<string> {
+export async function createThread(
+  userId: string,
+  options?: { threadId?: string; title?: string },
+): Promise<string> {
   const now = new Date();
-  const result = await db
+  const threadId = options?.threadId ?? crypto.randomUUID();
+  const title = options?.title || "New Chat";
+
+  await db
     .insert(threads)
     .values({
+      id: threadId,
       userId,
-      title: title || "New Chat", // Default will be overridden in the action
+      title,
       lastMessageAt: now,
     })
-    .returning();
+    .onConflictDoNothing({ target: threads.id });
 
-  return result[0].id;
+  return threadId;
+}
+
+/**
+ * Ensure a thread exists for a user, creating it if missing.
+ * Returns ownership status.
+ *
+ * @param threadId ID of the thread
+ * @param userId ID of the user
+ * @param title Optional title for new threads
+ * @return {Promise<{ exists: boolean; owned: boolean; created: boolean }>}
+ */
+export async function ensureThreadExists(
+  threadId: string,
+  userId: string,
+  title?: string,
+): Promise<{ exists: boolean; owned: boolean; created: boolean }> {
+  const existing = await db
+    .select({ id: threads.id, userId: threads.userId })
+    .from(threads)
+    .where(eq(threads.id, threadId))
+    .limit(1);
+
+  if (existing.length > 0) {
+    return {
+      exists: true,
+      owned: existing[0].userId === userId,
+      created: false,
+    };
+  }
+
+  const now = new Date();
+  await db.insert(threads).values({
+    id: threadId,
+    userId,
+    title: title || "New Chat",
+    lastMessageAt: now,
+  });
+
+  return { exists: true, owned: true, created: true };
 }
 
 /**
@@ -377,17 +407,20 @@ export async function renameThreadById(threadId: string, userId: string, newTitl
 /**
  * Delete messages from a thread, keeping only the first N messages.
  * Used for regeneration - keeps messages up to a certain point and deletes the rest.
+ * Enforces ownership by joining on threads table.
  *
  * @param threadId ID of the thread
+ * @param userId ID of the user (for ownership verification)
  * @param keepCount Number of messages to keep (from the beginning)
- * @returns Number of messages deleted
+ * @returns Number of messages deleted, or 0 if thread not owned
  */
-export async function deleteMessagesAfterCount(threadId: string, keepCount: number): Promise<number> {
-  // Get all message IDs for this thread, ordered by creation time
+export async function deleteMessagesAfterCount(threadId: string, userId: string, keepCount: number): Promise<number> {
+  // Get all message IDs for this thread, but only if user owns the thread
   const allMessages = await db
     .select({ id: messages.id })
     .from(messages)
-    .where(eq(messages.threadId, threadId))
+    .innerJoin(threads, eq(messages.threadId, threads.id))
+    .where(and(eq(messages.threadId, threadId), eq(threads.userId, userId)))
     .orderBy(messages.createdAt);
 
   // Determine which messages to delete (everything after keepCount)
