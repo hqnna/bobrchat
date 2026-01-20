@@ -1,7 +1,9 @@
 import type { UIMessage } from "ai";
 
 import * as Sentry from "@sentry/nextjs";
+import { consumeStream } from "ai";
 import { headers } from "next/headers";
+import { after } from "next/server";
 
 import { auth } from "~/features/auth/lib/auth";
 import { ensureThreadExists, renameThreadById, saveMessage } from "~/features/chat/queries";
@@ -171,8 +173,11 @@ export async function POST(req: Request) {
           const metadata = createMetadata(part);
           return metadata;
         },
-        onFinish: async ({ responseMessage }) => {
+        onFinish: async ({ responseMessage, isAborted }) => {
           if (threadId) {
+            if (isAborted) {
+              console.log(`[chat/${flow}] Stream aborted, saving partial response`);
+            }
             await saveMessage(threadId, session.user.id, responseMessage);
           }
         },
@@ -180,6 +185,11 @@ export async function POST(req: Request) {
         onError: (error) => {
           Sentry.captureException(error, { tags: { operation: "chat-stream" } });
           return formatProviderError(error);
+        },
+        consumeSseStream: async (sseStream) => {
+          after(async () => {
+            await consumeStream(sseStream);
+          });
         },
       });
 
