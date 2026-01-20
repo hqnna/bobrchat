@@ -36,7 +36,7 @@ export default antfu({
       "error",
       {
         case: "kebabCase",
-        ignore: ["README.md", "AGENTS.md"],
+        ignore: ["README.md", "AGENTS.md", "CONTRIBUTING.md"],
       },
     ],
   },

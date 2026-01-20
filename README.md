@@ -1,4 +1,4 @@
-# BobrChat — Internal README
+# BobrChat
 
 ## Getting Started
 
@@ -22,16 +22,16 @@ bun db:push
 ## Overview
 
 - **Stack:** `Next.js 16` (App Router), React 19, Tailwind v4.
-- **DB:** PostgreSQL via Drizzle ORM (`src/lib/db/` / `src/lib/db/schema/`).
-- **Auth:** better-auth integration (`src/features/auth/lib/auth.ts`, `src/features/auth/lib/auth-client.ts`).
-- **AI:** Vercel AI SDK + OpenRouter (`src/features/chat`).
+- **DB:** PostgreSQL via Drizzle ORM (`src/lib/db/`).
+- **Auth:** better-auth integration (`src/features/auth/` + `src/app/api/auth/`).
+- **AI:** Vercel AI SDK + OpenRouter (`src/features/chat/`).
 
 ## Structure
 
 - **`src/app/`**: Next App Router pages and API routes. API endpoints live under `src/app/api/*`.
 - **`src/components/`**: Shared UI primitives and higher-level components (shadcn/radix based).
 - **`src/features/`**: Feature folders (e.g., `chat`, `auth`, `attachments`, `settings`). Each feature typically contains `components/`, `hooks/`, `server/`, `actions.ts`, `queries.ts`, and `types.ts`.
-- **`src/lib/`**: Utilities and infra glue: `env`, `db` exports, API key helpers, and query keys/provider.
+- **`src/lib/`**: Utilities and infra glue: `env.ts`, `db/` (schema + migrations), `api-keys/`, `queries/`, `hooks/`, and more.
 
 ## State + Data Flow
 
@@ -48,18 +48,9 @@ bun db:push
 - Each feature folder follows a similar layout: `components/`, `hooks/`, `server/`, `types.ts`, `queries.ts`, `actions.ts`.
 - Server-only logic (database queries, server-side AI calls) belongs in `server/` subfolders or under `src/app/api/*` routes.
 
-## Database & Migrations
-
-- Drizzle ORM schemas are in `src/lib/db/schema/` and migrations in `src/lib/db/migrations/`.
-
 ## Where to look
 
 - **App shell / routes:** `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/api/*`.
-- **Chat flow:** `src/features/chat/*` — store, actions, queries, components.
-- **UI primitives:** `src/components/ui/*` for shared building blocks.
-- **Auth:** `src/features/auth/lib/auth.ts` and `src/app/api/auth/*`.
-
-## Developer Notes
-
-- Local run and build commands are in `package.json` (dev: `bun run dev`).
-- DB scripts and Drizzle tasks exist in the repo—see `AGENTS.md` for developer commands and conventions.
+- **Chat flow:** `src/features/chat/` — store, actions, queries, components.
+- **Auth:** `src/features/auth/` (client config) + `src/app/api/auth/` (backend routes).
+- **UI primitives:** `src/components/ui/` for shared building blocks.
