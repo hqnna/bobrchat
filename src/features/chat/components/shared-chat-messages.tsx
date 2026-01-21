@@ -1,4 +1,3 @@
-/* eslint-disable react/no-array-index-key */
 "use client";
 
 import { CheckIcon, CopyIcon } from "lucide-react";
@@ -6,22 +5,14 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
-import type { FileUIPart, ReasoningUIPart, SearchToolUIPart } from "~/features/chat/types";
+import type { FileUIPart } from "~/features/chat/types";
 
 import { Button } from "~/components/ui/button";
-import {
-  isFilePart,
-  isReasoningPart,
-  isSearchToolPart,
-  isTextPart,
-  isToolError,
-} from "~/features/chat/types";
+import { isFilePart } from "~/features/chat/types";
+import { extractMessageText, MessageParts } from "~/features/chat/ui/parts";
 import { cn } from "~/lib/utils";
 
 import { MessageAttachments } from "./messages/file-preview";
-import { MemoizedMarkdown } from "./messages/markdown";
-import { ReasoningContent } from "./ui/reasoning-content";
-import { SearchingSources } from "./ui/searching-sources";
 
 function SharedCopyButton({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
@@ -53,18 +44,11 @@ function SharedCopyButton({ content }: { content: string }) {
   );
 }
 
-function extractTextAndAttachments(message: ChatUIMessage): {
-  textContent: string;
-  attachments: Array<{ url: string; filename?: string; mediaType?: string }>;
-} {
-  const textParts: string[] = [];
+function extractAttachments(message: ChatUIMessage): Array<{ url: string; filename?: string; mediaType?: string }> {
   const attachments: Array<{ url: string; filename?: string; mediaType?: string }> = [];
 
   for (const part of message.parts) {
-    if (isTextPart(part)) {
-      textParts.push(part.text);
-    }
-    else if (isFilePart(part)) {
+    if (isFilePart(part)) {
       const filePart = part as FileUIPart;
       if (filePart.url || filePart.filename) {
         attachments.push({
@@ -76,10 +60,7 @@ function extractTextAndAttachments(message: ChatUIMessage): {
     }
   }
 
-  return {
-    textContent: textParts.join(""),
-    attachments,
-  };
+  return attachments;
 }
 
 type SharedChatMessagesProps = {
@@ -92,7 +73,8 @@ export function SharedChatMessages({ messages, showAttachments }: SharedChatMess
     <div className="mx-auto w-full max-w-3xl space-y-4 p-4 py-8">
       {messages.map((message) => {
         if (message.role === "user") {
-          const { textContent, attachments } = extractTextAndAttachments(message);
+          const textContent = extractMessageText(message.parts);
+          const attachments = extractAttachments(message);
 
           return (
             <div
@@ -143,83 +125,16 @@ export function SharedChatMessages({ messages, showAttachments }: SharedChatMess
           );
         }
 
-        const assistantTextContent = message.parts
-          .filter(part => isTextPart(part))
-          .map(part => part.text)
-          .join("");
+        const assistantTextContent = extractMessageText(message.parts);
         const modelName = message.metadata?.model;
 
         return (
           <div key={message.id} className="group markdown text-base">
-            {message.parts.map((part, index) => {
-              if (isReasoningPart(part)) {
-                const reasoningPart = part as ReasoningUIPart;
-
-                const cleanedText = (reasoningPart.text || "")
-                  .replace(/\n\s*\[REDACTED\]/g, "")
-                  .replace(/\[REDACTED\]/g, "")
-                  .replace(/\\n/g, "\n")
-                  .replace(/\n\s*\n/g, "\n")
-                  .trim();
-                if (!cleanedText) {
-                  return null;
-                }
-
-                return (
-                  <ReasoningContent
-                    key={`part-${index}`}
-                    content={cleanedText}
-                    isThinking={false}
-                  />
-                );
-              }
-
-              if (isTextPart(part)) {
-                return (
-                  <MemoizedMarkdown
-                    key={`part-${index}`}
-                    id={`${message.id}-${index}`}
-                    content={part.text}
-                  />
-                );
-              }
-
-              // SDK v6: tool parts use `tool-${toolName}` pattern
-              if (isSearchToolPart(part)) {
-                const searchPart = part as SearchToolUIPart;
-                let sources: Array<{ id: string; sourceType: string; url: string; title: string }> = [];
-                let searchError: string | undefined;
-
-                // Handle error state
-                if (isToolError(searchPart.state)) {
-                  searchError = searchPart.errorText || "Search failed";
-                }
-                // Handle output error in result
-                else if (searchPart.output?.error) {
-                  searchError = searchPart.output.message || "Search failed";
-                }
-                // Handle successful results
-                else if (searchPart.output?.results && Array.isArray(searchPart.output.results)) {
-                  sources = searchPart.output.results.map(r => ({
-                    id: r.url || Math.random().toString(),
-                    sourceType: "url",
-                    url: r.url,
-                    title: r.title,
-                  }));
-                }
-
-                return (
-                  <SearchingSources
-                    key={`part-${index}`}
-                    sources={sources}
-                    isSearching={false}
-                    error={searchError}
-                  />
-                );
-              }
-
-              return null;
-            })}
+            <MessageParts
+              messageId={message.id}
+              parts={message.parts}
+              mode="shared"
+            />
             <div
               className={cn(
                 `

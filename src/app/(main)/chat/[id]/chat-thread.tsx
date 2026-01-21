@@ -117,10 +117,12 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     queueMicrotask(() => {
       setMessages((prev) => {
         const lastUserIdx = prev.findLastIndex(m => m.role === "user");
-        if (lastUserIdx === -1) return prev;
+        if (lastUserIdx === -1)
+          return prev;
 
         const msg = prev[lastUserIdx];
-        if ("searchEnabled" in msg) return prev;
+        if ("searchEnabled" in msg)
+          return prev;
 
         return prev.map((m, idx) =>
           idx === lastUserIdx
