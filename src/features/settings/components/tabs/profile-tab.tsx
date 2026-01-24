@@ -22,8 +22,11 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { Skeleton } from "~/components/ui/skeleton";
+import { useQueryClient } from "@tanstack/react-query";
+
 import { authClient, useSession } from "~/features/auth/lib/auth-client";
 import { deleteAllThreads } from "~/features/settings/actions";
+import { THREADS_KEY } from "~/lib/queries/query-keys";
 import { usePasswordChangeForm } from "~/features/settings/hooks/use-password-change-form";
 
 export function ProfileTab() {
@@ -421,6 +424,7 @@ function ChangeEmailSection() {
 
 function DangerZoneSection() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [deleteThreadsOpen, setDeleteThreadsOpen] = useState(false);
   const [deleteThreadsLoading, setDeleteThreadsLoading] = useState(false);
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
@@ -433,6 +437,7 @@ function DangerZoneSection() {
     setDeleteThreadsLoading(true);
     try {
       const { deletedCount } = await deleteAllThreads();
+      await queryClient.invalidateQueries({ queryKey: THREADS_KEY });
       toast.success(`Deleted ${deletedCount} thread${deletedCount === 1 ? "" : "s"}`);
       setDeleteThreadsOpen(false);
     }
