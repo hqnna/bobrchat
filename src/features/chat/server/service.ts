@@ -10,7 +10,7 @@ import { getTokenCosts } from "./cost";
 import { calculateResponseMetadata } from "./metrics";
 import { getModelProvider } from "./models";
 import { generatePrompt } from "./prompt";
-import { createSearchTools } from "./search";
+import { createSearchTools } from "./search/index";
 import { createStreamHandlers, processStreamChunk } from "./stream";
 import { getTotalPdfPageCount, hasPdfAttachment, processMessageFiles } from "./uploads";
 
@@ -84,7 +84,7 @@ export async function streamChatResponse(
         },
       );
 
-      const tools = searchEnabled ? createSearchTools(parallelApiKey) : undefined;
+      const tools = searchEnabled && parallelApiKey ? createSearchTools(parallelApiKey) : undefined;
 
       const getPdfPluginConfig = () => {
         if (!hasPdf) {

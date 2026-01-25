@@ -1,116 +1,46 @@
 /**
- * UI Message Part Types aligned with Vercel AI SDK v6
+ * Chat types - leveraging Vercel AI SDK v6 exports where possible
  * @see https://ai-sdk.dev/docs/reference/ai-sdk-core/ui-message
+ *
+ * Key SDK patterns used:
+ * - `ToolUIPart<TOOLS>`: Typed tool parts with `type: "tool-${NAME}"`
+ * - `InferUITools<TOOLS>`: Infers input/output types from a ToolSet
+ * - `getToolName(part)`: SDK helper to get tool name from any tool part
+ * - `isToolUIPart(part)`: SDK helper to check if a part is a tool part
  */
 
-// SDK v6 tool states
-export type ToolState
-  = | "input-streaming"
-    | "input-available"
-    | "output-available"
-    | "output-error";
+import type {
+  FileUIPart,
+  ReasoningUIPart,
+  SourceUrlUIPart,
+  StepStartUIPart,
+  TextStreamPart,
+  TextUIPart,
+  ToolSet,
+  ToolUIPart,
+} from "ai";
 
-// SDK v6 reasoning/text states
-export type ContentState = "streaming" | "done";
+import type { SearchUITools } from "./server/search/index";
 
-// SDK v6 TextUIPart
-export type TextUIPart = {
-  type: "text";
-  text: string;
-  state?: ContentState;
+// Re-export SDK types for convenience
+export type {
+  FileUIPart,
+  ReasoningUIPart,
+  SourceUrlUIPart,
+  StepStartUIPart,
+  TextUIPart,
 };
 
-// SDK v6 ReasoningUIPart
-export type ReasoningUIPart = {
-  type: "reasoning";
-  text: string;
-  state?: ContentState;
-  providerMetadata?: Record<string, unknown>;
-};
-
-// SDK v6 ToolUIPart - uses `tool-${toolName}` pattern
-// The search tool specifically is `tool-search`
-export type SearchToolUIPart = {
-  type: "tool-search";
-  toolCallId: string;
-  input?: { query: string };
-  output?: {
-    results?: Array<{ url: string; title: string }>;
-    error?: boolean;
-    message?: string;
-  };
-  errorText?: string;
-  state: ToolState;
-};
-
-// Generic tool part for other tools
-export type GenericToolUIPart = {
-  type: `tool-${string}`;
-  toolCallId: string;
-  input?: unknown;
-  output?: unknown;
-  errorText?: string;
-  state: ToolState;
-};
-
-// Union of all tool parts
-export type ToolUIPart = SearchToolUIPart | GenericToolUIPart;
-
-// File part
-export type FileUIPart = {
-  type: "file";
-  mediaType: string;
-  filename?: string;
-  url: string;
-};
-
-// Source parts
-export type SourceUrlUIPart = {
-  type: "source-url";
-  sourceId: string;
-  url: string;
-  title?: string;
-};
-
-// Step boundary
-export type StepStartUIPart = {
-  type: "step-start";
-};
-
-// Union of all UI message parts
-export type UIMessagePart
-  = | TextUIPart
-    | ReasoningUIPart
-    | ToolUIPart
-    | FileUIPart
-    | SourceUrlUIPart
-    | StepStartUIPart;
+// Re-export inferred search tool types for UI type safety
+export type { SearchTools, SearchUITools } from "./server/search/index";
 
 // ============================================
-// Server-side stream types (TextStreamPart)
+// Simple type guards (work with loose part types)
 // ============================================
 
-// SDK v6 tool-result stream part
-export type ToolResultStreamPart = {
-  type: "tool-result";
-  toolCallId: string;
-  toolName: string;
-  output: unknown;
-};
-
-// Type guard for tool-result stream parts
-export function isToolResultPart(part: { type: string }): part is ToolResultStreamPart {
-  return part.type === "tool-result";
-}
-
-// Search result structure from Parallel API
-export type SearchToolResult = {
-  results?: Array<{ url: string; title: string }>;
-  error?: boolean;
-  message?: string;
-};
-
-// Type guards
+// Note: SDK guards require full UIMessagePart type, but our components often
+// use looser types like `{ type: string } & Record<string, unknown>`.
+// These simple guards work with any object that has a `type` field.
 
 export function isTextPart(part: { type: string }): part is TextUIPart {
   return part.type === "text";
@@ -120,22 +50,80 @@ export function isReasoningPart(part: { type: string }): part is ReasoningUIPart
   return part.type === "reasoning";
 }
 
-export function isToolPart(part: { type: string }): part is ToolUIPart {
+export function isToolPart(part: { type: string }): part is ToolUIPart<SearchUITools> {
   return part.type.startsWith("tool-");
-}
-
-export function isSearchToolPart(part: { type: string }): part is SearchToolUIPart {
-  return part.type === "tool-search";
 }
 
 export function isFilePart(part: { type: string }): part is FileUIPart {
   return part.type === "file";
 }
 
+// ============================================
+// Derived state types from SDK
+// ============================================
+
+// Tool states derived from SDK's ToolUIPart
+export type ToolState = ToolUIPart["state"];
+
+// Content states derived from SDK's TextUIPart/ReasoningUIPart
+export type ContentState = NonNullable<TextUIPart["state"]>;
+
+// ============================================
+// App-specific tool types (Search)
+// ============================================
+
+// Re-export search types from server for convenience
+export type {
+  SearchErrorOutput,
+  SearchOutput,
+  SearchSource,
+  SearchToolOutput,
+} from "./server/search/index";
+
+/**
+ * Search tool UI part - extracted from SDK's ToolUIPart<SearchUITools>.
+ *
+ * The SDK generates typed tool parts as `{ type: "tool-${NAME}", ... }`.
+ * For our search tool, this becomes `type: "tool-search"`.
+ *
+ * This type is compatible with the SDK's ToolUIPart when SearchUITools is used.
+ */
+export type SearchToolUIPart = Extract<
+  ToolUIPart<SearchUITools>,
+  { type: "tool-search" }
+>;
+
+// ============================================
+// Server-side stream types (derived from SDK)
+// ============================================
+
+// Tool result stream part derived from SDK's TextStreamPart
+export type ToolResultStreamPart = Extract<
+  TextStreamPart<ToolSet>,
+  { type: "tool-result" }
+>;
+
+// Type guard for tool-result stream parts
+export function isToolResultPart(
+  part: TextStreamPart<ToolSet>,
+): part is ToolResultStreamPart {
+  return part.type === "tool-result";
+}
+
+// ============================================
+// App-specific type guards
+// ============================================
+
+export function isSearchToolPart(part: { type: string }): part is SearchToolUIPart {
+  return part.type === "tool-search";
+}
+
+// ============================================
 // Tool state helpers
+// ============================================
 
 export function isToolComplete(state: ToolState): boolean {
-  return state === "output-available" || state === "output-error";
+  return state === "output-available" || state === "output-error" || state === "output-denied";
 }
 
 export function isToolSearching(state: ToolState): boolean {
@@ -146,7 +134,9 @@ export function isToolError(state: ToolState): boolean {
   return state === "output-error";
 }
 
+// ============================================
 // Content state helpers
+// ============================================
 
 export function isContentComplete(state?: ContentState): boolean {
   return state === "done";

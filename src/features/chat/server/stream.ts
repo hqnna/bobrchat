@@ -1,7 +1,9 @@
 import type { TextStreamPart, ToolSet } from "ai";
 
-import type { SearchToolResult, ToolResultStreamPart } from "~/features/chat/types";
+import type { SearchToolOutput } from "~/features/chat/server/search/index";
+import type { ToolResultStreamPart } from "~/features/chat/types";
 
+import { isSearchError } from "~/features/chat/server/search/index";
 import { isToolResultPart } from "~/features/chat/types";
 
 type Source = { id: string; sourceType: string; url?: string; title?: string };
@@ -29,29 +31,22 @@ export function createStreamHandlers(
 }
 
 /**
- * Extracts sources from a Parallel search tool result.
+ * Extracts sources from a search tool result.
  */
 function extractSourcesFromToolResult(result: unknown): Source[] {
   if (!result)
     return [];
 
-  try {
-    const data = typeof result === "string" ? JSON.parse(result) : result;
-    const searchResult = data as SearchToolResult;
-    const items = searchResult.results ?? [];
-
-    return items
-      .filter(item => item?.url)
-      .map(item => ({
-        id: item.url,
-        sourceType: "url" as const,
-        url: item.url,
-        title: item.title,
-      }));
-  }
-  catch {
+  const output = result as SearchToolOutput;
+  if (isSearchError(output))
     return [];
-  }
+
+  return output.sources.map(s => ({
+    id: s.url,
+    sourceType: "url" as const,
+    url: s.url,
+    title: s.title,
+  }));
 }
 
 /**

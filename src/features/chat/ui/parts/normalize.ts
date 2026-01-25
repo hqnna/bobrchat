@@ -1,5 +1,6 @@
 import type { ReasoningUIPart, SearchToolUIPart, TextUIPart } from "~/features/chat/types";
 
+import { isSearchError } from "~/features/chat/server/search/index";
 import {
   isSearchToolPart,
   isTextPart,
@@ -9,7 +10,7 @@ import {
 
 export type NormalizedSource = {
   id: string;
-  sourceType: string;
+  sourceType: "url";
   url: string;
   title: string;
 };
@@ -40,28 +41,25 @@ export function normalizeReasoningText(text: string | undefined): string | null 
 
 /**
  * Normalizes a search tool part, extracting sources and errors with stable IDs.
- * Uses URL as the stable key instead of Math.random().
+ * Uses URL as the stable key.
  */
 export function normalizeSearchToolPart(part: SearchToolUIPart): NormalizedSearchResult {
   const complete = isToolComplete(part.state);
   let sources: NormalizedSource[] = [];
   let error: string | undefined;
 
-  // Handle error state
   if (isToolError(part.state)) {
     error = part.errorText || "Search failed";
   }
-  // Handle output error in result
-  else if (part.output?.error) {
-    error = part.output.message || "Search failed";
+  else if (part.output && isSearchError(part.output)) {
+    error = part.output.message;
   }
-  // Handle successful results
-  else if (part.output?.results && Array.isArray(part.output.results)) {
-    sources = part.output.results.map(r => ({
-      id: r.url || `search-result-${r.title}`,
-      sourceType: "url",
-      url: r.url,
-      title: r.title,
+  else if (part.output && !isSearchError(part.output)) {
+    sources = part.output.sources.map(s => ({
+      id: s.url,
+      sourceType: "url" as const,
+      url: s.url,
+      title: s.title,
     }));
   }
 
