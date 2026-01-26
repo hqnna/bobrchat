@@ -207,19 +207,10 @@ export const ChatMessages = memo(({
             {(message.metadata || isStopped) && (
               <div className="touch-device-hidden">
                 <MessageMetrics
-                  metrics={{
-                    id: message.id,
-                    model: message.metadata?.model || stoppedModelId || stoppedInfo?.modelId || (isStopped ? "unknown" : null),
-                    tokensPerSecond: message.metadata ? message.metadata.tokensPerSecond.toFixed(2) : null,
-                    totalTokens: message.metadata ? message.metadata.inputTokens + message.metadata.outputTokens : null,
-                    inputTokens: message.metadata ? message.metadata.inputTokens : null,
-                    outputTokens: message.metadata ? message.metadata.outputTokens : null,
-                    ttft: message.metadata ? message.metadata.timeToFirstTokenMs : null,
-                    costUsd: message.metadata
-                      ? message.metadata.costUSD
-                      : null,
-                    content: textContent,
-                  }}
+                  messageId={message.id}
+                  metadata={message.metadata}
+                  fallbackModel={stoppedModelId || stoppedInfo?.modelId || (isStopped ? "unknown" : null)}
+                  content={textContent}
                   onRetry={() => onRegenerate?.(message.id)}
                   isRetrying={isRegenerating}
                   variant={isStopped ? "minimal" : "full"}
