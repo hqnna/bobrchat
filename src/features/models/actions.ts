@@ -16,7 +16,7 @@ import { resolveKey } from "~/lib/api-keys/server";
  * @return {Promise<Model[]>} Array of available models with metadata
  * @throws {Error} If not authenticated or no API key available
  */
-export async function fetchOpenRouterModels(clientKey?: string) {
+export async function fetchOpenRouterModels(clientKey?: string): Promise<Model[]> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -45,7 +45,7 @@ export async function fetchOpenRouterModels(clientKey?: string) {
     let models = result.data;
 
     models = models.filter((model: Model) => {
-      return !(model.architecture?.outputModalities?.includes("image"));
+      return !(model.architecture?.outputModalities?.includes("image")) && !(model.id === "openrouter/auto");
     });
 
     return models;
