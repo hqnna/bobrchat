@@ -4,19 +4,17 @@ import type { UseChatHelpers } from "@ai-sdk/react";
 
 import { AlertCircle, SendIcon, SquareIcon } from "lucide-react";
 import Link from "next/link";
-import * as React from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
 import { Textarea } from "~/components/ui/textarea";
-import { useFileAttachments } from "~/features/attachments/hooks/use-file-attachments";
 import { FilePreview } from "~/features/chat/components/messages/file-preview";
-import { useChatUIStore } from "~/features/chat/store";
-import { canUploadFiles, getAcceptedFileTypes, getModelCapabilities, useFavoriteModels, useModels } from "~/features/models";
-import { useApiKeyStatus } from "~/features/settings/hooks/use-api-status";
-import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
+import {
+  getAcceptedFileTypesDescription,
+  useChatInputController,
+} from "~/features/chat/hooks/use-chat-input-controller";
 import { cn } from "~/lib/utils";
 
 import { ChatInputCapabilities } from "./chat-input-capabilities";
@@ -29,214 +27,64 @@ type ChatInputProps = {
   onStop?: () => void;
 };
 
-function getAcceptedFileTypesDescription(capabilities: ReturnType<typeof getModelCapabilities>): string {
-  const types: string[] = [];
-
-  if (capabilities.supportsImages) {
-    types.push("images");
-  }
-
-  // Plain text files are always supported
-  types.push("text files (txt, md, code)");
-
-  if (capabilities.supportsFiles) {
-    types.push("JSON, CSV");
-  }
-
-  if (capabilities.supportsPdf) {
-    types.push("PDFs");
-  }
-
-  return types.join(", ");
-}
-
 export function ChatInput({
   className,
   sendMessage,
   isLoading = false,
   onStop,
 }: ChatInputProps) {
-  const { data: settings } = useUserSettings();
-
-  const { hasKey: hasOpenRouterKey, isLoading: isOpenRouterLoading } = useApiKeyStatus("openrouter");
-  const { hasKey: hasParallelApiKey, isLoading: isParallelApiLoading } = useApiKeyStatus("parallel");
-
-  const keyboardShortcut = settings?.sendMessageKeyboardShortcut || "enter";
-  const inputHeightScale = settings?.inputHeightScale ?? 0;
-
-  const favoriteModels = useFavoriteModels();
-  const { isLoading: isModelsLoading } = useModels({ enabled: hasOpenRouterKey });
-  const {
-    input: value,
-    setInput: onValueChange,
-    selectedModelId,
-    setSelectedModelId,
-    searchEnabled,
-    setSearchEnabled,
-    reasoningLevel,
-    setReasoningLevel,
-  } = useChatUIStore();
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-
-  const selectedModel = favoriteModels.find(m => m.id === selectedModelId);
-  const capabilities = getModelCapabilities(selectedModel);
-  const canUpload = canUploadFiles(capabilities);
-  const acceptedTypes = getAcceptedFileTypes(capabilities);
-
-  const {
-    pendingFiles,
-    fileInputRef,
-    isUploading,
-    handleRemoveFile,
-    handlePaste,
-    handleAttachClick,
-    handleFileInputChange,
-    clearPendingFiles,
-  } = useFileAttachments({
-    capabilities,
-    onValueChange,
-    textareaRef,
+  const { input, apiStatus, model, features, attachments, send } = useChatInputController({
+    sendMessage,
+    isLoading,
+    onStop,
   });
-
-  const [isExpanded, setIsExpanded] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!textareaRef.current)
-      return;
-
-    const lineCount = value.split("\n").length;
-    const shouldExpand = lineCount > 2;
-
-    if (shouldExpand !== isExpanded) {
-      setIsExpanded(shouldExpand);
-    }
-  }, [value, isExpanded]);
-
-  const canSendMessage = () => {
-    // disabled={isLoading ? !onStop : (!value.trim() && pendingFiles.length === 0) || isUploading}
-    if (isLoading) {
-      return !onStop;
-    }
-
-    if (!value.trim()) {
-      return false;
-    }
-
-    if (isUploading) {
-      return false;
-    }
-
-    if (hasOpenRouterKey === false) {
-      return false;
-    }
-
-    if (selectedModel === undefined) {
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (isLoading) {
-      onStop?.();
-      return;
-    }
-
-    if (!canSendMessage()) {
-      return;
-    }
-
-    const hasContent = value.trim() || pendingFiles.length > 0;
-    if (!hasContent) {
-      return;
-    }
-
-    const isUploading = pendingFiles.some(f => f.isUploading);
-    if (isUploading) {
-      return;
-    }
-
-    const fileUIParts = pendingFiles.map(f => ({
-      type: "file" as const,
-      id: f.id,
-      url: f.url,
-      storagePath: f.storagePath,
-      mediaType: f.mediaType,
-      filename: f.filename,
-    }));
-
-    sendMessage({
-      text: value,
-      files: fileUIParts.length > 0 ? fileUIParts : undefined,
-    });
-    onValueChange("");
-    clearPendingFiles();
-    textareaRef.current?.focus();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // keyboardShortcut "enter" = Send on Enter, new line on Shift+Enter, don't send on Ctrl+Enter
-    // keyboardShortcut "ctrlEnter" = Send on Ctrl+Enter, new line on Enter, don't send on Shift+Enter
-    // keyboardShortcut "shiftEnter" = Send on Shift+Enter, new line on Enter, don't send on Ctrl+Enter
-    if (
-      ((keyboardShortcut === "enter" && e.key === "Enter" && !e.shiftKey && !e.ctrlKey)
-        || (keyboardShortcut === "ctrlEnter" && e.key === "Enter" && e.ctrlKey)
-        || (keyboardShortcut === "shiftEnter" && e.key === "Enter" && e.shiftKey))
-    ) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
 
   return (
     <div className={cn(`bg-background p-4 pt-0`, className)}>
       <div className="mx-auto max-w-3xl space-y-3">
-        {hasOpenRouterKey === false && !isOpenRouterLoading && (
+        {apiStatus.hasOpenRouterKey === false && !apiStatus.isOpenRouterLoading && (
           <ApiWarningBadge />
         )}
         <form
-          onSubmit={handleSubmit}
+          onSubmit={send.submit}
           className={cn(`
             border-border bg-background relative flex flex-col border
           `)}
         >
           {/* File Preview Area */}
-          {pendingFiles.length > 0 && (
+          {attachments.pendingFiles.length > 0 && (
             <div className="border-border border-b p-3">
               <FilePreview
-                files={pendingFiles}
-                onRemoveAction={handleRemoveFile}
-                supportsNativePdf={capabilities.supportsNativePdf}
+                files={attachments.pendingFiles}
+                onRemoveAction={attachments.handleRemoveFile}
+                supportsNativePdf={model.capabilities.supportsNativePdf}
               />
             </div>
           )}
 
           <div className="relative">
             <Textarea
-              ref={textareaRef}
-              value={value}
-              onChange={e => onValueChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onPaste={handlePaste}
+              ref={input.textareaRef}
+              value={input.value}
+              onChange={e => input.setValue(e.target.value)}
+              onKeyDown={input.onKeyDown}
+              onPaste={attachments.handlePaste}
               placeholder="Type your message here..."
-              disabled={hasOpenRouterKey === false}
+              disabled={apiStatus.hasOpenRouterKey === false}
               className={cn(`
                 resize-none rounded-none border-0 px-3 py-3 pr-12 text-base
                 transition-all duration-200 ease-out
                 focus-visible:ring-0
                 disabled:opacity-50
-              `, isExpanded
+              `, input.isExpanded
                 ? (
-                    inputHeightScale === 1
+                    input.inputHeightScale === 1
                       ? "max-h-32 min-h-32"
-                      : inputHeightScale === 2
+                      : input.inputHeightScale === 2
                         ? `max-h-48 min-h-48`
-                        : inputHeightScale === 3
+                        : input.inputHeightScale === 3
                           ? `max-h-64 min-h-64`
-                          : inputHeightScale === 4
+                          : input.inputHeightScale === 4
                             ? `max-h-80 min-h-80`
                             : `max-h-16 min-h-16`
                   )
@@ -244,33 +92,33 @@ export function ChatInput({
               rows={2}
             />
 
-            {keyboardShortcut !== "enter" && (
+            {input.keyboardShortcut !== "enter" && (
               <Kbd
                 className={cn(
                   `
                     absolute right-2 bottom-2 transition-transform duration-150
                     ease-in-out
                   `,
-                  value.trim().length === 0
+                  input.value.trim().length === 0
                     ? "translate-y-1 scale-95 opacity-0"
                     : "translate-y-0 scale-100 opacity-100",
                 )}
               >
-                {keyboardShortcut === "ctrlEnter" && "Ctrl + Enter"}
-                {keyboardShortcut === "shiftEnter" && "Shift + Enter"}
+                {input.keyboardShortcut === "ctrlEnter" && "Ctrl + Enter"}
+                {input.keyboardShortcut === "shiftEnter" && "Shift + Enter"}
               </Kbd>
             )}
           </div>
 
           {/* Hidden file input */}
           <input
-            ref={fileInputRef}
+            ref={attachments.fileInputRef}
             type="file"
             multiple
-            accept={acceptedTypes || undefined}
-            onChange={handleFileInputChange}
+            accept={model.acceptedTypes || undefined}
+            onChange={attachments.handleFileInputChange}
             className="hidden"
-            disabled={!canUpload}
+            disabled={!model.canUpload}
           />
 
           {/* Bottom toolbar */}
@@ -280,39 +128,39 @@ export function ChatInput({
           >
             {/* Model Selector */}
             <ModelSelector
-              models={favoriteModels}
-              selectedModelId={selectedModelId || undefined}
-              onSelectModelAction={setSelectedModelId}
+              models={model.favorites}
+              selectedModelId={model.selectedId || undefined}
+              onSelectModelAction={model.setSelectedId}
               popoverWidth="w-full"
-              isLoading={isModelsLoading || isOpenRouterLoading}
+              isLoading={model.isLoading || apiStatus.isOpenRouterLoading}
             />
 
             <div className="flex-1" />
             <div className="flex items-center gap-2">
               {/* Capabilities Menu */}
               <ChatInputCapabilities
-                capabilities={capabilities}
-                reasoningLevel={reasoningLevel}
-                searchEnabled={searchEnabled}
-                pendingFilesCount={pendingFiles.length}
-                hasOpenRouterKey={hasOpenRouterKey}
-                hasParallelApiKey={hasParallelApiKey}
-                isParallelApiLoading={isParallelApiLoading}
-                onReasoningLevelChange={setReasoningLevel}
-                onSearchToggle={() => setSearchEnabled(!searchEnabled)}
-                onAttachClick={handleAttachClick}
-                acceptedFileTypesDescription={getAcceptedFileTypesDescription(capabilities)}
+                capabilities={model.capabilities}
+                reasoningLevel={features.reasoningLevel}
+                searchEnabled={features.searchEnabled}
+                pendingFilesCount={attachments.pendingFiles.length}
+                hasOpenRouterKey={apiStatus.hasOpenRouterKey}
+                hasParallelApiKey={apiStatus.hasParallelApiKey}
+                isParallelApiLoading={apiStatus.isParallelApiLoading}
+                onReasoningLevelChange={features.setReasoningLevel}
+                onSearchToggle={features.toggleSearch}
+                onAttachClick={attachments.handleAttachClick}
+                acceptedFileTypesDescription={getAcceptedFileTypesDescription(model.capabilities)}
               />
 
               <Button
-                type={isLoading ? "button" : "submit"}
+                type={send.isLoading ? "button" : "submit"}
                 size="icon"
-                onClick={isLoading ? onStop : undefined}
-                disabled={isLoading ? !onStop : !canSendMessage()}
+                onClick={send.isLoading ? send.onStop : undefined}
+                disabled={send.isLoading ? !send.onStop : !send.canSend}
                 className="ml-1 size-8 shrink-0"
-                title={isLoading ? "Stop generating" : "Send message"}
+                title={send.isLoading ? "Stop generating" : "Send message"}
               >
-                {isLoading
+                {send.isLoading
                   ? <SquareIcon size={8} />
                   : <SendIcon size={8} />}
               </Button>
