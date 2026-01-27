@@ -3,7 +3,7 @@ import { marked } from "marked";
 import Link from "next/link";
 import { memo, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import rehypeMathjax from "rehype-mathjax";
+import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
@@ -20,7 +20,7 @@ const MemoizedMarkdownBlock = memo(
     return (
       <ReactMarkdown
         remarkPlugins={[remarkGfm, [remarkMath]]}
-        rehypePlugins={[rehypeMathjax]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           code: ({ node, className, children, ...props }) => {
             const match = /language-(\w+)/.exec(className || "");
