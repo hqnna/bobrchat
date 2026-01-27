@@ -1,19 +1,25 @@
+import { headers } from "next/headers";
 import { Suspense } from "react";
 
 import { ChatSidebar } from "~/components/sidebar/chat-sidebar";
 import { FloatingSidebarToggle } from "~/components/sidebar/floating-sidebar-toggle";
 import { SidebarProvider } from "~/components/ui/sidebar";
+import { auth } from "~/features/auth/lib/auth";
 import { SettingsModalProvider } from "~/features/settings/components/settings-modal-provider";
 
-export default function MainLayout({
+export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
   return (
     <SidebarProvider>
-      <ChatSidebar />
-      <FloatingSidebarToggle />
+      {session && <ChatSidebar />}
+      {session && <FloatingSidebarToggle />}
       <main className="w-full">
         {children}
       </main>

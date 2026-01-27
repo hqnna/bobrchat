@@ -97,12 +97,6 @@ export function AuthDialog({ open = true, showCloseButton = false }: AuthDialogP
                   )}
                 </>
               )}
-
-          {!pending2FA && (
-            <p className="text-muted-foreground text-center text-xs">
-              This app is an experiment. We don't bill you for AI usage. We may introduce billing for storage in the future. You bring your own API key and pay providers directly for the tokens you actually use.
-            </p>
-          )}
         </div>
       </DialogContent>
     </Dialog>

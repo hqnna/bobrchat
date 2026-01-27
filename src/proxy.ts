@@ -14,10 +14,10 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Routes that require authentication
-  const protectedRoutes = ["/", "/chat", "/settings"];
+  const protectedRoutes = ["/chat", "/settings"];
 
   // Routes that don't require authentication
-  const publicRoutes = ["/auth", "/api", "/share"];
+  const publicRoutes = ["/landing", "/auth", "/api", "/share"];
 
   // Check if current route requires authentication
   const isProtectedRoute = protectedRoutes.some(route =>
@@ -43,7 +43,6 @@ export async function proxy(request: NextRequest) {
 
     // User is not authenticated and trying to access protected route
     if (isProtectedRoute) {
-      // Redirect to root with auth modal (parallel route will intercept)
       return NextResponse.redirect(new URL("/auth", request.nextUrl.origin));
     }
 
@@ -52,7 +51,7 @@ export async function proxy(request: NextRequest) {
   catch (error) {
     console.error("Auth check error:", error);
 
-    // On error, if accessing protected route, redirect to auth
+    // On error, if accessing protected route, redirect appropriately
     if (isProtectedRoute) {
       return NextResponse.redirect(new URL("/auth", request.nextUrl.origin));
     }
