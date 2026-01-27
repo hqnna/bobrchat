@@ -140,7 +140,7 @@ export async function updateProfile(updates: ProfileUpdate): Promise<void> {
 export async function createDefaultUserSettings(userId: string): Promise<UserSettingsData> {
   const defaultSettings: UserSettingsData = {
     theme: "dark",
-    boringMode: false,
+    accentColor: "green",
     defaultThreadName: "New Chat",
     autoThreadNaming: false,
     useOcrForPdfs: false,

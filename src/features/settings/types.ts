@@ -8,12 +8,21 @@ export type ApiKeyProvider = "openrouter" | "parallel";
 
 export type LandingPageContentType = "suggestions" | "greeting" | "blank";
 
+export const accentColorPresets = ["green", "pink", "cyan", "orange", "yellow", "blue", "gray"] as const;
+export type AccentColorPreset = (typeof accentColorPresets)[number];
+export type AccentColor = AccentColorPreset | number; // preset name or custom hue (0-360)
+
 /**
  * Preferences tab - theme, instructions, thread naming, landing page content
  */
+const accentColorSchema = z.union([
+  z.enum(accentColorPresets),
+  z.number().min(0).max(360),
+]);
+
 export const preferencesSchema = z.object({
   theme: z.enum(["light", "dark", "system"]),
-  boringMode: z.boolean().default(false),
+  accentColor: accentColorSchema.default("green"),
   customInstructions: z.string().max(5000).optional(),
   defaultThreadName: z
     .string()
@@ -31,7 +40,7 @@ export const preferencesSchema = z.object({
  */
 export const preferencesUpdateSchema = z.object({
   theme: z.enum(["light", "dark", "system"]).optional(),
-  boringMode: z.boolean().optional(),
+  accentColor: accentColorSchema.optional(),
   customInstructions: z.string().max(5000).optional(),
   defaultThreadName: z.string().max(255).transform(v => v.trim() || "New Chat").optional(),
   landingPageContent: z.enum(["suggestions", "greeting", "blank"]).optional(),
@@ -100,7 +109,7 @@ export type FavoriteModelsInput = z.infer<typeof favoriteModelsSchema>;
 
 export type UserSettingsData = {
   theme: "dark" | "light" | "system";
-  boringMode: boolean;
+  accentColor: AccentColor;
   customInstructions?: string;
   defaultThreadName: string;
   landingPageContent: LandingPageContentType;

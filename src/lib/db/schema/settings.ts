@@ -15,7 +15,7 @@ export const userSettings = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     settings: jsonb("settings").notNull().default({
       theme: "dark",
-      boringMode: false,
+      accentColor: "green",
       defaultThreadName: "New Chat",
       landingPageContent: "suggestions",
       sendMessageKeyboardShortcut: "enter",

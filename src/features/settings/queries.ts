@@ -9,7 +9,7 @@ import { userSettings } from "~/lib/db/schema/settings";
 
 const DEFAULT_SETTINGS: UserSettingsData = {
   theme: "dark",
-  boringMode: false,
+  accentColor: "green",
   defaultThreadName: "New Chat",
   landingPageContent: "suggestions",
   autoThreadNaming: false,

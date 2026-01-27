@@ -132,7 +132,32 @@
   --sidebar-ring: oklch(0.72 0.19 135);
 }
 
-html.boring {
+/* Accent color presets - Monokai-inspired palette */
+html.accent-pink {
+  --primary: oklch(0.65 0.28 350);
+  --ring: oklch(0.65 0.28 350);
+  --chart-1: oklch(0.65 0.28 350);
+  --sidebar-primary: oklch(0.65 0.28 350);
+  --sidebar-ring: oklch(0.65 0.28 350);
+}
+
+html.accent-orange {
+  --primary: oklch(0.75 0.18 55);
+  --ring: oklch(0.75 0.18 55);
+  --chart-1: oklch(0.75 0.18 55);
+  --sidebar-primary: oklch(0.75 0.18 55);
+  --sidebar-ring: oklch(0.75 0.18 55);
+}
+
+html.accent-blue {
+  --primary: oklch(0.8 0.12 220);
+  --ring: oklch(0.8 0.12 220);
+  --chart-1: oklch(0.8 0.12 220);
+  --sidebar-primary: oklch(0.8 0.12 220);
+  --sidebar-ring: oklch(0.8 0.12 220);
+}
+
+html.accent-gray {
   --primary: oklch(0.55 0.02 260);
   --ring: oklch(0.55 0.02 260);
   --chart-1: oklch(0.55 0.02 260);
@@ -140,7 +165,7 @@ html.boring {
   --sidebar-ring: oklch(0.55 0.02 260);
 }
 
-html.boring.dark {
+html.accent-gray.dark {
   --primary: oklch(0.65 0.02 260);
   --ring: oklch(0.65 0.02 260);
   --chart-1: oklch(0.65 0.02 260);
