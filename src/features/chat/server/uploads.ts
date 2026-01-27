@@ -4,21 +4,18 @@ import { getFileContent } from "~/features/attachments/lib/storage";
 import { getPdfPageCountsByStoragePaths } from "~/features/attachments/queries";
 
 /**
- * Processes messages to extract file content for models that don't natively support files.
+ * Processes messages to extract text file content and inject it into the prompt.
+ *
+ * Text files (text/*, application/json, csv) are ALWAYS extracted into the prompt
+ * because providers generally don't support text file uploads directly - only PDFs and images.
+ * The "supportsFiles" capability from models refers to binary files like PDFs/images, not text files.
  *
  * @param messages The chat messages to process.
- * @param modelSupportsFiles Whether the model natively supports file uploads.
  * @returns Processed messages with extracted text content.
  */
 export async function processMessageFiles(
   messages: ChatUIMessage[],
-  modelSupportsFiles?: boolean,
 ): Promise<ChatUIMessage[]> {
-  // If model supports files, pass through unchanged
-  if (modelSupportsFiles !== false) {
-    return messages;
-  }
-
   return Promise.all(messages.map(async (msg) => {
     if (!msg.parts) {
       return msg;

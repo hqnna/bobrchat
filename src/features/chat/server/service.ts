@@ -29,7 +29,6 @@ export type PdfEngineConfig = {
  * @param searchEnabled Whether web search is enabled for this request.
  * @param parallelApiKey The Parallel Web API key for web search functionality.
  * @param onFirstToken Optional callback to capture first token timing from the messageMetadata handler.
- * @param modelSupportsFiles Optional boolean indicating if the model natively supports file uploads.
  * @param pdfEngineConfig Configuration for PDF processing engine selection.
  * @returns An object containing the text stream and a function to create metadata for each message part.
  */
@@ -43,7 +42,6 @@ export async function streamChatResponse(
   searchEnabled?: boolean,
   parallelApiKey?: string,
   onFirstToken?: () => void,
-  modelSupportsFiles?: boolean,
   pdfEngineConfig?: PdfEngineConfig,
   reasoningLevel?: string,
 ) {
@@ -72,7 +70,7 @@ export async function streamChatResponse(
       const systemPrompt = generatePrompt(userSettings);
       const [{ inputCostPerMillion, outputCostPerMillion }, processedMessages] = await Promise.all([
         getTokenCosts(modelId),
-        processMessageFiles(messages, modelSupportsFiles),
+        processMessageFiles(messages),
       ]);
       const convertedMessages = await convertToModelMessages(processedMessages);
 

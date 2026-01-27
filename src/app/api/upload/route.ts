@@ -20,9 +20,27 @@ const ALLOWED_TYPES = new Set([
   "text/plain",
   "text/markdown",
   "text/csv",
+  "text/javascript",
+  "text/typescript",
+  "text/x-python",
+  "text/x-java",
+  "text/x-c",
+  "text/x-c++",
+  "text/x-go",
+  "text/x-rust",
+  "text/html",
+  "text/css",
+  "text/xml",
   "application/pdf",
   "application/json",
+  "application/javascript",
+  "application/typescript",
+  "application/x-sh",
 ]);
+
+function normalizeMediaType(mime: string): string {
+  return mime.split(";")[0].trim();
+}
 
 export async function POST(req: Request) {
   return Sentry.startSpan(
@@ -97,13 +115,14 @@ export async function POST(req: Request) {
 
           const buffer = Buffer.from(await file.arrayBuffer());
           const detected = await fileTypeFromBuffer(buffer);
-          const detectedMime = detected?.mime;
-          const claimedMime = file.type || undefined;
+          const detectedMime = detected?.mime ? normalizeMediaType(detected.mime) : undefined;
+          const claimedMime = file.type ? normalizeMediaType(file.type) : undefined;
 
           const preferredMime = detectedMime ?? claimedMime ?? "application/octet-stream";
           const isAllowed = ALLOWED_TYPES.has(preferredMime)
             || (!!detectedMime && ALLOWED_TYPES.has(detectedMime))
-            || (!!claimedMime && ALLOWED_TYPES.has(claimedMime));
+            || (!!claimedMime && ALLOWED_TYPES.has(claimedMime))
+            || preferredMime.startsWith("text/");
 
           if (!isAllowed) {
             errors.push({

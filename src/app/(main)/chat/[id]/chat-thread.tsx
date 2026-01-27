@@ -46,7 +46,7 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
       // Access Zustand state directly - always current, no refs needed
       const state = useChatUIStore.getState();
 
-      // Determine file support
+      // Determine PDF support for native PDF handling
       const selectedModelInfo = modelsRef.current?.find(m => m.id === state.selectedModelId);
       const capabilities = getModelCapabilities(selectedModelInfo);
 
@@ -58,7 +58,6 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
         ...(state.openrouterKey && { openrouterClientKey: state.openrouterKey }),
         ...(state.parallelKey && { parallelClientKey: state.parallelKey }),
         ...(state.selectedModelId && { modelId: state.selectedModelId }),
-        modelSupportsFiles: capabilities.supportsFiles,
         supportsNativePdf: capabilities.supportsNativePdf,
         // Mark as regeneration if triggered by regenerate function
         isRegeneration: trigger === "regenerate-message",

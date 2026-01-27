@@ -162,8 +162,16 @@ const languageExtensions: Record<string, string> = {
 export function detectLanguage(content: string): string {
   // Only check the first few lines to detect language
   // This helps with files like markdown that may have code blocks later
-  const lines = content.split("\n");
-  const headerContent = lines.slice(0, Math.min(15, lines.length)).join("\n");
+  // Avoid splitting the entire content - find the 15th newline instead
+  let endIndex = 0;
+  let newlineCount = 0;
+  while (newlineCount < 15 && endIndex < content.length) {
+    if (content[endIndex] === "\n") {
+      newlineCount++;
+    }
+    endIndex++;
+  }
+  const headerContent = content.slice(0, endIndex);
 
   // Try to detect based on patterns
   const scores: Record<string, number> = {};

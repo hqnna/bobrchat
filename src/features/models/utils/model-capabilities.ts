@@ -18,9 +18,9 @@ import type { FileValidationResult, ModelCapabilities } from "../types";
  * - PDF Support:
  *   - If supportsPdf or supportsNativePdf is true, allow PDF uploads.
  * - Text File Support:
- *   - If supportsFiles is true, allow straight text file uploads.
- *   - If supportsFiles is false, extract text from the text files, and treat them as part of the message content.
- *     From the user's perspective, it should still look like a regular file upload, but we avoid sending the file directly to the model.
+ *   - Text files are ALWAYS extracted and injected into the prompt as text content.
+ *   - Providers don't support text/plain uploads directly - only PDFs and images.
+ *   - From the user's perspective, it looks like a regular file upload.
  * - Search and Tools:
  *  - If supportsSearch or supportsTools is true, enable search and tool functionalities.
  * - Reasoning:

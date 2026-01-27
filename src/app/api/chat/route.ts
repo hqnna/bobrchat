@@ -51,7 +51,7 @@ export async function POST(req: Request) {
         });
       }
 
-      const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, reasoningLevel, modelId, modelSupportsFiles, supportsNativePdf, isRegeneration }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; reasoningLevel?: string; modelId?: string; modelSupportsFiles?: boolean; supportsNativePdf?: boolean; isRegeneration?: boolean }
+      const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, reasoningLevel, modelId, supportsNativePdf, isRegeneration }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; reasoningLevel?: string; modelId?: string; supportsNativePdf?: boolean; isRegeneration?: boolean }
         = await req.json();
 
       const baseModelId = modelId || "google/gemini-3-flash-preview";
@@ -112,7 +112,6 @@ export async function POST(req: Request) {
         searchEnabled,
         parallelKey,
         undefined,
-        modelSupportsFiles,
         {
           useOcrForPdfs: settings.useOcrForPdfs,
           supportsNativePdf: supportsNativePdf ?? false,
