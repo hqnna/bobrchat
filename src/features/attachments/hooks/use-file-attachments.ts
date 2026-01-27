@@ -16,12 +16,14 @@ type UseFileAttachmentsProps = {
   capabilities: ReturnType<typeof getModelCapabilities>;
   onValueChange: (value: string) => void;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  autoCreateFilesFromPaste?: boolean;
 };
 
 export function useFileAttachments({
   capabilities,
   onValueChange,
   textareaRef,
+  autoCreateFilesFromPaste = true,
 }: UseFileAttachmentsProps) {
   const queryClient = useQueryClient();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -175,7 +177,7 @@ export function useFileAttachments({
                 = text.length > PASTE_TEXT_THRESHOLD
                   || lineCount > PASTE_LINE_THRESHOLD;
 
-              if (isLongText) {
+              if (isLongText && autoCreateFilesFromPaste) {
                 const language = detectLanguage(text);
                 const extension = getLanguageExtension(language);
                 const filename = `pasted-${Date.now()}.${extension}`;
@@ -211,7 +213,7 @@ export function useFileAttachments({
         }
       }
     },
-    [uploadFiles, onValueChange, capabilities, textareaRef],
+    [uploadFiles, onValueChange, capabilities, textareaRef, autoCreateFilesFromPaste],
   );
 
   const handleAttachClick = React.useCallback(() => {

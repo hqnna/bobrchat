@@ -38,6 +38,12 @@ export function AdvancedFeaturesSection({ settings }: AdvancedFeaturesSectionPro
         enabled={settings.useOcrForPdfs}
         onToggle={enabled => save({ useOcrForPdfs: enabled })}
       />
+      <ToggleItem
+        label="Automatically Create Files from Paste"
+        description="When pasting large amounts of text, automatically create a file attachment instead of inserting it inline."
+        enabled={settings.autoCreateFilesFromPaste}
+        onToggle={enabled => save({ autoCreateFilesFromPaste: enabled })}
+      />
     </SettingsSection>
   );
 }

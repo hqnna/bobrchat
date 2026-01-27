@@ -144,6 +144,7 @@ export async function createDefaultUserSettings(userId: string): Promise<UserSet
     defaultThreadName: "New Chat",
     autoThreadNaming: false,
     useOcrForPdfs: false,
+    autoCreateFilesFromPaste: true,
     landingPageContent: "suggestions",
     sendMessageKeyboardShortcut: "enter",
     inputHeightScale: 0,

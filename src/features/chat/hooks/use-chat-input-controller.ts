@@ -32,6 +32,7 @@ export function useChatInputController({
   const { data: settings } = useUserSettings();
   const keyboardShortcut = settings?.sendMessageKeyboardShortcut || "enter";
   const inputHeightScale = settings?.inputHeightScale ?? 0;
+  const autoCreateFilesFromPaste = settings?.autoCreateFilesFromPaste ?? true;
 
   const { hasKey: hasOpenRouterKey, isLoading: isOpenRouterLoading } = useApiKeyStatus("openrouter");
   const { hasKey: hasParallelApiKey, isLoading: isParallelApiLoading } = useApiKeyStatus("parallel");
@@ -69,6 +70,7 @@ export function useChatInputController({
     capabilities,
     onValueChange: setInput,
     textareaRef,
+    autoCreateFilesFromPaste,
   });
 
   const isExpanded = React.useMemo(
