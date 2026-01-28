@@ -10,7 +10,7 @@ type GlobalDropZoneContextValue = {
 const GlobalDropZoneContext = React.createContext<GlobalDropZoneContextValue | null>(null);
 
 export function useGlobalDropZone(onDrop?: (files: FileList) => void) {
-  const context = React.useContext(GlobalDropZoneContext);
+  const context = React.use(GlobalDropZoneContext);
 
   React.useEffect(() => {
     if (onDrop && context) {
@@ -78,8 +78,8 @@ export function GlobalDropZoneProvider({ children }: { children: React.ReactNode
   );
 
   return (
-    <GlobalDropZoneContext.Provider value={contextValue}>
+    <GlobalDropZoneContext value={contextValue}>
       {children}
-    </GlobalDropZoneContext.Provider>
+    </GlobalDropZoneContext>
   );
 }

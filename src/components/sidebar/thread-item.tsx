@@ -332,8 +332,9 @@ function ThreadItemComponent({
                   title={ICON_LABELS[iconName]}
                   className={cn(
                     `
-                      hover:bg-accent flex size-8 items-center justify-center
-                      rounded-md transition-colors
+                      hover:bg-accent
+                      flex size-8 items-center justify-center rounded-md
+                      transition-colors
                     `,
                     isSelected && "bg-accent",
                   )}

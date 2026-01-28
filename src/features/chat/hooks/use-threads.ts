@@ -6,7 +6,6 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { useMemo } from "react";
 
 import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
-
 import type { ThreadIcon } from "~/lib/db/schema/chat";
 
 import { createNewThread, deleteThread, fetchThreadStats, regenerateThreadName, renameThread, setThreadIcon } from "~/features/chat/actions";
@@ -191,7 +190,8 @@ export function useUpdateThreadIcon() {
       const previous = queryClient.getQueryData<InfiniteData<ThreadsResponse>>(THREADS_KEY);
 
       queryClient.setQueryData<InfiniteData<ThreadsResponse>>(THREADS_KEY, (old) => {
-        if (!old) return old;
+        if (!old)
+          return old;
 
         return {
           ...old,

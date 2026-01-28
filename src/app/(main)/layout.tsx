@@ -1,3 +1,4 @@
+import { HydrationBoundary } from "@tanstack/react-query";
 import { headers } from "next/headers";
 import { Suspense } from "react";
 
@@ -7,6 +8,7 @@ import { SidebarProvider } from "~/components/ui/sidebar";
 import { GlobalDropZoneProvider } from "~/features/attachments/components/global-drop-zone";
 import { auth } from "~/features/auth/lib/auth";
 import { SettingsModalProvider } from "~/features/settings/components/settings-modal-provider";
+import { prefetchThreads } from "~/lib/queries/prefetch-threads";
 
 export default async function MainLayout({
   children,
@@ -17,18 +19,24 @@ export default async function MainLayout({
     headers: await headers(),
   });
 
+  const dehydratedState = session?.user
+    ? await prefetchThreads(session.user.id)
+    : undefined;
+
   return (
-    <GlobalDropZoneProvider>
-      <SidebarProvider>
-        {session && <ChatSidebar />}
-        {session && <FloatingSidebarToggle />}
-        <main className="w-full">
-          {children}
-        </main>
-        <Suspense fallback={null}>
-          <SettingsModalProvider />
-        </Suspense>
-      </SidebarProvider>
-    </GlobalDropZoneProvider>
+    <HydrationBoundary state={dehydratedState}>
+      <GlobalDropZoneProvider>
+        <SidebarProvider>
+          {session && <ChatSidebar session={session} />}
+          {session && <FloatingSidebarToggle />}
+          <main className="w-full">
+            {children}
+          </main>
+          <Suspense fallback={null}>
+            <SettingsModalProvider />
+          </Suspense>
+        </SidebarProvider>
+      </GlobalDropZoneProvider>
+    </HydrationBoundary>
   );
 }

@@ -3,7 +3,6 @@
 import { headers } from "next/headers";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
-
 import type { ThreadIcon } from "~/lib/db/schema/chat";
 
 import { deleteFile } from "~/features/attachments/lib/storage";

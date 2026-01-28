@@ -4,14 +4,13 @@ import { usePathname } from "next/navigation";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
+import type { ThreadIcon } from "~/lib/db/schema/chat";
 
 import { Skeleton } from "~/components/ui/skeleton";
 
 import { DeleteThreadDialog } from "./delete-thread-dialog";
 import { ShareThreadDialog } from "./share-thread-dialog";
 import { ThreadItem } from "./thread-item";
-
-import type { ThreadIcon } from "~/lib/db/schema/chat";
 
 type ThreadListProps = {
   groupedThreads?: GroupedThreads;
