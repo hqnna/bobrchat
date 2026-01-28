@@ -29,6 +29,7 @@ import { cn } from "~/lib/utils";
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH_STORAGE_KEY = "sidebar_width";
+const SIDEBAR_WIDTH_COOKIE_NAME = "sidebar_width";
 const SIDEBAR_WIDTH_DEFAULT = 16; // rem
 const SIDEBAR_WIDTH_MIN = 14; // rem (16 - 2)
 const SIDEBAR_WIDTH_MAX = 20; // rem (16 + 4)
@@ -82,6 +83,7 @@ export function useIsMobile() {
 
 function SidebarProvider({
   defaultOpen = true,
+  defaultSidebarWidth,
   open: openProp,
   onOpenChange: setOpenProp,
   className,
@@ -90,12 +92,17 @@ function SidebarProvider({
   ...props
 }: React.ComponentProps<"div"> & {
   defaultOpen?: boolean;
+  defaultSidebarWidth?: number;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
-  const [sidebarWidth, setSidebarWidth] = React.useState<number>(SIDEBAR_WIDTH_DEFAULT);
+  const resolvedDefaultWidth = Math.max(
+    SIDEBAR_WIDTH_MIN,
+    Math.min(SIDEBAR_WIDTH_MAX, defaultSidebarWidth ?? SIDEBAR_WIDTH_DEFAULT),
+  );
+  const [sidebarWidth, setSidebarWidth] = React.useState<number>(resolvedDefaultWidth);
   const [isClient, setIsClient] = React.useState(false);
   const [isResizing, setIsResizing] = React.useState(false);
 
@@ -106,6 +113,7 @@ function SidebarProvider({
     if (stored) {
       const width = Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, parseFloat(stored)));
       setSidebarWidth(width);
+      document.cookie = `${SIDEBAR_WIDTH_COOKIE_NAME}=${width}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
     }
   }, []);
 
@@ -134,6 +142,7 @@ function SidebarProvider({
     const constrained = Math.max(SIDEBAR_WIDTH_MIN, Math.min(SIDEBAR_WIDTH_MAX, width));
     setSidebarWidth(constrained);
     localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, constrained.toString());
+    document.cookie = `${SIDEBAR_WIDTH_COOKIE_NAME}=${constrained}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
   }, []);
 
   // Helper to toggle the sidebar.
@@ -178,7 +187,7 @@ function SidebarProvider({
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar, sidebarWidth, handleSetSidebarWidth, isResizing],
   );
 
-  const sidebarWidthRem = isClient ? `${sidebarWidth}rem` : SIDEBAR_WIDTH;
+  const sidebarWidthRem = isClient ? `${sidebarWidth}rem` : `${resolvedDefaultWidth}rem`;
 
   return (
     <SidebarContext value={contextValue}>
