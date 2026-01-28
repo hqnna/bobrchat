@@ -36,7 +36,7 @@ export function BetaBanner() {
         BobrChat is currently in beta. Please report any issues or feedback via
         {" "}
         <Link
-          href="https://github.com/matthew-hre/bobrchat-issues/issues"
+          href="https://github.com/matthew-hre/bobrchat/issues"
           target="_blank"
           rel="noopener noreferrer"
           className={`
