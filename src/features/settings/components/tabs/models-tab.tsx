@@ -25,7 +25,7 @@ import {
   SlidersHorizontalIcon,
   SparklesIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import type { CapabilityFilter, SortOrder } from "~/features/models/types";
@@ -77,7 +77,10 @@ export function ModelsTab() {
     sortOrder,
   });
 
-  const availableResults = searchResults.filter(m => !draftSet.has(m.id));
+  const availableResults = useMemo(
+    () => searchResults.filter(m => !draftSet.has(m.id)),
+    [searchResults, draftSet],
+  );
   const { displayedCount, observerRef, hasMore } = useInfiniteScroll({
     totalCount: availableResults.length,
     resetKeys: [searchQuery, capabilityFilters, sortOrder],

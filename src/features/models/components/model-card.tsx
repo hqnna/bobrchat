@@ -1,6 +1,7 @@
 import type { Model } from "@openrouter/sdk/models";
 
 import { BrainIcon, FileTextIcon, ImageIcon, SearchIcon } from "lucide-react";
+import { memo } from "react";
 
 import { cn } from "~/lib/utils";
 
@@ -14,7 +15,7 @@ function formatPrice(price: number | null): string {
   return `$${(price * 1000000).toFixed(2)}/1M`;
 }
 
-export function ModelCard({ model, isSelected, toggleModel }: { model: Model; isSelected: boolean; toggleModel: (id: string) => void }) {
+export const ModelCard = memo(({ model, isSelected, toggleModel }: { model: Model; isSelected: boolean; toggleModel: (id: string) => void }) => {
   const capabilities = getModelCapabilities(model);
 
   return (
@@ -106,7 +107,7 @@ export function ModelCard({ model, isSelected, toggleModel }: { model: Model; is
       </div>
     </button>
   );
-}
+});
 
 function FeatureBadge({
   icon: Icon,

@@ -76,26 +76,19 @@ export function ModelSelector({
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    if (!containerRef.current) return;
+    const form = containerRef.current?.closest("form");
+    if (!form) return;
 
     const updateWidth = () => {
-      // Find the form element (toolbar container)
-      const form = containerRef.current?.closest("form");
-      if (form) {
-        setContainerWidth(form.clientWidth);
-      }
+      const newWidth = form.clientWidth;
+      setContainerWidth(prev => (prev === newWidth ? prev : newWidth));
     };
 
     updateWidth();
     const resizeObserver = new ResizeObserver(updateWidth);
-    
-    // Observe the window for resize events as backup
-    window.addEventListener("resize", updateWidth);
-    
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateWidth);
-    };
+    resizeObserver.observe(form);
+
+    return () => resizeObserver.disconnect();
   }, []);
 
   const selectedModel = models.find(m => m.id === selectedModelId);

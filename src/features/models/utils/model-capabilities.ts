@@ -27,17 +27,30 @@ import type { FileValidationResult, ModelCapabilities } from "../types";
  * - If supportsReasoning is true, enable reasoning features. TODO: Implement this
  */
 
+const capabilitiesCache = new Map<string, ModelCapabilities>();
+
+export function clearModelCapabilitiesCache(): void {
+  capabilitiesCache.clear();
+}
+
+const emptyCapabilities: ModelCapabilities = {
+  supportsImages: false,
+  supportsFiles: false,
+  supportsPdf: false,
+  supportsNativePdf: false,
+  supportsSearch: false,
+  supportsTools: false,
+  supportsReasoning: false,
+};
+
 export function getModelCapabilities(model: Model | undefined): ModelCapabilities {
   if (!model) {
-    return {
-      supportsImages: false,
-      supportsFiles: false,
-      supportsPdf: false,
-      supportsNativePdf: false,
-      supportsSearch: false,
-      supportsTools: false,
-      supportsReasoning: false,
-    };
+    return emptyCapabilities;
+  }
+
+  const cached = capabilitiesCache.get(model.id);
+  if (cached) {
+    return cached;
   }
 
   const inputModalities = model.architecture.inputModalities;
@@ -51,7 +64,7 @@ export function getModelCapabilities(model: Model | undefined): ModelCapabilitie
   const supportsSearch = supportsTools && contextLength > 32000;
   const supportsReasoning = supportedParams.includes("reasoning");
 
-  return {
+  const capabilities: ModelCapabilities = {
     supportsImages,
     supportsFiles,
     supportsPdf: contextLength > 16000,
@@ -60,6 +73,9 @@ export function getModelCapabilities(model: Model | undefined): ModelCapabilitie
     supportsTools,
     supportsReasoning,
   };
+
+  capabilitiesCache.set(model.id, capabilities);
+  return capabilities;
 }
 
 export function getAcceptedFileTypes(capabilities: ModelCapabilities): string {

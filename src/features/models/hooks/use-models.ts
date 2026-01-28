@@ -7,10 +7,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useApiKeyStatus } from "~/features/settings/hooks/use-api-status";
 import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { getClientKey } from "~/lib/api-keys/client";
+import { MODELS_KEY } from "~/lib/queries/query-keys";
 
 import { fetchOpenRouterModels } from "../actions";
 
-export const MODELS_KEY = ["models"] as const;
+export { MODELS_KEY };
 
 export function useModels(options: { enabled?: boolean } = {}) {
   const { hasKey, source } = useApiKeyStatus("openrouter");
