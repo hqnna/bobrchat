@@ -57,6 +57,7 @@ function extractStoragePathsFromThreadMessages(messages: ChatUIMessage[]): strin
 export async function createNewThread(options?: {
   threadId?: string;
   title?: string;
+  icon?: ThreadIcon;
 }): Promise<string> {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -68,6 +69,7 @@ export async function createNewThread(options?: {
   const threadId = await createThread(session.user.id, {
     threadId: options?.threadId,
     title: options?.title || "New Chat",
+    icon: options?.icon,
   });
 
   return threadId;

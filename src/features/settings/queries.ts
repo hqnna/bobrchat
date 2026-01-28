@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: UserSettingsData = {
   theme: "dark",
   accentColor: "green",
   defaultThreadName: "New Chat",
+  defaultThreadIcon: "message-circle",
   landingPageContent: "suggestions",
   autoThreadNaming: false,
   useOcrForPdfs: false,

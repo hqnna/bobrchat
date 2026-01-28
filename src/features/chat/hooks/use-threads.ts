@@ -33,6 +33,7 @@ type ThreadsResponse = {
 type CreateThreadInput = {
   threadId: string;
   title?: string;
+  icon?: ThreadIcon;
 };
 
 async function fetchThreads({ pageParam }: { pageParam: string | undefined }): Promise<ThreadsResponse> {
@@ -80,7 +81,7 @@ export function useCreateThread() {
 
   return useMutation({
     mutationFn: (input: CreateThreadInput) =>
-      createNewThread({ threadId: input.threadId, title: input.title }),
+      createNewThread({ threadId: input.threadId, title: input.title, icon: input.icon }),
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: THREADS_KEY });
 
@@ -90,7 +91,7 @@ export function useCreateThread() {
       const optimisticThread: ThreadFromApi = {
         id: input.threadId,
         title: input.title || "New Chat",
-        icon: null,
+        icon: input.icon ?? null,
         lastMessageAt: now,
         userId: "",
         createdAt: now,

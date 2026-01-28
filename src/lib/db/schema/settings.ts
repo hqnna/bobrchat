@@ -17,6 +17,7 @@ export const userSettings = pgTable(
       theme: "dark",
       accentColor: "green",
       defaultThreadName: "New Chat",
+      defaultThreadIcon: "message-circle",
       landingPageContent: "suggestions",
       sendMessageKeyboardShortcut: "enter",
       autoThreadNaming: false,

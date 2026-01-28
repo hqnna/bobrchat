@@ -247,7 +247,7 @@ export async function saveMessages(
  */
 export async function createThread(
   userId: string,
-  options?: { threadId?: string; title?: string },
+  options?: { threadId?: string; title?: string; icon?: ThreadIcon },
 ): Promise<string> {
   const now = new Date();
   const threadId = options?.threadId ?? crypto.randomUUID();
@@ -259,6 +259,7 @@ export async function createThread(
       id: threadId,
       userId,
       title,
+      icon: options?.icon,
       lastMessageAt: now,
     })
     .onConflictDoNothing({ target: threads.id });

@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { PreferencesUpdate, UserSettingsData } from "~/features/settings/types";
+import type { ThreadIcon } from "~/lib/db/schema/chat";
 
 import { useUpdatePreferences } from "~/features/settings/hooks/use-user-settings";
 
+import { IconSelectItem } from "../ui/icon-select-item";
 import { SettingsSection } from "../ui/settings-section";
 import { TextInputItem } from "../ui/text-input-item";
 import { ToggleItem } from "../ui/toggle-item";
@@ -19,10 +21,12 @@ export function ChatBehaviorSection({ settings }: ChatBehaviorSectionProps) {
   const updatePreferences = useUpdatePreferences();
 
   const [defaultThreadName, setDefaultThreadName] = useState("");
+  const [defaultThreadIcon, setDefaultThreadIcon] = useState<ThreadIcon>("message-circle");
   const [customInstructions, setCustomInstructions] = useState("");
 
   useEffect(() => {
     setDefaultThreadName(settings.defaultThreadName);
+    setDefaultThreadIcon(settings.defaultThreadIcon);
     setCustomInstructions(settings.customInstructions ?? "");
   }, [settings]);
 
@@ -51,6 +55,18 @@ export function ChatBehaviorSection({ settings }: ChatBehaviorSectionProps) {
         onBlur={() => {
           if (defaultThreadName !== settings.defaultThreadName) {
             save({ defaultThreadName });
+          }
+        }}
+      />
+
+      <IconSelectItem
+        label="Default Thread Icon"
+        description="The default icon for new chat threads."
+        value={defaultThreadIcon}
+        onChange={(icon) => {
+          setDefaultThreadIcon(icon);
+          if (icon !== settings.defaultThreadIcon) {
+            save({ defaultThreadIcon: icon });
           }
         }}
       />

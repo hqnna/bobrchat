@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { THREAD_ICONS } from "~/lib/db/schema/chat";
+
 /**
  * Supported API key providers.
  * Add new providers here to extend support across the application.
@@ -28,6 +30,7 @@ export const preferencesSchema = z.object({
     .string()
     .max(255)
     .transform(v => v.trim() || "New Chat"),
+  defaultThreadIcon: z.enum(THREAD_ICONS).default("message-circle"),
   landingPageContent: z.enum(["suggestions", "greeting", "blank"]),
   sendMessageKeyboardShortcut: z.enum(["enter", "ctrlEnter", "shiftEnter"]).default("enter"),
   autoThreadNaming: z.boolean().default(false),
@@ -44,6 +47,7 @@ export const preferencesUpdateSchema = z.object({
   accentColor: accentColorSchema.optional(),
   customInstructions: z.string().max(5000).optional(),
   defaultThreadName: z.string().max(255).transform(v => v.trim() || "New Chat").optional(),
+  defaultThreadIcon: z.enum(THREAD_ICONS).optional(),
   landingPageContent: z.enum(["suggestions", "greeting", "blank"]).optional(),
   sendMessageKeyboardShortcut: z.enum(["enter", "ctrlEnter", "shiftEnter"]).optional(),
   autoThreadNaming: z.boolean().optional(),
@@ -114,6 +118,7 @@ export type UserSettingsData = {
   accentColor: AccentColor;
   customInstructions?: string;
   defaultThreadName: string;
+  defaultThreadIcon: (typeof THREAD_ICONS)[number];
   landingPageContent: LandingPageContentType;
   sendMessageKeyboardShortcut: "enter" | "ctrlEnter" | "shiftEnter";
   autoThreadNaming: boolean;

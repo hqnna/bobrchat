@@ -20,6 +20,7 @@ export default async function HomePage(): Promise<React.ReactNode> {
   return (
     <AuthenticatedHome
       defaultThreadName={settings.defaultThreadName}
+      defaultThreadIcon={settings.defaultThreadIcon}
       landingPageContent={settings.landingPageContent}
     />
   );

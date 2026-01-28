@@ -142,6 +142,7 @@ export async function createDefaultUserSettings(userId: string): Promise<UserSet
     theme: "dark",
     accentColor: "green",
     defaultThreadName: "New Chat",
+    defaultThreadIcon: "message-circle",
     autoThreadNaming: false,
     useOcrForPdfs: false,
     autoCreateFilesFromPaste: true,

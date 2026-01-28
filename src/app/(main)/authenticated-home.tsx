@@ -7,6 +7,7 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
+import type { ThreadIcon } from "~/lib/db/schema/chat";
 import type { LandingPageContentType } from "~/features/settings/types";
 
 import { BetaBanner } from "~/features/chat/components/beta-banner";
@@ -17,11 +18,13 @@ import { useChatUIStore } from "~/features/chat/store";
 
 type AuthenticatedHomeProps = {
   defaultThreadName: string;
+  defaultThreadIcon: ThreadIcon;
   landingPageContent: LandingPageContentType;
 };
 
 export function AuthenticatedHome({
   defaultThreadName,
+  defaultThreadIcon,
   landingPageContent,
 }: AuthenticatedHomeProps): React.ReactNode {
   const router = useRouter();
@@ -41,7 +44,7 @@ export function AuthenticatedHome({
     router.push(`/chat/${threadId}`);
 
     createThread.mutate(
-      { threadId, title: defaultThreadName },
+      { threadId, title: defaultThreadName, icon: defaultThreadIcon },
       {
         onError: (error) => {
           const message = error instanceof Error ? error.message : "Failed to create thread";
