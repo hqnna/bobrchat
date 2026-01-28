@@ -18,6 +18,7 @@ import { cn } from "~/lib/utils";
 
 import { SelectionCardItem } from "../ui/selection-card-item";
 import { SettingsSection } from "../ui/settings-section";
+import { ToggleItem } from "../ui/toggle-item";
 
 const themeOptions = [
   { value: "light" as const, label: "Light", icon: SunIcon },
@@ -244,6 +245,20 @@ export function InterfaceTab() {
               value={settings.landingPageContent}
               onChange={value => save({ landingPageContent: value })}
               layout="flex"
+            />
+          </SettingsSection>
+
+          <Separator />
+
+          <SettingsSection
+            title="Sidebar"
+            description="Configure sidebar appearance."
+          >
+            <ToggleItem
+              label="Disable Sidebar Icons"
+              description="Hide icons next to threads in the sidebar. Hides relevant settings."
+              enabled={settings.showSidebarIcons}
+              onToggle={enabled => save({ showSidebarIcons: enabled })}
             />
           </SettingsSection>
         </div>

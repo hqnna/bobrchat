@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS: UserSettingsData = {
   landingPageContent: "suggestions",
   autoThreadNaming: false,
   autoThreadIcon: false,
+  showSidebarIcons: false,
   useOcrForPdfs: false,
   autoCreateFilesFromPaste: true,
   sendMessageKeyboardShortcut: "enter",

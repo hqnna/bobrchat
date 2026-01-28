@@ -145,6 +145,7 @@ export async function createDefaultUserSettings(userId: string): Promise<UserSet
     defaultThreadIcon: "message-circle",
     autoThreadNaming: false,
     autoThreadIcon: false,
+    showSidebarIcons: false,
     useOcrForPdfs: false,
     autoCreateFilesFromPaste: true,
     landingPageContent: "suggestions",

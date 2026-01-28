@@ -59,17 +59,19 @@ export function ChatBehaviorSection({ settings }: ChatBehaviorSectionProps) {
         }}
       />
 
-      <IconSelectItem
-        label="Default Thread Icon"
-        description="The default icon for new chat threads."
-        value={defaultThreadIcon}
-        onChange={(icon) => {
-          setDefaultThreadIcon(icon);
-          if (icon !== settings.defaultThreadIcon) {
-            save({ defaultThreadIcon: icon });
-          }
-        }}
-      />
+      {!settings.showSidebarIcons && (
+        <IconSelectItem
+          label="Default Thread Icon"
+          description="The default icon for new chat threads."
+          value={defaultThreadIcon}
+          onChange={(icon) => {
+            setDefaultThreadIcon(icon);
+            if (icon !== settings.defaultThreadIcon) {
+              save({ defaultThreadIcon: icon });
+            }
+          }}
+        />
+      )}
 
       <ToggleItem
         label="Automatic Thread Renaming"
@@ -78,12 +80,14 @@ export function ChatBehaviorSection({ settings }: ChatBehaviorSectionProps) {
         onToggle={enabled => save({ autoThreadNaming: enabled })}
       />
 
-      <ToggleItem
-        label="Automatic Thread Icon"
-        description="Automatically select a relevant icon based on conversation content."
-        enabled={settings.autoThreadIcon}
-        onToggle={enabled => save({ autoThreadIcon: enabled })}
-      />
+      {!settings.showSidebarIcons && (
+        <ToggleItem
+          label="Automatic Thread Icon"
+          description="Automatically select a relevant icon based on conversation content."
+          enabled={settings.autoThreadIcon}
+          onToggle={enabled => save({ autoThreadIcon: enabled })}
+        />
+      )}
 
       <TextInputItem
         label="Custom Instructions"

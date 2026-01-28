@@ -34,6 +34,7 @@ import {
 } from "~/components/ui/context-menu";
 import { useDeleteThread, useRegenerateThreadIcon, useRegenerateThreadName, useRenameThread, useThreadStats, useUpdateThreadIcon } from "~/features/chat/hooks/use-threads";
 import { useChatUIStore } from "~/features/chat/store";
+import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
 import { THREAD_ICONS } from "~/lib/db/schema/chat";
 import { cn } from "~/lib/utils";
 
@@ -102,6 +103,8 @@ function ThreadItemComponent({
   const pathname = usePathname();
   const openrouterKey = useChatUIStore(state => state.openrouterKey);
   const isStreaming = useChatUIStore(state => state.streamingThreadId === id);
+  const { data: settings } = useUserSettings();
+  const sidebarIconsDisabled = settings?.showSidebarIcons ?? false;
   const deleteThreadMutation = useDeleteThread();
   const renameThreadMutation = useRenameThread();
   const regenerateThreadNameMutation = useRegenerateThreadName();
@@ -215,7 +218,7 @@ function ThreadItemComponent({
   if (isRenaming) {
     return (
       <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
-        <IconComponent className="size-4 shrink-0" />
+        {!sidebarIconsDisabled && <IconComponent className="size-4 shrink-0" />}
         <input
           ref={inputRef}
           type="text"
@@ -255,17 +258,19 @@ function ThreadItemComponent({
                   : "text-sidebar-foreground",
               )}
             >
-              {regenerateThreadNameMutation.isPending || isStreaming
-                ? (
-                    <Loader2 className="size-4 shrink-0 animate-spin" />
-                  )
-                : (
-                    <IconComponent
-                      className={cn("size-4 shrink-0", isShared && `
-                        text-primary
-                      `)}
-                    />
-                  )}
+              {!sidebarIconsDisabled && (
+                regenerateThreadNameMutation.isPending || isStreaming
+                  ? (
+                      <Loader2 className="size-4 shrink-0 animate-spin" />
+                    )
+                  : (
+                      <IconComponent
+                        className={cn("size-4 shrink-0", isShared && `
+                          text-primary
+                        `)}
+                      />
+                    )
+              )}
               <span className="flex-1 truncate pr-6">{title}</span>
             </Link>
             <Button
@@ -327,39 +332,43 @@ function ThreadItemComponent({
         <ContextMenuItem onClick={handleRegenerateNameClick} disabled={regenerateThreadNameMutation.isPending}>
           Regenerate Name
         </ContextMenuItem>
-        <ContextMenuSub>
-          <ContextMenuSubTrigger disabled={updateIconMutation.isPending}>
-            Change Icon
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent className="grid grid-cols-5 gap-1 p-2">
-            {THREAD_ICONS.map((iconName) => {
-              const Icon = ICON_COMPONENTS[iconName];
-              const isSelected = iconName === currentIcon;
-              return (
-                <button
-                  key={iconName}
-                  onClick={() => {
-                    updateIconMutation.mutate({ threadId: id, icon: iconName });
-                  }}
-                  title={ICON_LABELS[iconName]}
-                  className={cn(
-                    `
-                      hover:bg-accent
-                      flex size-8 items-center justify-center rounded-md
-                      transition-colors
-                    `,
-                    isSelected && "bg-accent",
-                  )}
-                >
-                  <Icon className="size-4" />
-                </button>
-              );
-            })}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-        <ContextMenuItem onClick={handleRegenerateIconClick} disabled={regenerateThreadIconMutation.isPending}>
-          Regenerate Icon
-        </ContextMenuItem>
+        {!sidebarIconsDisabled && (
+          <>
+            <ContextMenuSub>
+              <ContextMenuSubTrigger disabled={updateIconMutation.isPending}>
+                Change Icon
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="grid grid-cols-5 gap-1 p-2">
+                {THREAD_ICONS.map((iconName) => {
+                  const Icon = ICON_COMPONENTS[iconName];
+                  const isSelected = iconName === currentIcon;
+                  return (
+                    <button
+                      key={iconName}
+                      onClick={() => {
+                        updateIconMutation.mutate({ threadId: id, icon: iconName });
+                      }}
+                      title={ICON_LABELS[iconName]}
+                      className={cn(
+                        `
+                          hover:bg-accent
+                          flex size-8 items-center justify-center rounded-md
+                          transition-colors
+                        `,
+                        isSelected && "bg-accent",
+                      )}
+                    >
+                      <Icon className="size-4" />
+                    </button>
+                  );
+                })}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuItem onClick={handleRegenerateIconClick} disabled={regenerateThreadIconMutation.isPending}>
+              Regenerate Icon
+            </ContextMenuItem>
+          </>
+        )}
         <ContextMenuItem onClick={() => onShareClick?.(id, title)}>
           {isShared ? "Manage Share" : "Share"}
         </ContextMenuItem>

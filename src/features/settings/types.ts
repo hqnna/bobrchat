@@ -35,6 +35,7 @@ export const preferencesSchema = z.object({
   sendMessageKeyboardShortcut: z.enum(["enter", "ctrlEnter", "shiftEnter"]).default("enter"),
   autoThreadNaming: z.boolean().default(false),
   autoThreadIcon: z.boolean().default(false),
+  showSidebarIcons: z.boolean().default(false),
   useOcrForPdfs: z.boolean().default(false),
   autoCreateFilesFromPaste: z.boolean().default(true),
   inputHeightScale: z.number().int().min(0).max(4).default(0),
@@ -53,6 +54,7 @@ export const preferencesUpdateSchema = z.object({
   sendMessageKeyboardShortcut: z.enum(["enter", "ctrlEnter", "shiftEnter"]).optional(),
   autoThreadNaming: z.boolean().optional(),
   autoThreadIcon: z.boolean().optional(),
+  showSidebarIcons: z.boolean().optional(),
   useOcrForPdfs: z.boolean().optional(),
   autoCreateFilesFromPaste: z.boolean().optional(),
   inputHeightScale: z.number().int().min(0).max(4).optional(),
@@ -125,6 +127,7 @@ export type UserSettingsData = {
   sendMessageKeyboardShortcut: "enter" | "ctrlEnter" | "shiftEnter";
   autoThreadNaming: boolean;
   autoThreadIcon: boolean;
+  showSidebarIcons: boolean;
   useOcrForPdfs: boolean;
   autoCreateFilesFromPaste: boolean;
   inputHeightScale: number;

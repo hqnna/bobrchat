@@ -22,6 +22,7 @@ export const userSettings = pgTable(
       sendMessageKeyboardShortcut: "enter",
       autoThreadNaming: false,
       autoThreadIcon: false,
+      showSidebarIcons: false,
       useOcrForPdfs: false,
       inputHeightScale: 0,
     } as UserSettingsData),
