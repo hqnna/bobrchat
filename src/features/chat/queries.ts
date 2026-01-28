@@ -3,6 +3,8 @@ import { cache } from "react";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
+import type { ThreadIcon } from "~/lib/db/schema/chat";
+
 import { db } from "~/lib/db";
 import { attachments, messages, threads } from "~/lib/db/schema/chat";
 import { threadShares } from "~/lib/db/schema/sharing";
@@ -346,6 +348,7 @@ export async function getThreadsByUserId(
     .select({
       id: threads.id,
       title: threads.title,
+      icon: threads.icon,
       lastMessageAt: threads.lastMessageAt,
       userId: threads.userId,
       createdAt: threads.createdAt,
@@ -402,6 +405,24 @@ export async function renameThreadById(threadId: string, userId: string, newTitl
   const result = await db
     .update(threads)
     .set({ title: newTitle, updatedAt: new Date() })
+    .where(and(eq(threads.id, threadId), eq(threads.userId, userId)))
+    .returning();
+  return result.length > 0;
+}
+
+/**
+ * Updates the icon for a thread.
+ * Ownership is verified atomically.
+ *
+ * @param threadId ID of the thread to update
+ * @param userId ID of the user who owns the thread
+ * @param icon New icon for the thread
+ * @return {Promise<boolean>} True if updated, false if not found or not owned
+ */
+export async function updateThreadIcon(threadId: string, userId: string, icon: ThreadIcon): Promise<boolean> {
+  const result = await db
+    .update(threads)
+    .set({ icon, updatedAt: new Date() })
     .where(and(eq(threads.id, threadId), eq(threads.userId, userId)))
     .returning();
   return result.length > 0;

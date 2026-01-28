@@ -2,6 +2,21 @@ import { bigint, boolean, index, integer, jsonb, pgTable, text, timestamp, uuid 
 
 import { users } from "./auth";
 
+export const THREAD_ICONS = [
+  "message-circle",
+  "message-square",
+  "sparkles",
+  "lightbulb",
+  "code",
+  "book",
+  "file-text",
+  "star",
+  "heart",
+  "zap",
+] as const;
+
+export type ThreadIcon = (typeof THREAD_ICONS)[number];
+
 export const threads = pgTable(
   "threads",
   {
@@ -11,6 +26,7 @@ export const threads = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     title: text("title").notNull().default("New Chat"),
     model: text("model"),
+    icon: text("icon").$type<ThreadIcon>().default("message-circle"),
     lastMessageAt: timestamp("last_message_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")

@@ -1,10 +1,25 @@
 "use client";
 
-import { Loader2, MessageCircle, Trash2 } from "lucide-react";
+import {
+  Book,
+  Code,
+  FileText,
+  Heart,
+  Lightbulb,
+  Loader2,
+  MessageCircle,
+  MessageSquare,
+  Sparkles,
+  Star,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { memo, useRef, useState } from "react";
 import { toast } from "sonner";
+
+import type { ThreadIcon } from "~/lib/db/schema/chat";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -12,17 +27,48 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu";
-import { useDeleteThread, useRegenerateThreadName, useRenameThread, useThreadStats } from "~/features/chat/hooks/use-threads";
+import { useDeleteThread, useRegenerateThreadName, useRenameThread, useThreadStats, useUpdateThreadIcon } from "~/features/chat/hooks/use-threads";
 import { useChatUIStore } from "~/features/chat/store";
+import { THREAD_ICONS } from "~/lib/db/schema/chat";
 import { cn } from "~/lib/utils";
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
+const ICON_COMPONENTS = {
+  "message-circle": MessageCircle,
+  "message-square": MessageSquare,
+  "sparkles": Sparkles,
+  "lightbulb": Lightbulb,
+  "code": Code,
+  "book": Book,
+  "file-text": FileText,
+  "star": Star,
+  "heart": Heart,
+  "zap": Zap,
+} as const satisfies Record<ThreadIcon, React.ComponentType<{ className?: string; fill?: string }>>;
+
+const ICON_LABELS: Record<ThreadIcon, string> = {
+  "message-circle": "Chat",
+  "message-square": "Message",
+  "sparkles": "Sparkles",
+  "lightbulb": "Ideas",
+  "code": "Code",
+  "book": "Notes",
+  "file-text": "Document",
+  "star": "Starred",
+  "heart": "Favorite",
+  "zap": "Quick",
+};
+
 type ThreadItemProps = {
   id: string;
   title: string;
+  icon?: ThreadIcon | null;
   isActive: boolean;
   isShared?: boolean;
   onDeleteClick?: (threadId: string, threadTitle: string) => void;
@@ -46,6 +92,7 @@ function formatCost(cost: number): string {
 function ThreadItemComponent({
   id,
   title,
+  icon,
   isActive,
   isShared,
   onDeleteClick,
@@ -58,6 +105,10 @@ function ThreadItemComponent({
   const deleteThreadMutation = useDeleteThread();
   const renameThreadMutation = useRenameThread();
   const regenerateThreadNameMutation = useRegenerateThreadName();
+  const updateIconMutation = useUpdateThreadIcon();
+
+  const currentIcon = icon ?? "message-circle";
+  const IconComponent = ICON_COMPONENTS[currentIcon];
 
   const [isRenaming, setIsRenaming] = useState(false);
   const [newTitle, setNewTitle] = useState(title);
@@ -152,7 +203,7 @@ function ThreadItemComponent({
   if (isRenaming) {
     return (
       <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
-        <MessageCircle className="size-4 shrink-0" />
+        <IconComponent className="size-4 shrink-0" />
         <input
           ref={inputRef}
           type="text"
@@ -197,11 +248,10 @@ function ThreadItemComponent({
                     <Loader2 className="size-4 shrink-0 animate-spin" />
                   )
                 : (
-                    <MessageCircle
+                    <IconComponent
                       className={cn("size-4 shrink-0", isShared && `
                         text-primary
                       `)}
-                      fill={isActive ? "currentColor" : "none"}
                     />
                   )}
               <span className="flex-1 truncate pr-6">{title}</span>
@@ -265,6 +315,35 @@ function ThreadItemComponent({
         <ContextMenuItem onClick={handleRegenerateNameClick} disabled={regenerateThreadNameMutation.isPending}>
           Regenerate Name
         </ContextMenuItem>
+        <ContextMenuSub>
+          <ContextMenuSubTrigger disabled={updateIconMutation.isPending}>
+            Change Icon
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent className="grid grid-cols-5 gap-1 p-2">
+            {THREAD_ICONS.map((iconName) => {
+              const Icon = ICON_COMPONENTS[iconName];
+              const isSelected = iconName === currentIcon;
+              return (
+                <button
+                  key={iconName}
+                  onClick={() => {
+                    updateIconMutation.mutate({ threadId: id, icon: iconName });
+                  }}
+                  title={ICON_LABELS[iconName]}
+                  className={cn(
+                    `
+                      hover:bg-accent flex size-8 items-center justify-center
+                      rounded-md transition-colors
+                    `,
+                    isSelected && "bg-accent",
+                  )}
+                >
+                  <Icon className="size-4" />
+                </button>
+              );
+            })}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
         <ContextMenuItem onClick={() => onShareClick?.(id, title)}>
           {isShared ? "Manage Share" : "Share"}
         </ContextMenuItem>

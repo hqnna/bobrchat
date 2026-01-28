@@ -7,7 +7,9 @@ import { useMemo } from "react";
 
 import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
 
-import { createNewThread, deleteThread, fetchThreadStats, regenerateThreadName, renameThread } from "~/features/chat/actions";
+import type { ThreadIcon } from "~/lib/db/schema/chat";
+
+import { createNewThread, deleteThread, fetchThreadStats, regenerateThreadName, renameThread, setThreadIcon } from "~/features/chat/actions";
 import { groupThreadsByDate } from "~/features/chat/utils/thread-grouper";
 import { THREADS_KEY } from "~/lib/queries/query-keys";
 
@@ -16,6 +18,7 @@ export { THREADS_KEY };
 type ThreadFromApi = {
   id: string;
   title: string;
+  icon: ThreadIcon | null;
   lastMessageAt: string | null;
   userId: string;
   createdAt: string;
@@ -88,6 +91,7 @@ export function useCreateThread() {
       const optimisticThread: ThreadFromApi = {
         id: input.threadId,
         title: input.title || "New Chat",
+        icon: null,
         lastMessageAt: now,
         userId: "",
         createdAt: now,
@@ -172,5 +176,43 @@ export function useThreadStats(threadId: string | null) {
     queryFn: () => fetchThreadStats(threadId!),
     enabled: !!threadId,
     staleTime: 60 * 1000,
+  });
+}
+
+export function useUpdateThreadIcon() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ threadId, icon }: { threadId: string; icon: ThreadIcon }) =>
+      setThreadIcon(threadId, icon),
+    onMutate: async ({ threadId, icon }) => {
+      await queryClient.cancelQueries({ queryKey: THREADS_KEY });
+
+      const previous = queryClient.getQueryData<InfiniteData<ThreadsResponse>>(THREADS_KEY);
+
+      queryClient.setQueryData<InfiniteData<ThreadsResponse>>(THREADS_KEY, (old) => {
+        if (!old) return old;
+
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            threads: page.threads.map(thread =>
+              thread.id === threadId ? { ...thread, icon } : thread,
+            ),
+          })),
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _input, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(THREADS_KEY, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: THREADS_KEY });
+    },
   });
 }

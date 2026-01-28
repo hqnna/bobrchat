@@ -4,10 +4,12 @@ import { headers } from "next/headers";
 
 import type { ChatUIMessage } from "~/app/api/chat/route";
 
+import type { ThreadIcon } from "~/lib/db/schema/chat";
+
 import { deleteFile } from "~/features/attachments/lib/storage";
 import { deleteUserAttachmentsByIds, getThreadStats, listThreadAttachments, resolveUserAttachmentsByStoragePaths } from "~/features/attachments/queries";
 import { auth } from "~/features/auth/lib/auth";
-import { createThread, deleteMessagesAfterCount, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage } from "~/features/chat/queries";
+import { createThread, deleteMessagesAfterCount, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage, updateThreadIcon } from "~/features/chat/queries";
 import { generateThreadTitle } from "~/features/chat/server/naming";
 import { getShareByThreadId, revokeThreadShare, upsertThreadShare } from "~/features/chat/sharing-queries";
 import { resolveKey } from "~/lib/api-keys/server";
@@ -173,6 +175,29 @@ export async function renameThread(threadId: string, newTitle: string): Promise<
 
   const renamed = await renameThreadById(threadId, session.user.id, newTitle);
   if (!renamed) {
+    throw new Error("Thread not found or unauthorized");
+  }
+}
+
+/**
+ * Updates the icon for a thread.
+ * Ownership is verified atomically by the updateThreadIcon query.
+ *
+ * @param threadId ID of the thread to update
+ * @param icon New icon for the thread
+ * @return {Promise<void>}
+ */
+export async function setThreadIcon(threadId: string, icon: ThreadIcon): Promise<void> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+
+  const updated = await updateThreadIcon(threadId, session.user.id, icon);
+  if (!updated) {
     throw new Error("Thread not found or unauthorized");
   }
 }

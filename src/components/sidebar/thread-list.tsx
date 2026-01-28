@@ -11,9 +11,11 @@ import { DeleteThreadDialog } from "./delete-thread-dialog";
 import { ShareThreadDialog } from "./share-thread-dialog";
 import { ThreadItem } from "./thread-item";
 
+import type { ThreadIcon } from "~/lib/db/schema/chat";
+
 type ThreadListProps = {
   groupedThreads?: GroupedThreads;
-  flatResults?: Array<{ id: string; title: string }>;
+  flatResults?: Array<{ id: string; title: string; icon?: ThreadIcon | null }>;
   isSearching?: boolean;
   hasNextPage?: boolean;
   fetchNextPage?: () => void;
@@ -80,7 +82,7 @@ export const ThreadList = memo(({
 
   const renderGroup = (
     title: string,
-    threads: Array<{ id: string; title: string; isShared?: boolean }>,
+    threads: Array<{ id: string; title: string; icon?: ThreadIcon | null; isShared?: boolean }>,
   ) => {
     if (threads.length === 0)
       return null;
@@ -100,6 +102,7 @@ export const ThreadList = memo(({
               key={thread.id}
               id={thread.id}
               title={thread.title}
+              icon={thread.icon}
               isActive={currentChatId === thread.id}
               isShared={thread.isShared}
               onDeleteClick={handleDeleteClick}
@@ -127,6 +130,7 @@ export const ThreadList = memo(({
                         key={thread.id}
                         id={thread.id}
                         title={thread.title}
+                        icon={thread.icon}
                         isActive={currentChatId === thread.id}
                         onDeleteClick={handleDeleteClick}
                         onShareClick={handleShareClick}
