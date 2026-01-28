@@ -21,6 +21,7 @@ export const userSettings = pgTable(
       landingPageContent: "suggestions",
       sendMessageKeyboardShortcut: "enter",
       autoThreadNaming: false,
+      autoThreadIcon: false,
       useOcrForPdfs: false,
       inputHeightScale: 0,
     } as UserSettingsData),

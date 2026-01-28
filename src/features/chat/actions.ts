@@ -9,6 +9,7 @@ import { deleteFile } from "~/features/attachments/lib/storage";
 import { deleteUserAttachmentsByIds, getThreadStats, listThreadAttachments, resolveUserAttachmentsByStoragePaths } from "~/features/attachments/queries";
 import { auth } from "~/features/auth/lib/auth";
 import { createThread, deleteMessagesAfterCount, deleteThreadById, getMessagesByThreadId, renameThreadById, saveMessage, updateThreadIcon } from "~/features/chat/queries";
+import { generateThreadIcon } from "~/features/chat/server/icon-selection";
 import { generateThreadTitle } from "~/features/chat/server/naming";
 import { getShareByThreadId, revokeThreadShare, upsertThreadShare } from "~/features/chat/sharing-queries";
 import { resolveKey } from "~/lib/api-keys/server";
@@ -255,6 +256,59 @@ export async function regenerateThreadName(threadId: string, clientKey?: string)
   }
 
   return newTitle;
+}
+
+/**
+ * Regenerates the icon of a thread using AI.
+ * Requires either a server-stored API key or a client-provided key.
+ * Ownership is verified atomically by the updateThreadIcon query.
+ *
+ * @param threadId ID of the thread to update
+ * @param clientKey Optional API key provided by the client (from localStorage)
+ * @return {Promise<ThreadIcon>} The new icon
+ */
+export async function regenerateThreadIcon(threadId: string, clientKey?: string): Promise<ThreadIcon> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session?.user) {
+    throw new Error("Not authenticated");
+  }
+
+  const userId = session.user.id;
+
+  const [openrouterKey, threadMessages] = await Promise.all([
+    resolveKey(userId, "openrouter", clientKey),
+    getMessagesByThreadId(threadId),
+  ]);
+
+  if (!openrouterKey) {
+    throw new Error("No API key configured. Provide a browser key or store one on the server.");
+  }
+
+  const textMessages = threadMessages.filter(m => m.role === "user");
+
+  if (textMessages.length === 0) {
+    throw new Error("No user messages found to generate icon from");
+  }
+
+  const firstUserMessage = textMessages[0];
+  const userContent = firstUserMessage.parts
+    ? firstUserMessage.parts
+        .filter(p => p.type === "text")
+        .map(p => (p as { text: string }).text)
+        .join("")
+    : "";
+
+  const newIcon = await generateThreadIcon(userContent, openrouterKey);
+
+  const updated = await updateThreadIcon(threadId, userId, newIcon);
+  if (!updated) {
+    throw new Error("Thread not found or unauthorized");
+  }
+
+  return newIcon;
 }
 
 /**

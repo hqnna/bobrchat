@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS: UserSettingsData = {
   defaultThreadIcon: "message-circle",
   landingPageContent: "suggestions",
   autoThreadNaming: false,
+  autoThreadIcon: false,
   useOcrForPdfs: false,
   autoCreateFilesFromPaste: true,
   sendMessageKeyboardShortcut: "enter",

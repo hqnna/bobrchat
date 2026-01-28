@@ -78,6 +78,13 @@ export function ChatBehaviorSection({ settings }: ChatBehaviorSectionProps) {
         onToggle={enabled => save({ autoThreadNaming: enabled })}
       />
 
+      <ToggleItem
+        label="Automatic Thread Icon"
+        description="Automatically select a relevant icon based on conversation content."
+        enabled={settings.autoThreadIcon}
+        onToggle={enabled => save({ autoThreadIcon: enabled })}
+      />
+
       <TextInputItem
         label="Custom Instructions"
         description="These instructions will be included in every conversation."

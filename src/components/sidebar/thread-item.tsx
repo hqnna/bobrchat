@@ -32,7 +32,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "~/components/ui/context-menu";
-import { useDeleteThread, useRegenerateThreadName, useRenameThread, useThreadStats, useUpdateThreadIcon } from "~/features/chat/hooks/use-threads";
+import { useDeleteThread, useRegenerateThreadIcon, useRegenerateThreadName, useRenameThread, useThreadStats, useUpdateThreadIcon } from "~/features/chat/hooks/use-threads";
 import { useChatUIStore } from "~/features/chat/store";
 import { THREAD_ICONS } from "~/lib/db/schema/chat";
 import { cn } from "~/lib/utils";
@@ -105,6 +105,7 @@ function ThreadItemComponent({
   const deleteThreadMutation = useDeleteThread();
   const renameThreadMutation = useRenameThread();
   const regenerateThreadNameMutation = useRegenerateThreadName();
+  const regenerateThreadIconMutation = useRegenerateThreadIcon();
   const updateIconMutation = useUpdateThreadIcon();
 
   const currentIcon = icon ?? "message-circle";
@@ -162,6 +163,17 @@ function ThreadItemComponent({
     catch (error) {
       console.error("Failed to regenerate thread name:", error);
       toast.error("Failed to regenerate thread name");
+    }
+  };
+
+  const handleRegenerateIconClick = async () => {
+    try {
+      await regenerateThreadIconMutation.mutateAsync({ threadId: id, clientKey: openrouterKey ?? undefined });
+      toast.success("Thread icon regenerated");
+    }
+    catch (error) {
+      console.error("Failed to regenerate thread icon:", error);
+      toast.error("Failed to regenerate thread icon");
     }
   };
 
@@ -345,6 +357,9 @@ function ThreadItemComponent({
             })}
           </ContextMenuSubContent>
         </ContextMenuSub>
+        <ContextMenuItem onClick={handleRegenerateIconClick} disabled={regenerateThreadIconMutation.isPending}>
+          Regenerate Icon
+        </ContextMenuItem>
         <ContextMenuItem onClick={() => onShareClick?.(id, title)}>
           {isShared ? "Manage Share" : "Share"}
         </ContextMenuItem>

@@ -6,8 +6,9 @@ import { headers } from "next/headers";
 import { after } from "next/server";
 
 import { auth } from "~/features/auth/lib/auth";
-import { ensureThreadExists, renameThreadById, saveMessage } from "~/features/chat/queries";
+import { ensureThreadExists, renameThreadById, saveMessage, updateThreadIcon } from "~/features/chat/queries";
 import { formatProviderError } from "~/features/chat/server/error";
+import { generateThreadIcon } from "~/features/chat/server/icon-selection";
 import { generateThreadTitle } from "~/features/chat/server/naming";
 import { streamChatResponse } from "~/features/chat/server/service";
 import { getUserSettingsAndKeys } from "~/features/settings/queries";
@@ -137,6 +138,18 @@ export async function POST(req: Request) {
             }
             catch (error) {
               Sentry.captureException(error, { tags: { operation: "auto-rename" } });
+            }
+          })();
+        }
+
+        if (settings.autoThreadIcon) {
+          (async () => {
+            try {
+              const icon = await generateThreadIcon(userMessage, openrouterKey);
+              await updateThreadIcon(threadId, session.user.id, icon);
+            }
+            catch (error) {
+              Sentry.captureException(error, { tags: { operation: "auto-icon" } });
             }
           })();
         }

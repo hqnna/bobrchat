@@ -8,7 +8,7 @@ import { useMemo } from "react";
 import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
 import type { ThreadIcon } from "~/lib/db/schema/chat";
 
-import { createNewThread, deleteThread, fetchThreadStats, regenerateThreadName, renameThread, setThreadIcon } from "~/features/chat/actions";
+import { createNewThread, deleteThread, fetchThreadStats, regenerateThreadIcon, regenerateThreadName, renameThread, setThreadIcon } from "~/features/chat/actions";
 import { groupThreadsByDate } from "~/features/chat/utils/thread-grouper";
 import { THREADS_KEY } from "~/lib/queries/query-keys";
 
@@ -211,6 +211,34 @@ export function useUpdateThreadIcon() {
       if (context?.previous) {
         queryClient.setQueryData(THREADS_KEY, context.previous);
       }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: THREADS_KEY });
+    },
+  });
+}
+
+export function useRegenerateThreadIcon() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ threadId, clientKey }: { threadId: string; clientKey?: string }) =>
+      regenerateThreadIcon(threadId, clientKey),
+    onSuccess: (newIcon, { threadId }) => {
+      queryClient.setQueryData<InfiniteData<ThreadsResponse>>(THREADS_KEY, (old) => {
+        if (!old)
+          return old;
+
+        return {
+          ...old,
+          pages: old.pages.map(page => ({
+            ...page,
+            threads: page.threads.map(thread =>
+              thread.id === threadId ? { ...thread, icon: newIcon } : thread,
+            ),
+          })),
+        };
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: THREADS_KEY });

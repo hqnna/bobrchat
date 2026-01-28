@@ -144,6 +144,7 @@ export async function createDefaultUserSettings(userId: string): Promise<UserSet
     defaultThreadName: "New Chat",
     defaultThreadIcon: "message-circle",
     autoThreadNaming: false,
+    autoThreadIcon: false,
     useOcrForPdfs: false,
     autoCreateFilesFromPaste: true,
     landingPageContent: "suggestions",
