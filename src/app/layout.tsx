@@ -29,6 +29,11 @@ export const metadata: Metadata = {
   keywords: ["AI chat", "chatbot", "Claude", "GPT", "AI assistant", "bobrchat", "chat interface"],
   authors: [{ name: "BobrChat" }],
   creator: "BobrChat",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "BobrChat",
+  },
   metadataBase: new URL("https://bobrchat.com"),
   openGraph: {
     type: "website",
