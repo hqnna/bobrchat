@@ -80,7 +80,7 @@ export const auth = betterAuth({
     },
   },
   rateLimit: {
-    storage: "database",
+    storage: serverEnv.NODE_ENV === "development" ? "memory" : "database",
     window: 60,
     max: 100,
     customRules: {

@@ -4,10 +4,12 @@ import { Suspense } from "react";
 
 import { ChatSidebar } from "~/components/sidebar/chat-sidebar";
 import { FloatingSidebarToggle } from "~/components/sidebar/floating-sidebar-toggle";
+import { ThemeInitializer } from "~/components/theme/theme-initializer";
 import { SidebarProvider } from "~/components/ui/sidebar";
 import { GlobalDropZoneProvider } from "~/features/attachments/components/global-drop-zone";
 import { auth } from "~/features/auth/lib/auth";
 import { SettingsModalProvider } from "~/features/settings/components/settings-modal-provider";
+import { getUserSettings } from "~/features/settings/queries";
 import { prefetchThreads } from "~/lib/queries/prefetch-threads";
 
 export default async function MainLayout({
@@ -27,9 +29,10 @@ export default async function MainLayout({
     headers: await headers(),
   });
 
-  const dehydratedState = session?.user
-    ? await prefetchThreads(session.user.id)
-    : undefined;
+  const [dehydratedState, settings] = await Promise.all([
+    session?.user ? prefetchThreads(session.user.id) : Promise.resolve(undefined),
+    session?.user ? getUserSettings(session.user.id) : Promise.resolve(null),
+  ]);
 
   return (
     <HydrationBoundary state={dehydratedState}>
@@ -40,6 +43,10 @@ export default async function MainLayout({
           <main className="w-full">
             {children}
           </main>
+          <ThemeInitializer
+            theme={settings?.theme}
+            accentColor={settings?.accentColor}
+          />
           <Suspense fallback={null}>
             <SettingsModalProvider />
           </Suspense>

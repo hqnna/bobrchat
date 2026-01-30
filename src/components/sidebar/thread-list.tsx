@@ -7,6 +7,7 @@ import type { GroupedThreads } from "~/features/chat/utils/thread-grouper";
 import type { ThreadIcon } from "~/lib/db/schema/chat";
 
 import { Skeleton } from "~/components/ui/skeleton";
+import { useUserSettings } from "~/features/settings/hooks/use-user-settings";
 
 import { DeleteThreadDialog } from "./delete-thread-dialog";
 import { ShareThreadDialog } from "./share-thread-dialog";
@@ -33,6 +34,7 @@ export const ThreadList = memo(({
   const currentChatId = pathname.startsWith("/chat/")
     ? pathname.split("/chat/")[1]
     : null;
+  const { isLoading: settingsLoading } = useUserSettings();
 
   const [threadToDelete, setThreadToDelete] = useState<{
     id: string;
@@ -112,6 +114,19 @@ export const ThreadList = memo(({
       </div>
     );
   };
+
+  if (settingsLoading) {
+    return (
+      <div className="space-y-4 py-2">
+        <div className="space-y-1">
+          <Skeleton className="mx-1 h-3 w-16" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   if (!groupedThreads && !isSearching) {
     return null;

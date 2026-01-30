@@ -7,7 +7,6 @@ import "katex/dist/katex.min.css";
 
 import "./globals.css";
 
-import { ThemeInitializer } from "~/components/theme/theme-initializer";
 import { ThemeProvider } from "~/components/theme/theme-provider";
 import { Toaster } from "~/components/ui/sonner";
 import { QueryProvider } from "~/lib/queries/query-provider";
@@ -87,7 +86,6 @@ export default function RootLayout({
         >
           <QueryProvider>
             <Toaster position="top-right" />
-            <ThemeInitializer />
             {children}
           </QueryProvider>
         </ThemeProvider>

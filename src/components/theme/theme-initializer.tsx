@@ -28,11 +28,17 @@ export function applyAccentColor(color: AccentColor) {
   }
 }
 
+type ThemeInitializerProps = {
+  theme?: string;
+  accentColor?: AccentColor;
+};
+
 /**
- * Loads and applies the user's saved theme preference on app start
+ * Applies the user's saved theme preference on app start
  * Must be a child of ThemeProvider
+ * Props are passed from SSR to avoid client-side fetch
  */
-export function ThemeInitializer() {
+export function ThemeInitializer({ theme, accentColor }: ThemeInitializerProps) {
   const { setTheme } = useTheme();
   const hasInitialized = useRef(false);
 
@@ -41,28 +47,14 @@ export function ThemeInitializer() {
       return;
     }
 
-    const initializeTheme = async () => {
-      try {
-        const response = await fetch("/api/settings");
-        if (!response.ok)
-          return;
-
-        const settings = (await response.json()) as { theme?: string; accentColor?: AccentColor };
-        if (settings.theme) {
-          setTheme(settings.theme);
-        }
-        if (settings.accentColor) {
-          applyAccentColor(settings.accentColor);
-        }
-        hasInitialized.current = true;
-      }
-      catch (error) {
-        console.error("Failed to initialize theme:", error);
-      }
-    };
-
-    initializeTheme();
-  }, []);
+    if (theme) {
+      setTheme(theme);
+    }
+    if (accentColor) {
+      applyAccentColor(accentColor);
+    }
+    hasInitialized.current = true;
+  }, [theme, accentColor, setTheme]);
 
   return null;
 }

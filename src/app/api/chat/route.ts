@@ -142,7 +142,7 @@ export async function POST(req: Request) {
           })();
         }
 
-        if (settings.autoThreadIcon) {
+        if (settings.autoThreadIcon && !settings.showSidebarIcons) {
           (async () => {
             try {
               const icon = await generateThreadIcon(userMessage, openrouterKey);

@@ -4,7 +4,14 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 import { serverEnv } from "./src/lib/env";
 
+const isDev = serverEnv.NODE_ENV === "development";
+
 const nextConfig: NextConfig = {
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
   serverExternalPackages: ["tiktoken", "tokenlens"],
   images: {
     remotePatterns: [
@@ -38,4 +45,5 @@ const nextConfig: NextConfig = {
   ],
 };
 
-export default withSentryConfig(nextConfig);
+// Skip Sentry in dev to avoid ~600ms proxy.ts overhead per request
+export default isDev ? nextConfig : withSentryConfig(nextConfig);

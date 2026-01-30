@@ -97,14 +97,15 @@ export async function getUserSettingsAndKeys(
 
 /**
  * Get user settings by user ID (does not include actual API keys)
+ * Cached per-request to deduplicate multiple calls.
  *
  * @param userId ID of the user
  * @return {Promise<UserSettingsData>} User settings or default settings if not found
  */
-export async function getUserSettings(userId: string): Promise<UserSettingsData> {
+export const getUserSettings = cache(async (userId: string): Promise<UserSettingsData> => {
   const { settings } = await getUserSettingsRow(userId);
   return settings;
-}
+});
 
 /**
  * Get user settings with metadata (does not include actual API keys)
