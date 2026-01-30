@@ -2,6 +2,12 @@ import { ArrowRightIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "~/components/ui/accordion";
 import { Button } from "~/components/ui/button";
 
 import { ApiKeysMockup } from "./mockups/api-keys-mockup";
@@ -172,8 +178,50 @@ export function LandingPage() {
             </div>
           </div>
 
+          {/* FAQs */}
+          <div className="mx-auto mt-20 w-full max-w-2xl">
+            <h2 className="mb-6 text-center text-xl font-semibold">
+              Frequently Asked Questions
+            </h2>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="faq-0">
+                <AccordionTrigger>Is this actually cheaper?</AccordionTrigger>
+                <AccordionContent>
+                  For most users, yes. The average user spends around $5-$10 per
+                  month on AI usage. Most paid AI chat services charge a flat fee
+                  of $20 or more, regardless of usage. With BobrChat, you only pay
+                  for what you use.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-1">
+                <AccordionTrigger>How does "Pay only what you use" work?</AccordionTrigger>
+                <AccordionContent>
+                  Paid AI services usually charge a flat $20 monthly fee, whether you send one message or one thousand. BobrChat connects to your OpenRouter account, which bills you by the token. If you only spend $4 on tokens this month, you only pay $4.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-2">
+                <AccordionTrigger>Is it safe to give you my API key?</AccordionTrigger>
+                <AccordionContent>
+                  Yes. You control how your data is handled. If you choose "Browser Only," your key stays in your local storage and is never stored on our servers. If you choose "Encrypted Server," your key is encrypted before being stored so you can use it across different devices.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-3">
+                <AccordionTrigger>Can I use providers other than OpenRouter?</AccordionTrigger>
+                <AccordionContent>
+                  Currently, we support OpenRouter for access to dozens of models with one key. We are actively adding support for other providers like Anthropic, OpenAI, and Google Gemini. This will allow you to use your existing credits or tier-status directly with those official APIs.
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="faq-4">
+                <AccordionTrigger>Why would I use this instead of OpenRouter's chat?</AccordionTrigger>
+                <AccordionContent>
+                  Personal preference. OpenRouter's interface is great, however it's overkill for the average chat experience. BobrChat focuses on a clean, simple chat UI with essential features like cost tracking, model switching, and file uploads.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+
           {/* Beta Note */}
-          <div className="mt-20 flex flex-col items-center pt-8 text-center">
+          <div className="mt-16 flex flex-col items-center pt-8 text-center">
             <div className={`
               bg-primary/10 text-primary rounded-full px-3 py-1 text-xs
               font-medium
@@ -183,7 +231,7 @@ export function LandingPage() {
             </div>
             <h2 className="mt-3 text-xl font-semibold">Free while we figure things out</h2>
             <p className="text-muted-foreground mt-2 max-w-md text-sm">
-              We&apos;re still early. Enjoy a generous free tier as a beta user. You just pay for your own API usage through OpenRouter.
+              We&apos;re still early. Beta users get 100MB of file uploads and unlimited threads — free. You just pay for your own API usage through OpenRouter.
             </p>
             <Link href="/auth" className="mt-6">
               <Button className="gap-2">
