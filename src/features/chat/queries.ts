@@ -8,6 +8,8 @@ import { db } from "~/lib/db";
 import { attachments, messages, threads } from "~/lib/db/schema/chat";
 import { threadShares } from "~/lib/db/schema/sharing";
 import { serverEnv } from "~/lib/env";
+import { decryptMessage, encryptMessage } from "~/lib/security/encryption";
+import { getKeyMeta, getOrCreateKeyMeta, getSaltForVersion } from "~/lib/security/keys";
 
 function cleanReasoningPart(part: unknown): unknown | null {
   if (!part || typeof part !== "object")
@@ -113,10 +115,25 @@ function extractAttachmentRefs(message: ChatUIMessage): { ids: string[]; storage
  * @return {Promise<ChatUIMessage[]>} Array of chat messages
  */
 export const getMessagesByThreadId = cache(async (threadId: string): Promise<ChatUIMessage[]> => {
+  const thread = await db
+    .select({ userId: threads.userId })
+    .from(threads)
+    .where(eq(threads.id, threadId))
+    .limit(1);
+
+  if (thread.length === 0)
+    return [];
+  const userId = thread[0].userId;
+  const keyMeta = await getKeyMeta(userId);
+
   const rows = await db
     .select({
       id: messages.id,
       content: messages.content,
+      iv: messages.iv,
+      ciphertext: messages.ciphertext,
+      authTag: messages.authTag,
+      keyVersion: messages.keyVersion,
       searchEnabled: messages.searchEnabled,
       reasoningLevel: messages.reasoningLevel,
     })
@@ -124,16 +141,32 @@ export const getMessagesByThreadId = cache(async (threadId: string): Promise<Cha
     .where(eq(messages.threadId, threadId))
     .orderBy(messages.createdAt);
 
-  return rows.map((row) => {
-    const message = row.content as ChatUIMessage;
-    // Ensure the message has the correct ID and toggle settings from the database
+  return Promise.all(rows.map(async (row) => {
+    let message: ChatUIMessage;
+
+    if (row.iv && row.ciphertext && row.authTag && keyMeta) {
+      // Get the salt for this message's specific key version
+      const salt = await getSaltForVersion(userId, row.keyVersion ?? keyMeta.version);
+      if (!salt) {
+        throw new Error(`Missing salt for key version ${row.keyVersion}`);
+      }
+      message = decryptMessage(
+        { iv: row.iv, ciphertext: row.ciphertext, authTag: row.authTag },
+        userId,
+        salt,
+      );
+    }
+    else {
+      message = row.content as ChatUIMessage;
+    }
+
     return {
       ...message,
       id: row.id,
       searchEnabled: row.searchEnabled,
       reasoningLevel: row.reasoningLevel,
     };
-  });
+  }));
 });
 
 /**
@@ -163,18 +196,23 @@ export async function saveMessage(
 
   // Filter out encrypted reasoning parts before saving
   const filteredMessage = filterAndCleanReasoningParts(message);
-
   const { ids: attachmentIds, storagePaths: attachmentStoragePaths } = extractAttachmentRefs(filteredMessage);
+
+  const keyMeta = await getOrCreateKeyMeta(userId);
+  const encrypted = encryptMessage(filteredMessage, userId, keyMeta.salt);
 
   await db.transaction(async (tx) => {
     const messageId = crypto.randomUUID();
-    const messageWithId = { ...filteredMessage, id: messageId };
 
     await tx.insert(messages).values({
       id: messageId,
       threadId,
       role,
-      content: messageWithId,
+      iv: encrypted.iv,
+      ciphertext: encrypted.ciphertext,
+      authTag: encrypted.authTag,
+      content: null,
+      keyVersion: keyMeta.version,
       searchEnabled: options?.searchEnabled,
       reasoningLevel: options?.reasoningLevel,
     });
@@ -208,26 +246,37 @@ export async function saveMessage(
  * Save multiple messages to a thread
  *
  * @param threadId ID of the thread
+ * @param userId ID of the user
  * @param messagesToSave Array of messages to save
  *
  * @return {Promise<void>}
  */
 export async function saveMessages(
   threadId: string,
+  userId: string,
   messagesToSave: ChatUIMessage[],
 ): Promise<void> {
   if (messagesToSave.length === 0)
     return;
 
   const dateNow = new Date();
+  const keyMeta = await getOrCreateKeyMeta(userId);
 
   await db.transaction(async (tx) => {
     await tx.insert(messages).values(
-      messagesToSave.map(message => ({
-        threadId,
-        role: message.role,
-        content: message,
-      })),
+      messagesToSave.map((message) => {
+        const filtered = filterAndCleanReasoningParts(message);
+        const encrypted = encryptMessage(filtered, userId, keyMeta.salt);
+        return {
+          threadId,
+          role: message.role,
+          content: null,
+          iv: encrypted.iv,
+          ciphertext: encrypted.ciphertext,
+          authTag: encrypted.authTag,
+          keyVersion: keyMeta.version,
+        };
+      }),
     );
 
     // Update thread's lastMessageAt (conversation engagement time)
