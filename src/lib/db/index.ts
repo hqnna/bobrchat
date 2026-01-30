@@ -1,3 +1,4 @@
+/* eslint-disable node/no-process-env */
 import { Pool } from "@neondatabase/serverless";
 import { drizzle as drizzleNeonWs } from "drizzle-orm/neon-serverless";
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js";
@@ -26,7 +27,7 @@ function isTransientError(error: unknown): boolean {
 }
 
 function createDb() {
-  if (serverEnv.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development") {
     const client = postgres(serverEnv.DATABASE_URL, {
       max: 20,
       idle_timeout: 30, // Reduced from 60 to avoid Neon timeout (which is 5 min)

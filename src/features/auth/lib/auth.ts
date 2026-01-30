@@ -1,3 +1,4 @@
+/* eslint-disable node/no-process-env */
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -80,7 +81,7 @@ export const auth = betterAuth({
     },
   },
   rateLimit: {
-    storage: serverEnv.NODE_ENV === "development" ? "memory" : "database",
+    storage: process.env.NODE_ENV === "development" ? "memory" : "database",
     window: 60,
     max: 100,
     customRules: {

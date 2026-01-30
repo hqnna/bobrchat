@@ -1,10 +1,11 @@
+/* eslint-disable node/no-process-env */
 import type { NextConfig } from "next";
 
 import { withSentryConfig } from "@sentry/nextjs";
 
 import { serverEnv } from "./src/lib/env";
 
-const isDev = serverEnv.NODE_ENV === "development";
+const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig: NextConfig = {
   logging: {

@@ -3,7 +3,6 @@ import { z } from "zod";
 
 const schema = {
   server: z.object({
-    NODE_ENV: z.enum(["development", "production"]),
     DATABASE_URL: z.url(),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
