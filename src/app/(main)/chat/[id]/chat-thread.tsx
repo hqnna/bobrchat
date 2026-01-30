@@ -76,6 +76,13 @@ function ChatThread({ params, initialMessages, initialPendingMessage, parentThre
         ...(state.parallelKey && { parallelClientKey: state.parallelKey }),
         ...(state.selectedModelId && { modelId: state.selectedModelId }),
         supportsNativePdf: capabilities.supportsNativePdf,
+        // Pass pricing from client cache to avoid server-side model fetch
+        ...(selectedModelInfo?.pricing && {
+          modelPricing: {
+            prompt: selectedModelInfo.pricing.prompt,
+            completion: selectedModelInfo.pricing.completion,
+          },
+        }),
         // Mark as regeneration if triggered by regenerate function
         isRegeneration: trigger === "regenerate-message",
         // Merge any additional body properties from the request

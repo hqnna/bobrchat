@@ -1,10 +1,3 @@
-import { getModelData } from "tokenlens";
-
-type TokenCosts = { inputCostPerMillion: number; outputCostPerMillion: number };
-
-const tokenCostsCache = new Map<string, { data: TokenCosts; expires: number }>();
-const TOKEN_COSTS_TTL = 1000 * 60 * 60;
-
 /**
  * Calculates the cost of OCR processing via Mistral OCR.
  *
@@ -78,53 +71,22 @@ export function calculateExtractCost(calls: ExtractToolCall[]): number {
  * @param usage An object containing token usage information.
  * @param usage.inputTokens The number of input tokens used.
  * @param usage.outputTokens The number of output tokens used.
- * @param inputCostPerMillion The cost per million input tokens.
- * @param outputCostPerMillion The cost per million output tokens.
- * @param searchPricing Optional search pricing to add (default: 0).
- * @returns The total cost in USD.
+ * @param inputCostPerToken The cost per input token.
+ * @param outputCostPerToken The cost per output token.
+ * @returns An object containing prompt cost, completion cost, and total cost.
  */
 export function calculateChatCost(
   usage: { inputTokens: number; outputTokens: number },
-  inputCostPerMillion: number,
-  outputCostPerMillion: number,
-  searchPricing: number = 0,
+  inputCostPerToken: number,
+  outputCostPerToken: number,
 ) {
-  return (usage.inputTokens * inputCostPerMillion + usage.outputTokens * outputCostPerMillion) / 1_000_000 + searchPricing;
-}
+  const promptCost = (usage.inputTokens * inputCostPerToken);
+  const completionCost = (usage.outputTokens * outputCostPerToken);
+  const totalCost = promptCost + completionCost;
 
-/**
- * Gets token costs for a given model from OpenRouter via tokenlens.
- *
- * Handles errors gracefully by returning 0 costs.
- *
- * @param modelId The ID of the model to get pricing for.
- * @returns An object containing input and output cost per million tokens.
- */
-export async function getTokenCosts(modelId: string): Promise<TokenCosts> {
-  const cached = tokenCostsCache.get(modelId);
-  if (cached && cached.expires > Date.now())
-    return cached.data;
-
-  try {
-    const [baseModelId, modelSuffix] = modelId.split(":");
-
-    if (modelSuffix === "free") {
-      const freeCosts = { inputCostPerMillion: 0, outputCostPerMillion: 0 };
-      tokenCostsCache.set(modelId, { data: freeCosts, expires: Date.now() + TOKEN_COSTS_TTL });
-      return freeCosts;
-    }
-
-    const modelData = await getModelData({ modelId: baseModelId, provider: "openrouter" });
-
-    const costs = {
-      inputCostPerMillion: modelData?.cost?.input ?? 0,
-      outputCostPerMillion: modelData?.cost?.output ?? 0,
-    };
-    tokenCostsCache.set(modelId, { data: costs, expires: Date.now() + TOKEN_COSTS_TTL });
-    return costs;
-  }
-  catch (error) {
-    console.error(`Failed to get pricing for model ${modelId}:`, error);
-    return { inputCostPerMillion: 0, outputCostPerMillion: 0 };
-  }
+  return {
+    promptCost,
+    completionCost,
+    totalCost,
+  };
 }

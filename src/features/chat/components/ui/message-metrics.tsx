@@ -25,7 +25,7 @@ type MessageMetricsProps = {
 function normalizeCostUsd(costUsd: CostBreakdown | number | undefined): CostBreakdown | null {
   if (!costUsd) return null;
   if (typeof costUsd === "number") {
-    return { total: costUsd, model: costUsd, search: 0, extract: 0, ocr: 0 };
+    return { promptCost: costUsd, completionCost: 0, total: costUsd, search: 0, extract: 0, ocr: 0 };
   }
   return costUsd;
 }
@@ -248,23 +248,38 @@ export function MessageMetrics({
                 ? <span>This model is either free, or pricing information is not available.</span>
                 : (
                     <div className="flex flex-col gap-1">
-                      <div className="flex justify-between gap-4">
-                        <span>Model:</span>
-                        <span className="font-mono">{formatCost(costUsd.model)}</span>
-                      </div>
-                      {costUsd.search > 0.0001 && (
+                      {costUsd.promptCost > 0.000001 && (
+                        <div className="flex justify-between gap-4">
+                          <span>Prompt:</span>
+                          <span className="font-mono">{formatCost(costUsd.promptCost)}</span>
+                        </div>
+                      )}
+                      {costUsd.completionCost > 0.000001 && (
+                        <div className="flex justify-between gap-4">
+                          <span>Completion:</span>
+                          <span className="font-mono">{formatCost(costUsd.completionCost)}</span>
+                        </div>
+                      )}
+                      {costUsd?.model && costUsd?.model > 0.000001 && ( // We used to handle model as a separate cost,
+                                                   // but now it's shown as prompt + completion
+                        <div className="flex justify-between gap-4">
+                          <span>Model:</span>
+                          <span className="font-mono">{formatCost(costUsd?.model)}</span>
+                        </div>
+                      )}
+                      {costUsd.search > 0.000001 && (
                         <div className="flex justify-between gap-4">
                           <span>Search:</span>
                           <span className="font-mono">{formatCost(costUsd.search)}</span>
                         </div>
                       )}
-                      {costUsd.extract > 0.0001 && (
+                      {costUsd.extract > 0.000001 && (
                         <div className="flex justify-between gap-4">
                           <span>Extract:</span>
                           <span className="font-mono">{formatCost(costUsd.extract)}</span>
                         </div>
                       )}
-                      {costUsd.ocr > 0.0001 && (
+                      {costUsd.ocr > 0.000001 && (
                         <div className="flex justify-between gap-4">
                           <span>PDF OCR:</span>
                           <span className="font-mono">{formatCost(costUsd.ocr)}</span>

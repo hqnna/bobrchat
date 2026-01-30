@@ -9,8 +9,8 @@ type MetadataOptions = {
   firstTokenTime: number | null;
   startTime: number;
   modelId: string;
-  inputCostPerMillion: number;
-  outputCostPerMillion: number;
+  inputCostPerToken: number;
+  outputCostPerToken: number;
   searchCalls?: SearchToolCall[];
   extractCalls?: ExtractToolCall[];
   ocrPageCount?: number;
@@ -30,8 +30,8 @@ export function calculateResponseMetadata(options: MetadataOptions) {
     firstTokenTime,
     startTime,
     modelId,
-    inputCostPerMillion,
-    outputCostPerMillion,
+    inputCostPerToken,
+    outputCostPerToken,
     searchCalls,
     extractCalls,
     ocrPageCount,
@@ -41,19 +41,22 @@ export function calculateResponseMetadata(options: MetadataOptions) {
   const extractCost = calculateExtractCost(extractCalls ?? []);
   const ocrCost = ocrPageCount ? calculateOcrCost(ocrPageCount) : 0;
 
-  const modelCost = calculateChatCost(
+  const { promptCost, completionCost } = calculateChatCost(
     { inputTokens, outputTokens },
-    inputCostPerMillion,
-    outputCostPerMillion,
+    inputCostPerToken,
+    outputCostPerToken,
   );
 
-  const totalCost = modelCost + searchCost + extractCost + ocrCost;
+  const totalCost = promptCost + completionCost + searchCost + extractCost + ocrCost;
+
+  console.warn(`[Metrics] ${modelId}: ${inputTokens} input tokens ($${promptCost.toFixed(6)}), ${outputTokens} output tokens ($${completionCost.toFixed(6)})`);
 
   return {
     inputTokens,
     outputTokens,
     costUSD: {
-      model: modelCost,
+      promptCost,
+      completionCost,
       search: searchCost,
       extract: extractCost,
       ocr: ocrCost,

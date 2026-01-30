@@ -6,7 +6,6 @@ import { convertToModelMessages, stepCountIs, streamText } from "ai";
 import type { ChatUIMessage } from "~/app/api/chat/route";
 import type { UserSettingsData } from "~/features/settings/types";
 
-import { getTokenCosts } from "./cost";
 import { createHandoffTool } from "./handoff/index";
 import { calculateResponseMetadata } from "./metrics";
 import { getModelProvider } from "./models";
@@ -31,6 +30,7 @@ export type PdfEngineConfig = {
  * @param parallelApiKey The Parallel Web API key for web search functionality.
  * @param onFirstToken Optional callback to capture first token timing from the messageMetadata handler.
  * @param pdfEngineConfig Configuration for PDF processing engine selection.
+ * @param modelPricing Optional pricing data from client cache. If not provided, pricing will default to 0.
  * @returns An object containing the text stream and a function to create metadata for each message part.
  */
 export type ReasoningLevel = "xhigh" | "high" | "medium" | "low" | "minimal" | "none";
@@ -47,6 +47,7 @@ export async function streamChatResponse(
   pdfEngineConfig?: PdfEngineConfig,
   reasoningLevel?: string,
   threadId?: string,
+  modelPricing?: { prompt: string; completion: string },
 ) {
   return Sentry.startSpan(
     { op: "ai.inference", name: `streamChatResponse ${modelId}` },
@@ -71,10 +72,12 @@ export async function streamChatResponse(
       const ocrPageCountPromise = useOcr ? getTotalPdfPageCount(messages) : Promise.resolve(0);
 
       const systemPrompt = generatePrompt(userSettings);
-      const [{ inputCostPerMillion, outputCostPerMillion }, processedMessages] = await Promise.all([
-        getTokenCosts(modelId),
-        processMessageFiles(messages, userId),
-      ]);
+
+      // Use pricing from client cache or default to 0
+      const inputCostPerToken = Number(modelPricing?.prompt ?? 0);
+      const outputCostPerToken = Number(modelPricing?.completion ?? 0);
+
+      const processedMessages = await processMessageFiles(messages, userId);
       const convertedMessages = await convertToModelMessages(processedMessages);
 
       const streamHandlers = createStreamHandlers(
@@ -174,8 +177,8 @@ export async function streamChatResponse(
               firstTokenTime,
               startTime,
               modelId,
-              inputCostPerMillion,
-              outputCostPerMillion,
+              inputCostPerToken,
+              outputCostPerToken,
               searchCalls,
               extractCalls,
               ocrPageCount: resolvedOcrPageCount ?? 0,

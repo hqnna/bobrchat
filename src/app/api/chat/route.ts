@@ -14,7 +14,9 @@ import { streamChatResponse } from "~/features/chat/server/service";
 import { getUserSettingsAndKeys } from "~/features/settings/queries";
 
 export type CostBreakdown = {
-  model: number;
+  promptCost: number;
+  completionCost: number;
+  model?: number; // legacy
   search: number;
   extract: number;
   ocr: number;
@@ -52,7 +54,7 @@ export async function POST(req: Request) {
         });
       }
 
-      const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, reasoningLevel, modelId, supportsNativePdf, isRegeneration }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; reasoningLevel?: string; modelId?: string; supportsNativePdf?: boolean; isRegeneration?: boolean }
+      const { messages, threadId, openrouterClientKey, parallelClientKey, searchEnabled, reasoningLevel, modelId, supportsNativePdf, isRegeneration, modelPricing }: { messages: ChatUIMessage[]; threadId?: string; openrouterClientKey?: string; parallelClientKey?: string; searchEnabled?: boolean; reasoningLevel?: string; modelId?: string; supportsNativePdf?: boolean; isRegeneration?: boolean; modelPricing?: { prompt: string; completion: string } }
         = await req.json();
 
       const baseModelId = modelId || "google/gemini-3-flash-preview";
@@ -120,6 +122,7 @@ export async function POST(req: Request) {
         },
         reasoningLevel,
         threadId,
+        modelPricing,
       );
 
       if (threadId && messages.length === 1 && messages[0].role === "user") {

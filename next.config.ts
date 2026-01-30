@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
-  serverExternalPackages: ["tiktoken", "tokenlens"],
+  serverExternalPackages: ["tiktoken"],
   images: {
     remotePatterns: [
       {
