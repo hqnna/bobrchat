@@ -72,6 +72,7 @@ function ChatThread({ params, initialMessages, initialPendingMessage }: ChatThre
     id,
     transport,
     messages: initialMessages,
+    experimental_throttle: 75,
     onError: (error) => {
       const friendlyMessage = parseAIError(error);
       toast.error(friendlyMessage);

@@ -1,5 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import crypto from "node:crypto";
+import { cache } from "react";
 
 import { db } from "~/lib/db";
 import { threads } from "~/lib/db/schema/chat";
@@ -59,11 +60,11 @@ export async function upsertThreadShare(
  * Get share info by share ID (for public page)
  * Returns null if not found or revoked
  */
-export async function getShareByShareId(shareId: string): Promise<{
+export const getShareByShareId = cache(async (shareId: string): Promise<{
   threadId: string;
   showAttachments: boolean;
   createdAt: Date;
-} | null> {
+} | null> => {
   const result = await db
     .select({
       threadId: threadShares.threadId,
@@ -84,7 +85,7 @@ export async function getShareByShareId(shareId: string): Promise<{
     showAttachments: result[0].showAttachments,
     createdAt: result[0].createdAt,
   };
-}
+});
 
 /**
  * Get share info by thread ID (for share modal)
