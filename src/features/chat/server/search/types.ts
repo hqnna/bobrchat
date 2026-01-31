@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 
 export const PARALLEL_API_BASE = "https://api.parallel.ai";
 export const PARALLEL_BETA_HEADER = "search-extract-2025-10-10";

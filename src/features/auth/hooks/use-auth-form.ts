@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { ValidationError } from "~/features/auth/types";
 
 import { authClient, twoFactor } from "~/features/auth/lib/auth-client";
-import { signInSchema, signUpSchema } from "~/features/auth/types";
+import { validateSignIn, validateSignUp } from "~/features/auth/validation";
 
 export function useAuthForm() {
   const [email, setEmail] = useState("");
@@ -57,7 +57,7 @@ export function useAuthForm() {
     setLoading(true);
 
     try {
-      const result = signInSchema.safeParse({ email, password });
+      const result = validateSignIn({ email, password });
       if (!result.success) {
         const errors = result.error.issues.map(issue => ({
           field: issue.path[0] as string,
@@ -104,7 +104,7 @@ export function useAuthForm() {
     setLoading(true);
 
     try {
-      const result = signUpSchema.safeParse({ name, email, password });
+      const result = validateSignUp({ name, email, password });
       if (!result.success) {
         const errors = result.error.issues.map(issue => ({
           field: issue.path[0] as string,

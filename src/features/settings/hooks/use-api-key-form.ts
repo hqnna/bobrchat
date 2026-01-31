@@ -2,14 +2,27 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 
 import type { ApiKeyProvider } from "~/lib/api-keys/types";
 
 import { useChatUIStore } from "~/features/chat/store";
-import { apiKeyUpdateSchema } from "~/features/settings/types";
 
 import { useRemoveApiKey, useSetApiKey, useUserSettings } from "./use-user-settings";
+
+const API_KEY_REGEX = /^[\w\-:]+$/;
+
+function validateApiKey(apiKey: string): { valid: true; apiKey: string } | { valid: false; error: string } {
+  if (!apiKey || apiKey.length === 0) {
+    return { valid: false, error: "API key is required" };
+  }
+  if (apiKey.length > 512) {
+    return { valid: false, error: "API key is too long" };
+  }
+  if (!API_KEY_REGEX.test(apiKey)) {
+    return { valid: false, error: "API key contains invalid characters" };
+  }
+  return { valid: true, apiKey };
+}
 
 type StorageType = "client" | "server";
 
@@ -54,20 +67,23 @@ export function useApiKeyForm(provider: ApiKeyProvider) {
     if (!finalStorageType)
       return;
 
-    try {
-      const validated = apiKeyUpdateSchema.parse({
-        apiKey: apiKey.trim(),
-        storeServerSide: finalStorageType === "server",
-      });
+    const result = validateApiKey(apiKey.trim());
+    if (!result.valid) {
+      toast.error(result.error);
+      return;
+    }
 
-      if (validated.storeServerSide) {
+    const storeServerSide = finalStorageType === "server";
+
+    try {
+      if (storeServerSide) {
         await setApiKeyMutation.mutateAsync({
           provider,
-          apiKey: validated.apiKey,
+          apiKey: result.apiKey,
         });
       }
       else {
-        setClientKey(validated.apiKey);
+        setClientKey(result.apiKey);
       }
       setApiKey("");
       setStorageType(null);
@@ -75,11 +91,9 @@ export function useApiKeyForm(provider: ApiKeyProvider) {
     }
     catch (error) {
       console.error("Failed to save API key:", error);
-      const message = error instanceof z.ZodError
-        ? error.issues.map(e => e.message).join(", ")
-        : error instanceof Error
-          ? error.message
-          : "Failed to save API key";
+      const message = error instanceof Error
+        ? error.message
+        : "Failed to save API key";
       toast.error(message);
     }
   };

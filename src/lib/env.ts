@@ -1,5 +1,5 @@
 import { loadEnv } from "@matthew-hre/env";
-import { z } from "zod";
+import * as z from "zod";
 
 const schema = {
   server: z.object({

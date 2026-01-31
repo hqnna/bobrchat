@@ -2,7 +2,7 @@
 import { twoFactorClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
-import { clientEnv } from "~/lib/env";
+import { clientEnv } from "~/lib/env-client";
 
 // Need to patch this upstream
 const baseURL = clientEnv.NEXT_PUBLIC_BETTER_AUTH_URL || process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:3000";

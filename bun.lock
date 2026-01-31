@@ -11,7 +11,7 @@
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
         "@hookform/resolvers": "^5.2.2",
-        "@matthew-hre/env": "^0.3.1",
+        "@matthew-hre/env": "^0.3.2",
         "@neondatabase/serverless": "^0.10.4",
         "@openrouter/ai-sdk-provider": "^1.2.8",
         "@radix-ui/react-accordion": "^1.2.12",
@@ -473,7 +473,7 @@
 
     "@js-temporal/polyfill": ["@js-temporal/polyfill@0.5.1", "", { "dependencies": { "jsbi": "^4.3.0" } }, "sha512-hloP58zRVCRSpgDxmqCWJNlizAlUgJFqG2ypq79DCvyv9tHjRYMDOcPFjzfl/A1/YxDvRCZz8wvZvmapQnKwFQ=="],
 
-    "@matthew-hre/env": ["@matthew-hre/env@0.3.1", "", { "dependencies": { "picocolors": "^1.1.1", "zod": "^4.1.9" } }, "sha512-Trq3VDvoq36ldYoSkaVZ413CV7Aa3RzKWvHPaXFMtIFn4ZVa5WF/g1X1Cu4LFzWo+gfC17K1vhp45s+Mis0FlQ=="],
+    "@matthew-hre/env": ["@matthew-hre/env@0.3.2", "", { "dependencies": { "picocolors": "^1.1.1" }, "peerDependencies": { "zod": "^4.0.0" } }, "sha512-+9BB4I4mwt+acBISzJSh91Mt5qAtAu1yXLLhQHcfKW+C4n46a+Y2vT09mJyiQMRwbXNRH2l4mbdmznD72u6DOw=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@0.2.12", "", { "dependencies": { "@emnapi/core": "^1.4.3", "@emnapi/runtime": "^1.4.3", "@tybys/wasm-util": "^0.10.0" } }, "sha512-ZVWUcfwY4E/yPitQJl481FjFo3K22D6qF0DuFH6Y/nbnE11GY5uguDxZMGXPQ8WQ0128MXQD7TnfHyK4oWoIJQ=="],
 
