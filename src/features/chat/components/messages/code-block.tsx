@@ -2,14 +2,57 @@
 
 import type { FC } from "react";
 
-import DOMPurify from "dompurify";
 import { Check, Copy, Download, WrapText } from "lucide-react";
-import { useTheme } from "next-themes";
-import { memo, useEffect, useState } from "react";
+import Prism from "prismjs";
+import { memo, useMemo, useRef, useState } from "react";
 
 import { Button } from "~/components/ui/button";
 import { useCopyToClipboard } from "~/lib/hooks";
 import { cn } from "~/lib/utils";
+
+// Core languages (no dependencies)
+import "prismjs/components/prism-c";
+import "prismjs/components/prism-css";
+import "prismjs/components/prism-javascript";
+import "prismjs/components/prism-markup";
+// Languages with dependencies - order matters
+import "prismjs/components/prism-markup-templating"; // Required by PHP, etc.
+import "prismjs/components/prism-typescript";
+import "prismjs/components/prism-jsx";
+import "prismjs/components/prism-tsx";
+import "prismjs/components/prism-json";
+import "prismjs/components/prism-bash";
+import "prismjs/components/prism-python";
+import "prismjs/components/prism-markdown";
+import "prismjs/components/prism-yaml";
+import "prismjs/components/prism-sql";
+import "prismjs/components/prism-go";
+import "prismjs/components/prism-rust";
+import "prismjs/components/prism-cpp";
+import "prismjs/components/prism-java";
+import "prismjs/components/prism-csharp";
+import "prismjs/components/prism-ruby";
+import "prismjs/components/prism-php";
+import "prismjs/components/prism-swift";
+import "prismjs/components/prism-kotlin";
+import "prismjs/components/prism-dart";
+import "prismjs/components/prism-r";
+import "prismjs/components/prism-docker";
+import "prismjs/components/prism-makefile";
+import "prismjs/components/prism-nix";
+import "prismjs/components/prism-ocaml";
+import "prismjs/components/prism-haskell";
+import "prismjs/components/prism-elixir";
+import "prismjs/components/prism-erlang";
+import "prismjs/components/prism-scala";
+import "prismjs/components/prism-clojure";
+import "prismjs/components/prism-perl";
+import "prismjs/components/prism-diff";
+import "prismjs/components/prism-toml";
+import "prismjs/components/prism-ini";
+import "prismjs/components/prism-graphql";
+import "prismjs/components/prism-regex";
+import "prismjs/components/prism-zig";
 
 type CodeBlockProps = {
   language: string;
@@ -19,46 +62,17 @@ type CodeBlockProps = {
 export const CodeBlock: FC<CodeBlockProps> = memo(({ language: propLanguage, value }) => {
   const { copied: isCopied, copy } = useCopyToClipboard({ resetDelay: 2000 });
   const [wrap, setWrap] = useState(false);
-  const [highlightedCode, setHighlightedCode] = useState<string | null>(null);
-  const { resolvedTheme } = useTheme();
+  const codeRef = useRef<HTMLElement>(null);
 
-  const language = (propLanguage || "text").trim().toLowerCase();
+  const language = (propLanguage || "plaintext").trim().toLowerCase();
 
-  useEffect(() => {
-    let mounted = true;
-
-    const highlight = async () => {
-      try {
-        const response = await fetch("/api/highlight", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            code: value,
-            language,
-            theme: resolvedTheme,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to highlight");
-        }
-
-        const { html } = await response.json();
-        if (mounted) {
-          setHighlightedCode(DOMPurify.sanitize(html));
-        }
-      }
-      catch (error) {
-        console.error("Failed to highlight code:", error);
-      }
-    };
-
-    highlight();
-
-    return () => {
-      mounted = false;
-    };
-  }, [value, language, resolvedTheme]);
+  const highlightedHtml = useMemo(() => {
+    const grammar = Prism.languages[language];
+    if (grammar) {
+      return Prism.highlight(value, grammar, language);
+    }
+    return null;
+  }, [value, language]);
 
   const copyToClipboard = () => {
     if (!value)
@@ -99,7 +113,7 @@ export const CodeBlock: FC<CodeBlockProps> = memo(({ language: propLanguage, val
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `snippet.${language === "text" ? "txt" : language}`;
+    a.download = `snippet.${language === "plaintext" ? "txt" : language}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -126,7 +140,7 @@ export const CodeBlock: FC<CodeBlockProps> = memo(({ language: propLanguage, val
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setWrap(!wrap)} title="Toggle wrap">
             <WrapText className={cn("h-3.5 w-3.5", wrap
               ? "text-foreground"
-              : `text-muted-foreground`)}
+              : "text-muted-foreground")}
             />
             <span className="sr-only">Toggle line wrap</span>
           </Button>
@@ -146,26 +160,34 @@ export const CodeBlock: FC<CodeBlockProps> = memo(({ language: propLanguage, val
           </Button>
         </div>
       </div>
-      <div className="bg-background overflow-x-auto p-4 font-mono text-xs">
-        {highlightedCode
-          ? (
-              <div
-                dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                className={cn(`
-                  [&>pre]:m-0! [&>pre]:bg-transparent! [&>pre]:p-0!
-                `, wrap
-                  ? "[&>pre]:wrap-break-word [&>pre]:whitespace-pre-wrap"
-                  : `[&>pre]:overflow-x-auto [&>pre]:whitespace-pre`)}
-              />
-            )
-          : (
-              <code className={cn("text-foreground block", wrap
-                ? "wrap-break-word whitespace-pre-wrap"
-                : "whitespace-pre")}
-              >
-                {value}
-              </code>
-            )}
+      <div className="prism-code overflow-x-auto p-4 font-mono text-xs">
+        <pre className={cn(
+          wrap
+            ? "break-words whitespace-pre-wrap"
+            : "overflow-x-auto whitespace-pre",
+        )}
+        >
+          {highlightedHtml
+            ? (
+                <code
+                  ref={codeRef}
+                  className={`
+                    language-${language}
+                  `}
+                  dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+                />
+              )
+            : (
+                <code
+                  ref={codeRef}
+                  className={`
+                    language-${language}
+                  `}
+                >
+                  {value}
+                </code>
+              )}
+        </pre>
       </div>
     </div>
   );
