@@ -1,3 +1,4 @@
+/* eslint-disable node/no-process-env */
 import { loadEnv } from "@matthew-hre/env";
 import * as z from "zod";
 
@@ -25,4 +26,6 @@ const schema = {
 export type ServerEnvSchema = z.infer<typeof schema.server>;
 export type ClientEnvSchema = z.infer<typeof schema.client>;
 
-export const { serverEnv, clientEnv } = loadEnv(schema);
+export const { serverEnv, clientEnv } = loadEnv(schema, process.env, {
+  skipValidation: process.env.SKIP_ENV_VALIDATION === "true",
+});
